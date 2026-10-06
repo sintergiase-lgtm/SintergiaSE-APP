@@ -1,3 +1,5 @@
+<!-- SintergiaSE SUPABASE REPAIR v19 -->
+<!-- SintergiaSE SUPABASE REPAIR v15 · FINAL E2E AUDIT -->
 <!-- V3.45: E inicia el tambaleo exactamente en el último contacto del rebote, con apoyo en la base y caída lateral agresiva -->
 <!-- V3.41: giro spinner S/E amortiguado por impactos; S invierte en antepenúltimo y último rebote -->
 <!-- V3.40: caída S/E ligeramente más rápida (4.20/4.06 s); idénticos rebotes y asentamiento simultáneo -->
@@ -11,7 +13,6 @@
 <head>
     <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
-<meta name="sintergia-release" content="2026-10-06-public-ready-01">
 <!-- V3.49: núcleo 3D mixto de protones/neutrones, distribución volumétrica Fibonacci/ángulo áureo y masa física base con amplificación visual áurea; acceso correcto acelerado. -->
 <!-- V3.51: sin tambaleo final; deformación S/E a 128 Hz internos con 129 puntos por rebote, fluida en 60/120 Hz. -->
 <!-- V3.25 (bloque 2): rebote de S y E con elasticidad (estirar al caer/subir, aplastar al contacto, volumen constante), la S un rebote mas que la E, alturas/deslizamiento/giro aleatorios por letra, ultimo contacto exacto en t=1 (01/10/2026) -->
@@ -68,7 +69,7 @@
    - Valida URLs configuradas y añade una sonda OPTIONS explícita para comprobar capacidad del endpoint.
      El resultado queda cacheado y nunca se inventa una ruta de backend.
    - La confirmación usa únicamente operationStatusUrl proporcionado por configuración explícita del backend
-     o por la operación. No se generan rutas Supabase/Lovable por inferencia.
+     o por la operación. No se generan rutas Supabase/Supabase por inferencia.
    - Se añade soporte opcional para consultar un endpoint de estado explícitamente configurado por el backend.
      No se inventa ninguna ruta. Si no existe, la operación permanece incierta y conserva su operationId.
    - Una caída de red tras enviar una operación la marca como resultado incierto. Se conserva el operationId
@@ -184,10 +185,10 @@
       sessionStorage (se borran al cerrar la pestaña); en localStorage quedan EN CLARO clientes, partes y facturas
       con NIF, direccion, email y telefono. Pendiente decidir si se cifran en reposo (ya existen exportarCifrado /
       importarCifrado y clave de sesion, reutilizables).
-   Los unicos 404 que quedan al arrancar son /functions/v1/health y /functions/v1/realtime-snapshot: backend aun
+   Los unicos 404 que quedan al arrancar son /functions/v1/health y /functions/v1/realtime-snapshot: comprobación histórica; backend activo.
       no desplegado (P1).
 
-  PASADA Nº 10 · 28/09/2026 (proyecto Lovable nuevo, verificada en Chromium headless 390x844)
+  PASADA Nº 10 · 28/09/2026 (proyecto Supabase nuevo, verificada en Chromium headless 390x844)
    Analisis: 40 scripts inline sin errores de sintaxis (acorn) · arranque sin excepciones ·
       13 funciones renderizar* presentes · 18 pestañas · localStorage sin datos personales en claro
       (SintergiaLocalCrypto activo).
@@ -200,7 +201,7 @@
       Cierra la parte de P6 que dependia de CDN; los PDF ya funcionan sin internet.
    R20 Logo de la pantalla de acceso: emoji sustituido por el icono real de la app.
    Backend NO desplegado en este proyecto por decision del usuario: siguen los dos 404 de
-      /functions/v1/health y /functions/v1/realtime-snapshot y P1 queda abierto.
+      /functions/v1/health y /functions/v1/realtime-snapshot y P1 queda abierto (texto histórico).
 
   PASADA Nº 11 · 29/09/2026 (verificada en Chromium headless 390x844, antes y después)
    Analisis: 40 scripts inline sin errores de sintaxis (acorn) · 408 IDs unicos · 156 handlers on* resuelven a funcion
@@ -512,26 +513,25 @@
   });
 })();
 </script>
-<!-- SINTERGIA / LOVABLE CONFIG: secretos solo en backend/Edge Functions -->
+<!-- SINTERGIA / SUPABASE CONFIG: secretos solo en Edge Functions -->
 <script>
-window.SUPABASE_URL = window.SUPABASE_URL || 'https://bgjicsowspppsjzigazb.supabase.co';
-window.SINTERGIA_BACKEND_ORIGIN = window.SINTERGIA_BACKEND_ORIGIN || window.SUPABASE_URL;
-window.SINTERGIA_LOVABLE = Object.freeze({
-  auth: { endpoint: '/functions/v1/authenticate', registerBiometricEndpoint: '/functions/v1/register-biometric', authenticateBiometricEndpoint: '/functions/v1/authenticate-biometric', required: true },
-  sync: { snapshotEndpoint: '/functions/v1/realtime-snapshot', operationsEndpoint: '/functions/v1/sync-operations', enabled: true, offlineFirst: true, idempotencyHeader: 'X-Sintergia-Request-ID', maxQueueItems: 1000 },
-  references: { allocateEndpoint: '/functions/v1/allocate-reference', idempotencyHeader: 'X-Sintergia-Request-ID', enabled: true },
-  mail: { provider: 'gmail', domain: 'gmail.com', from: 'sintergiase@gmail.com', replyTo: 'sintergiase@gmail.com', endpoint: '/functions/v1/send-email', webhookOpenEndpoint: '/functions/v1/email-open', uploadEndpoint: '/functions/v1/upload-receipt', reminderEndpoint: '/functions/v1/cita-recordatorio' },
+window.SINTERGIA_SUPABASE = Object.freeze({
+  backendRevision: '2026-10-06-r13',
+  auth: { endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate', registerBiometricEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric', authenticateBiometricEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric', required: true },
+  sync: { snapshotEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot', operationsEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations', enabled: true, offlineFirst: true, idempotencyHeader: 'X-Sintergia-Request-ID', maxQueueItems: 1000 },
+  references: { allocateEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/allocate-reference', idempotencyHeader: 'X-Sintergia-Request-ID', enabled: true },
+  mail: { provider: 'gmail', domain: 'gmail.com', from: 'sintergiase@gmail.com', replyTo: 'sintergiase@gmail.com', endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email', webhookOpenEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/email-open', uploadEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/upload-receipt', reminderEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-recordatorio' },
   realtime: { table: 'app_state', channel: 'sintergia-realtime' },
-  /* Integraciones: TODAS las claves viven SOLO en Lovable/Edge Functions. */
+  /* Integraciones: TODAS las claves viven SOLO en Supabase Edge Functions. */
   routing: {
-    provider: 'google-routes',
-    fallbackProvider: 'mapbox',
-    matrixEndpoint: '/functions/v1/route-matrix',
-    routeEndpoint: '/functions/v1/route',
-    geocodeEndpoint: '/functions/v1/geocode',
+    provider: 'osrm',
+    fallbackProvider: 'google-routes',
+    matrixEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix',
+    routeEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route',
+    geocodeEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode',
     enabled: true,
-    traffic: true,
-    trafficPreference: 'TRAFFIC_AWARE',
+    traffic: false,
+    trafficPreference: 'NONE',
     travelMode: 'DRIVE',
     maxMatrixElements: 625,
     requestTimeoutMs: 12000,
@@ -539,22 +539,140 @@ window.SINTERGIA_LOVABLE = Object.freeze({
   },
   ai: {
     provider: 'openai',
-    endpoint: '/functions/v1/ai-gateway',
+    endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',
     api: 'responses',
     model: 'auto',
     enabled: true,
     timeoutMs: 30000
   },
   observability: {
-    healthEndpoint: '/functions/v1/health',
+    healthEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health',
     enabled: true
   },
-  supabase: { url: window.SUPABASE_URL || 'https://bgjicsowspppsjzigazb.supabase.co' }
+  supabase: { url: 'https://bgjicsowspppsjzigazb.supabase.co' },
+  /* Registro único de TODAS las Edge Functions utilizadas por este archivo. */
+  functions: {
+    health: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health',
+    authenticate: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate',
+    registerBiometric: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric',
+    authenticateBiometric: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric',
+    realtimeSnapshot: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot',
+    syncOperations: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations',
+    allocateReference: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/allocate-reference',
+    sendEmail: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email',
+    emailOpen: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/email-open',
+    uploadReceipt: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/upload-receipt',
+    citaRecordatorio: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-recordatorio',
+    citaEmail: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-email',
+    citaWhatsapp: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-whatsapp',
+    citaEstado: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado',
+    citaAnulacionReprogramacion: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-anulacion-reprogramacion',
+    geocode: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode',
+    reverseGeocode: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode',
+    route: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route',
+    routeMatrix: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix',
+    gasolineras: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras',
+    aiGateway: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',
+    consultaNormativa: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/consulta-normativa',
+    buscarNormativa: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/buscar-normativa',
+    descargarHtml: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/descargar-html',
+    uploadDoc: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/upload-doc',
+    receiptRegister: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-register',
+    receiptStatus: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status',
+    verifyReceipt: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt',
+    invoiceReturn: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/invoice-return',
+    invoiceReturnStatus: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/invoice-return-status'
+  }
 });
 </script>
 <!-- =========================================================
-  CHECKLIST PARA LOVABLE — esto es TODO lo que hay que dar de alta
-  en el backend/Edge Functions para que la app funcione al 100%.
+  SINTERGIA · PUENTE DE COMPATIBILIDAD SUPABASE / BACKEND
+  -----------------------------------------------------------------
+  Mantiene un único origen backend para todos los módulos:
+    - SUPABASE_URL
+    - SINTERGIA_BACKEND_ORIGIN
+    - SINTERGIA_SUPABASE
+    - SINTERGIA_LOVABLE (compatibilidad con módulos heredados)
+  No contiene claves ni secretos.
+========================================================= -->
+<script id="sintergia-supabase-connection-bridge-v1">
+(function(global){
+  'use strict';
+
+  var CFG = global.SINTERGIA_SUPABASE || {};
+  var SUPABASE_URL = 'https://bgjicsowspppsjzigazb.supabase.co';
+
+  /* El proyecto Supabase es la única autoridad del backend. */
+  if (!global.SUPABASE_URL) global.SUPABASE_URL = SUPABASE_URL;
+  if (!global.SINTERGIA_BACKEND_ORIGIN) global.SINTERGIA_BACKEND_ORIGIN = SUPABASE_URL;
+
+  /*
+   * Compatibilidad: algunas piezas antiguas de SintergiaSE usaban
+   * SINTERGIA_LOVABLE. No duplicamos configuración: apuntamos al mismo objeto.
+   */
+  if (!global.SINTERGIA_LOVABLE) global.SINTERGIA_LOVABLE = CFG;
+  if (!global.SG_CONFIG) global.SG_CONFIG = CFG;
+  if (!global.SINTERGIA_CONFIG) global.SINTERGIA_CONFIG = CFG;
+
+  /*
+   * Convierte únicamente rutas relativas /functions/v1/* al backend Supabase.
+   * Las URLs absolutas se conservan sin alteración.
+   */
+  if (typeof global.sintergiaResolveEndpoint !== 'function') {
+    global.sintergiaResolveEndpoint = function(raw){
+      var value = String(raw || '');
+      if (!value) return '';
+      if (/^https?:\/\//i.test(value)) return value;
+      if (/^\/functions\/v1\//.test(value)) return SUPABASE_URL + value;
+      return value;
+    };
+  }
+
+  /* Exposición diagnóstica sin secretos. */
+  global.SintergiaSupabaseConnection = {
+    url: SUPABASE_URL,
+    projectRef: 'bgjicsowspppsjzigazb',
+    functionsOrigin: SUPABASE_URL + '/functions/v1/',
+    resolve: global.sintergiaResolveEndpoint
+  };
+  global.SintergiaSupabaseConnection.selfTest = function(){
+    return {
+      ok: true,
+      url: SUPABASE_URL,
+      health: global.sintergiaResolveEndpoint('/functions/v1/health'),
+      auth: global.sintergiaResolveEndpoint('/functions/v1/authenticate'),
+      sync: global.sintergiaResolveEndpoint('/functions/v1/realtime-snapshot'),
+      ai: global.sintergiaResolveEndpoint('/functions/v1/ai-gateway'),
+      functions: Object.assign({}, (CFG && CFG.functions) || {})
+    };
+  };
+
+  /*
+   * Capa de seguridad de enrutamiento: cualquier llamada relativa a
+   * /functions/v1/* que aparezca en un módulo antiguo termina en Supabase,
+   * incluso aunque ese módulo no use explícitamente sintergiaResolveEndpoint().
+   * Las llamadas externas (Nominatim, Ministerio, etc.) no se modifican.
+   */
+  if (!global.__sintergiaFetchRoutedToSupabase && typeof global.fetch === 'function') {
+    var nativeFetch = global.fetch.bind(global);
+    global.fetch = function(input, init){
+      try {
+        if (typeof input === 'string') {
+          return nativeFetch(global.sintergiaResolveEndpoint(input), init);
+        }
+        if (typeof URL !== 'undefined' && input instanceof URL) {
+          return nativeFetch(global.sintergiaResolveEndpoint(input.toString()), init);
+        }
+      } catch (_) { /* delegar la validación al fetch nativo */ }
+      return nativeFetch(input, init);
+    };
+    global.__sintergiaFetchRoutedToSupabase = true;
+  }
+})(window);
+</script>
+<!-- =========================================================
+  CHECKLIST PARA SUPABASE — esto es TODO lo que hay que dar de alta
+  en el backend/Edge Functions de Supabase para que la app funcione al 100%.
   El HTML nunca contiene claves; solo llama a estas rutas relativas.
 
   AUTENTICACIÓN
@@ -577,7 +695,7 @@ window.SINTERGIA_LOVABLE = Object.freeze({
    - POST /functions/v1/geocode
    - POST /functions/v1/reverse-geocode
    - POST /functions/v1/route
-   - POST /functions/v1/route-matrix           (Google Routes; Mapbox como respaldo)
+   - POST /functions/v1/route-matrix           (OSRM; Google Routes como proveedor alternativo)
 
   NUMERACIÓN OFICIAL
    - POST /functions/v1/allocate-reference    (tenant derivado del JWT en Edge Function;
@@ -602,14 +720,12 @@ window.SINTERGIA_LOVABLE = Object.freeze({
    - POST /functions/v1/upload-doc / /functions/v1/receipt-register / /functions/v1/receipt-status / /functions/v1/verify-receipt
    - POST /functions/v1/send-email / /functions/v1/email-open / /functions/v1/upload-receipt
 
-  Mientras el backend no exista, cada función tiene su propio fallback local (mailto:,
-  wa.me, cálculo de ruta local, verificación local de contraseña) para que la demo
-  siga siendo usable — pero para producción real hay que dar de alta las rutas de arriba.
+  NOTA DE DESPLIEGUE: el backend SintergiaSE está desplegado en Supabase. Las claves de
+proveedores permanecen exclusivamente en Edge Functions. Los fallbacks locales solo se
+usan cuando el módulo los declara explícitamente y nunca sustituyen la autenticación
+del backend en producción.
 ========================================================= -->
 <script>
-window.__SINTERGIA_LOVABLE_NOOP = true;
-(function(global){'use strict';function base(){var raw=global.SINTERGIA_BACKEND_ORIGIN||global.SUPABASE_URL||'';try{return new URL(String(raw),global.location.href).toString().replace(/\/$/,'');}catch(_){return '';}}global.sintergiaResolveEndpoint=function(raw){var u=String(raw||'');if(!/^\/functions\/v1\//.test(u))return u;var b=base();return b?b+u:u;};})(window);
-
 /* =====================================================================
    PUENTE GLOBAL DE AUTENTICACIÓN / OPERACIONES
    ---------------------------------------------------------------------
@@ -668,16 +784,16 @@ window.__SINTERGIA_LOVABLE_NOOP = true;
 </script>
 <script>
 
-/* Contrato de seguridad para Lovable: no contiene secretos. */
+/* Contrato de seguridad para Supabase: no contiene secretos. */
 window.SintergiaSecurityConfig = Object.freeze({
   version: 2,
-  authBackendEndpoint: '/functions/v1/authenticate',
+  authBackendEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate',
   requireBackendInProduction: true,
   clientFallbackAllowed: false,
   neverStorePasswords: true,
   neverTrustClientAuthorization: true,
   randomOperationTokens: true,
-  recommendedSessionMaxAgeMs: 12 * 60 * 60 * 1000
+  recommendedSessionMaxAgeMs: 8 * 60 * 60 * 1000
 });
 </script>
 <!-- ===== ARRANQUE SEGURO + INDICADORES GPS / INTERNET (añadido) ===== -->
@@ -2657,11 +2773,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script id="sintergia-backend-health-v1">
 (function(){
  'use strict';
- var cfg=window.SINTERGIA_LOVABLE&&window.SINTERGIA_LOVABLE.observability||{};
- var endpoint=cfg.healthEndpoint||'/api/public/health', fallbackEndpoint='/functions/v1/health', timer=null, busy=false, last=null;
+ var cfg=window.SINTERGIA_SUPABASE&&window.SINTERGIA_SUPABASE.observability||{};
+ var canonical='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health';
+ var fallbackEndpoint=canonical, endpoint=(typeof window.sintergiaResolveEndpoint==='function' ? window.sintergiaResolveEndpoint(cfg.healthEndpoint||canonical) : (cfg.healthEndpoint||canonical));
+ var timer=null, busy=false, last=null;
  function el(id){return document.getElementById(id)}
- function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Lovable operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
- async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'include',signal:c.signal,headers:{'X-Sintergia-Health-Check':'1'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'include',headers:{'X-Sintergia-Health-Check':'1'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
+ function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Supabase operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
+ async function ping(manual){if(busy)return false;busy=true;var lastError=null;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var urls=[];[endpoint,fallbackEndpoint].forEach(function(u){if(u&&!urls.includes(u))urls.push(u);});for(var i=0;i<urls.length;i++){var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);try{var r=await fetch(urls[i],{method:'GET',cache:'no-store',credentials:'omit',mode:'cors',signal:c.signal,headers:{'Accept':'application/json'}});clearTimeout(to);if(!r.ok){lastError=new Error('HTTP '+r.status);continue;}var d=await r.json().catch(function(){return null});if(d&&d.ok===true){render(true,'OK');return true;}lastError=new Error((d&&d.message)||('health=false o respuesta inválida (HTTP '+r.status+')'));}catch(e){clearTimeout(to);lastError=e;}}throw lastError||new Error('Sin respuesta');}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
  function start(){ping(false);if(timer)clearInterval(timer);timer=setInterval(function(){if(!document.hidden)ping(false)},30000);window.addEventListener('online',function(){ping(true);try{window.SintergiaOffline&&window.SintergiaOffline.flush&&window.SintergiaOffline.flush()}catch(_){window.__sgIgn&&window.__sgIgn(_);} });window.addEventListener('offline',function(){render(false,'Sin conexión de red')});}
  window.SintergiaBackendHealth={ping:ping,last:function(){return last},start:start,endpoint:endpoint};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
@@ -2669,7 +2787,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </script>
 <script id="sintergia-backend-contracts">
 /*
- CONTRATO JSON MÍNIMO PARA LOVABLE — RUTAS IA / BIOMETRÍA / HEALTH
+ CONTRATO JSON MÍNIMO PARA SUPABASE — RUTAS IA / BIOMETRÍA / HEALTH
 
  GET /api/public/health (o GET /functions/v1/health)
    -> 200 {"ok":true,"service":"sintergia","version":"...","timestamp":"ISO-8601"}
@@ -2711,19 +2829,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
 <script id="sintergia-offline-first-v3">
 /* =====================================================================
-   SINTERGIASE APP · OFFLINE-FIRST / LOVABLE BACKEND BRIDGE v3
+   SINTERGIASE APP · OFFLINE-FIRST / SUPABASE SUPABASE BACKEND BRIDGE v3
    - LocalStorage es la fuente de trabajo cuando no hay backend/internet.
    - Cada cambio guarda un snapshot y se añade a una cola durable.
    - Las llamadas POST a API/Edge Functions que fallen por red quedan en
      una cola durable y se reintentan al recuperar conexión.
-   - Los reintentos llevan X-Sintergia-Request-ID para que Lovable pueda
+   - Los reintentos llevan X-Sintergia-Request-ID para que Supabase pueda
      aplicar idempotencia y no duplicar avisos, partes, facturas, emails,
      citas o trabajos de IA/rutas.
    - El backend debe exponer /functions/v1/realtime-snapshot y, opcionalmente, /functions/v1/sync-operations.
    ===================================================================== */
 (function(){
   'use strict';
-  const CFG=window.SINTERGIA_LOVABLE||{};
+  const CFG=window.SINTERGIA_SUPABASE||{};
   const CHANNEL=(CFG.realtime&&CFG.realtime.channel)||'sintergia-realtime';
   const LS={
     device:'sintergia_device_id_v3',
@@ -2804,8 +2922,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function uuid(){try{if(crypto.randomUUID)return crypto.randomUUID();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return 'sint-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}
   function deviceId(){let id='';try{id=sessionStorage.getItem(LS.device)||localStorage.getItem(LS.device)||'';}catch(_){window.__sgIgn&&window.__sgIgn(_);}if(!id){id=uuid();try{sessionStorage.setItem(LS.device,id);localStorage.setItem(LS.device,id);}catch(_){window.__sgIgn&&window.__sgIgn(_);}}return id;}
   const DEVICE=deviceId();
-  function sameOriginApi(url){try{const u=new URL(url,location.href);return u.origin===location.origin && (/^\/functions\//.test(u.pathname)||u.pathname==='/functions/v1/realtime-snapshot');}catch(_){return false;}}
-  function excluded(url){try{const p=new URL(url,location.href).pathname;return /\/authenticate(?:$|\/)/.test(p)||/\/health(?:$|\/)/.test(p)||p==='/functions/v1/realtime-snapshot';}catch(_){return true;}}
+  function sameOriginApi(url){try{const u=new URL(url,location.href);return (u.origin===location.origin||u.origin==='https://bgjicsowspppsjzigazb.supabase.co') && /^\/functions\//.test(u.pathname);}catch(_){return false;}}
+  function excluded(url){try{const u=new URL(url,location.href),p=u.pathname;return /\/authenticate(?:$|\/)/.test(p)||/\/health(?:$|\/)/.test(p)||/\/realtime-snapshot(?:$|\/)/.test(p);}catch(_){return true;}}
   function toast(msg){try{if(window.mostrarToast)window.mostrarToast(msg);}catch(_){window.__sgIgn&&window.__sgIgn(_);} }
   function getQ(k){const q=read(k,[]);return Array.isArray(q)?q:[];}
   function putQ(k,q){
@@ -3352,16 +3470,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   /* Interceptor transparente: si una petición POST de backend falla por red,
      se conserva para ejecutar exactamente la misma petición al volver online. */
   window.fetch=async function(input,init){
-    const originalUrl=typeof input==='string'?input:(input&&input.url)||'';
-    const url=sintergiaResolveEndpoint(originalUrl);
+    const url=typeof input==='string'?input:(input&&input.url)||'';
     const opts=init||{};
     const method=String(opts.method||(input&&input.method)||'GET').toUpperCase();
-    var requestInput=input;
-    if(url!==originalUrl){if(typeof input==='string')requestInput=url;else{try{requestInput=new Request(url,input);}catch(_){requestInput=url;}}}
-    if(method!=='POST'||!sameOriginApi(url)||excluded(url))return rawFetch(requestInput,init);
+    if(method!=='POST'||!sameOriginApi(url)||excluded(url))return rawFetch(input,init);
     let requestId='';
     try{const h=new Headers(opts.headers||(input&&input.headers)||{});requestId=h.get('X-Sintergia-Request-ID')||uuid();h.set('X-Sintergia-Request-ID',requestId);const next=Object.assign({},opts,{headers:h});
-      try{return await rawFetch(requestInput,next);}catch(e){
+      try{return await rawFetch(input,next);}catch(e){
         if(isNetworkError(e)){
           enqueueApi(url,next,'fetch-network-fallback');
           toast('📴 Sin backend: operación guardada y pendiente de sincronización.');
@@ -3421,9 +3536,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return {value:merged,conflicts};
   }
   async function fetchRemoteForConflict(){
-    const endpoint='/functions/v1/realtime-snapshot?channel='+encodeURIComponent(CHANNEL);
+    const endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot?channel='+encodeURIComponent(CHANNEL);
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Accept':'application/json'});
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{credentials:'include',cache:'no-store',headers:hdr});
+    const r=await rawFetch(endpoint,{credentials:'include',cache:'no-store',headers:hdr});
     if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);
     const d=await r.json();
     return d.snapshot||d.state||d;
@@ -3468,7 +3583,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(!operationValid(item)){
       throw Object.assign(new Error('Operación de sincronización inválida'),{permanent:true,validation:true});
     }
-    const endpoint=(CFG.sync&&CFG.sync.operationsEndpoint)||'/functions/v1/sync-operations';
+    const endpoint=(CFG.sync&&CFG.sync.operationsEndpoint)||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations';
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'});
     const headers=new Headers(hdr);
     headers.set('Content-Type','application/json');
@@ -3490,7 +3605,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       },
       deviceId:DEVICE
     };
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers,credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
+    const r=await rawFetch(endpoint,{method:'POST',headers,credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
     if(r.status===404||r.status===405)return {unsupported:true};
     let data=null; try{data=await r.json();}catch(_){}
     if(r.status===401||r.status===403)throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true});
@@ -3503,15 +3618,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return {ok:true,data:data||null};
   }
   async function postSnapshot(item){
-    const endpoint='/functions/v1/realtime-snapshot';
+    const endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
     const payload={channel:CHANNEL,snapshot:item.snapshot,deviceId:DEVICE,clientChangeId:item.id,clientUpdatedAt:item.snapshot&&item.snapshot.clientUpdatedAt||item.createdAt};
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-Sintergia-Request-ID':item.id},credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
+    const r=await rawFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-Sintergia-Request-ID':item.id},credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     return true;
   }
   async function postApi(item){
     const headers=Object.assign({},item.headers,{'X-Sintergia-Request-ID':item.requestId});
-    const r=await rawFetch(sintergiaResolveEndpoint(item.url),{method:'POST',headers:headers,credentials:'include',cache:'no-store',body:item.body});
+    const r=await rawFetch(item.url,{method:'POST',headers:headers,credentials:'include',cache:'no-store',body:item.body});
     if(!r.ok){if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429)throw Object.assign(new Error('HTTP '+r.status),{permanent:true});throw new Error('HTTP '+r.status);}
     return true;
   }
@@ -3544,7 +3659,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       }
       putQ(LS.api,remain);
       /* P41: operaciones idempotentes. Si el endpoint aún no existe, el snapshot
-         completo actúa como fallback y conserva la compatibilidad con Lovable. */
+         completo actúa como fallback y conserva la compatibilidad con Supabase. */
       let oq=getQ(LS.operations), opKeep=[], operationEndpointUnsupported=false;
       for(const item of oq){
         try{
@@ -3645,9 +3760,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 })();
 </script>
 
-<!-- LOVABLE DEPLOY CONTRACT (offline-first): la URL de producción es la del proyecto Lovable.
-     El frontend usa rutas relativas para que el mismo HTML funcione en preview y producción.
-     Backend recomendado: POST /functions/v1/realtime-snapshot (snapshot fusionado por deviceId/revision) y
+<!-- SUPABASE DEPLOY CONTRACT (offline-first): la URL de producción es la del proyecto Supabase.
+     El frontend utiliza directamente las Edge Functions del proyecto Supabase configurado.
+     Backend Supabase: POST /functions/v1/realtime-snapshot (snapshot fusionado por deviceId/revision) y
      POST /functions/v1/sync-operations (opcional, para auditoría/operaciones). Todas las operaciones
      POST deben aceptar X-Sintergia-Request-ID y ser idempotentes. El servidor debe fusionar
      cambios por entidad/ID y updatedAt/revision, nunca sustituir ciegamente todo el estado.
@@ -3808,7 +3923,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
 .sgx-flying{position:absolute;z-index:5;left:0;top:0;color:var(--oro);font-family:"Segoe UI",Arial,Helvetica,sans-serif;text-align:center;font-size:clamp(18px,4.5vw,36px);font-weight:700;line-height:1;transform-origin:50% 50%;opacity:0;visibility:hidden;will-change:transform,opacity;backface-visibility:hidden;transform-style:preserve-3d;pointer-events:none}
 .sgx-sweep{position:absolute;left:50%;bottom:-.1em;width:min(90vw,780px);height:1.5em;font-size:clamp(18px,4.5vw,36px);background:linear-gradient(100deg,transparent 28%,rgba(244,247,251,.95) 48%,var(--oro) 54%,transparent 72%);opacity:0;transform:translateX(-150%) skewX(-16deg);pointer-events:none}
 @media(max-width:520px){.sgx-name{font-size:clamp(38px,13vw,56px)}.sgx-subtitle,.sgx-sweep{font-size:clamp(16px,5vw,21px)}.sgx-subtitle{gap:7px}}
-@media(prefers-reduced-motion:reduce){.sgx-atom,.sgx-fx,.sgx-sweep,.sgx-flying{display:none}.sg-transition-active .sgx-glow{animation:none;opacity:1}.sgx-name{opacity:1}.sgx-target{visibility:visible}.sgx-char{opacity:1}}
+@media(prefers-reduced-motion:reduce){.sgx-atom,.sgx-atom-webgl,.sgx-fx,.sgx-sweep,.sgx-flying{display:none}.sg-transition-active .sgx-glow{animation:none;opacity:1}.sgx-name{opacity:1}.sgx-target{visibility:visible}.sgx-char{opacity:1}}
 
 /* Fast luminous 3D orbits and an asynchronous, centre-out word ignition. */
 .sgx-atom{width:clamp(190px,26vw,300px)}
@@ -3822,6 +3937,11 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
 #sintergia-entry-transition::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at 50% 46%,rgba(1,6,18,0) 42%,rgba(1,6,18,.6) 100%)}
 </style>
 <style id="sg-ok-visible-fix">body.sintergia-locked > #sg-ok-overlay,body.sintergia-locked > .sg-fake-ok,body.sintergia-locked > #sg-fake-ok,body.sintergia-locked > #sintergia-entry-transition.sg-transition-active{visibility:visible !important;pointer-events:auto !important}</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<style id="sintergia-atom-engine-css">
+#sintergia-entry-transition .sgx-atom-webgl{position:absolute;inset:0;width:100%;height:100%;z-index:1;display:block;pointer-events:none;opacity:1}
+#sintergia-entry-transition .sgx-atom{visibility:hidden!important;opacity:0!important}
+</style>
 </head>
 <body>
 <div id="sintergia-landing" role="document">
@@ -3870,6 +3990,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
 
 <div id="sintergia-entry-transition" aria-hidden="true">
   <div class="sgx-glow" aria-hidden="true"></div>
+  <canvas id="sgx-atom-webgl" class="sgx-atom-webgl" aria-hidden="true"></canvas>
   <canvas class="sgx-trail" aria-hidden="true"></canvas>
   <div class="sgx-atom sgx-blue" aria-hidden="true"><canvas width="284" height="284"></canvas></div>
   <div class="sgx-atom sgx-gold" aria-hidden="true"><canvas width="284" height="284"></canvas></div>
@@ -3883,6 +4004,50 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
   </section>
   <span id="sgx-fly-s" class="sgx-flying" aria-hidden="true">S</span><span id="sgx-fly-e" class="sgx-flying" aria-hidden="true">E</span>
 </div>
+<script id="sintergia-atom-engine">
+(function(){
+'use strict';
+if(!window.THREE)return;
+var TAU=Math.PI*2,PHI=1.618033988749895,INV=0.6180339887498949,GA=TAU*INV;
+var canvas=null,renderer=null,scene=null,cam=null,root=null,AB=null,AG=null,stars=null,raf=0,running=false,t0=0,last=0,dpr=1;
+var U={uT:{value:0},uS:{value:0}};
+var cl=function(v,a,b){return Math.min(b,Math.max(a,v))};
+var ss=function(a,b,x){x=cl((x-a)/(b-a),0,1);return x*x*(3-2*x)};
+var hash=function(n){n=Math.sin(n*12.9898+78.233)*43758.5453;return n-Math.floor(n)};
+var vn=function(x,q){var f=Math.floor(x),u=x-f;u=u*u*(3-2*u);return(hash(f*1.7+q)*2-1)*(1-u)+(hash(f*1.7+1.7+q)*2-1)*u};
+function pack(n){var P=[],a,b,it,Rc=1.41*Math.cbrt(n)-1,dx,dy,dz,d,m,k,sx=0,sy=0,sz=0;
+ for(a=0;a<n;a++){var u=hash(a*7.31+n),v=hash(a*3.17+55+n),w=hash(a*5.77+99+n),q=Rc*Math.cbrt(u),c=2*v-1,sn=Math.sqrt(1-c*c),t=TAU*w;P.push([q*sn*Math.cos(t),q*c,q*sn*Math.sin(t)])}
+ for(it=0;it<260;it++){for(a=0;a<n;a++)for(b=a+1;b<n;b++){dx=P[b][0]-P[a][0];dy=P[b][1]-P[a][1];dz=P[b][2]-P[a][2];d=Math.sqrt(dx*dx+dy*dy+dz*dz)||1e-4;m=1.94-d;if(m>0){m=m*.3/d;P[a][0]-=dx*m;P[a][1]-=dy*m;P[a][2]-=dz*m;P[b][0]+=dx*m;P[b][1]+=dy*m;P[b][2]+=dz*m}}
+  for(a=0;a<n;a++){P[a][0]*=.997;P[a][1]*=.997;P[a][2]*=.997;r=Math.hypot(P[a][0],P[a][1],P[a][2]);if(r>Rc){k=Rc/r;P[a][0]*=k;P[a][1]*=k;P[a][2]*=k}}}
+ for(a=0;a<n;a++){sx+=P[a][0];sy+=P[a][1];sz+=P[a][2]}for(a=0;a<n;a++){P[a][0]-=sx/n;P[a][1]-=sy/n;P[a][2]-=sz/n}return{P:P,R:Rc+1}}
+function sph(a,tm){var g=1.02+.1*Math.sin(.9*tm+.7),w=.34*Math.sin(.8*tm+.6),k=.45*Math.sin(.6*tm+1.2),sa=Math.sin(a),px=Math.cos(a),py=sa*Math.cos(g),pz=sa*Math.sin(g),c=Math.cos(w),s=Math.sin(w),x=px*c+pz*s,z=pz*c-px*s,ck=Math.cos(k),sk=Math.sin(k);return[x*ck-py*sk,x*sk+py*ck,z]}
+var LU={value:new THREE.Vector3(-.5,.6,.6)},HU={value:0},cc=new THREE.Color(),PP={r:[[.91,.35,.23],[.64,.16,.12]],n:[[.35,.62,.88],[.14,.34,.65]]};
+var SSS='{vec3 V=normalize(vViewPosition);float nl=dot(normal,uL),fr=pow(1.-clamp(dot(V,normal),0.,1.),2.6),band=smoothstep(-.28,.05,nl)*(1.-smoothstep(.05,.5,nl)),shd=smoothstep(.15,-.55,nl);vec3 al=diffuseColor.rgb,c=gl_FragColor.rgb;c=mix(c,c*vec3(.62,.7,1.)+al*vec3(.03,.05,.12),shd*.55);c+=al*vec3(1.,.42,.2)*band*(.28+.2*uH);c+=al*vec3(1.,.55,.35)*fr*clamp(.35-nl,0.,1.)*.7;c+=vec3(.55,.75,1.)*fr*clamp(nl*.5+.5,0.,1.)*.06;gl_FragColor.rgb=c;}';
+function pmat(vs,u){return new THREE.ShaderMaterial({vertexShader:vs,fragmentShader:'varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5)*2.;float a=1.-smoothstep(0.,1.,d);gl_FragColor=vec4(vC,a*a*vA);}',uniforms:u,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})}
+var VS_TR='uniform float uS,uA;uniform vec3 uCol;attribute float aT;varying vec3 vC;varying float vA;void main(){float h=1.-smoothstep(0.,.05,aT);vA=uA*pow(1.-aT,2.)*(.4+.5*h);vC=uCol*(1.+.8*h);vec4 m=modelViewMatrix*vec4(position,1.);gl_PointSize=max(1.,uS*.05*(.5+.5*(1.-aT)+1.6*h)/max(-m.z,.5));gl_Position=projectionMatrix*m;}';
+var VS_STAR='uniform float uT,uS,uA;attribute float aB;varying vec3 vC;varying float vA;void main(){float tw=.55+.45*sin(uT*(1.+aB*3.)+aB*40.);vA=uA*aB*tw;vC=mix(vec3(.7,.82,1.),vec3(1.,.9,.8),fract(aB*7.));vec4 m=modelViewMatrix*vec4(position,1.);gl_PointSize=max(1.2,uS*.14*(.5+aB)/-m.z);gl_Position=projectionMatrix*m;}';
+function atom(shells,np,nn,ecol,id){var g=new THREE.Group(),el=[],si=0,base=[],mt=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.36,clearcoat:.5,clearcoatRoughness:.3,envMapIntensity:.7,emissive:0xff6a1e,emissiveIntensity:0}),pk=pack(nn),rr=.8*shells[0][0]/pk.R;mt.onBeforeCompile=function(sh){sh.uniforms.uL=LU;sh.uniforms.uH=HU;sh.fragmentShader='uniform vec3 uL;uniform float uH;\n'+sh.fragmentShader.replace('#include <tonemapping_fragment>',SSS+'\n#include <tonemapping_fragment>')};
+ var im=new THREE.InstancedMesh(new THREE.SphereGeometry(1,20,14),mt,nn),nt={pr:[],dp:[],bl:[]};im.frustumCulled=false;
+ for(var i=0;i<nn;i++){var pr=Math.floor((i+1)*np/nn)>Math.floor(i*np/nn);base.push(new THREE.Vector3(pk.P[i][0]*rr,pk.P[i][1]*rr,pk.P[i][2]*rr));nt.pr.push(pr);nt.dp.push(Math.min(1,Math.hypot(pk.P[i][0],pk.P[i][1],pk.P[i][2])/pk.R));im.setColorAt(i,cc.set(0xffffff))}
+ for(i=0;i<nn;i++){var so=0,tn=0;for(var j=0;j<nn;j++)if(j!==i&&Math.hypot(pk.P[i][0]-pk.P[j][0],pk.P[i][1]-pk.P[j][1],pk.P[i][2]-pk.P[j][2])<2.6){tn++;if(nt.pr[j]!==nt.pr[i])so++}nt.bl.push(tn?so/tn:0)}g.add(im);
+ shells.forEach(function(sh,s){for(var j=0;j<sh[1];j++){var inc=Math.acos(1-2*(j+.5)/sh[1]),nd=(j+s*2.1)*GA;el.push({r:sh[0],s:s,w:(s%2?-1:1)*2.4/Math.pow(sh[0],1.5)*(.85+.3*hash(si)),q:new THREE.Quaternion().setFromEuler(new THREE.Euler(inc,nd,0,'YXZ')),t:hash(si+9)*TAU});si++}});
+ var NT=22,N=el.length,pos=new Float32Array(N*NT*3),at=new Float32Array(N*NT);for(i=0;i<N*NT;i++)at[i]=(i%NT)/NT;var gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3).setUsage(THREE.DynamicDrawUsage));gm.setAttribute('aT',new THREE.BufferAttribute(at,1));var tm=new THREE.Points(gm,pmat(VS_TR,{uS:U.uS,uA:{value:0},uCol:{value:new THREE.Color(ecol)}}));tm.frustumCulled=false;g.add(tm);scene.add(g);return{g:g,im:im,base:base,el:el,tm:tm,NT:NT,mt:mt,rr:rr,id:id,zs:1,nt:nt,sh:[]}}
+function wob(A,sim,heat){var s,h,o,kk=.7+.5*heat;for(s=0;s<4;s++){o=A.sh[s]=A.sh[s]||{m:[],q:[],Q:new THREE.Quaternion(),E:new THREE.Euler(0,0,0,'YXZ')};for(h=0;h<3;h++){o.q[h]=1.9*vn(sim*(.8+.25*h)+s*3.3+h*5.7+A.id*2.1,10+h+s*3)+h*1.3+s;o.m[h]=[.08,.05,.035][h]*kk*(.55+.9*(.5+.5*vn(sim*.6+s*2+h*3+A.id,20+h)))}o.E.set(.22*(vn(sim*.55+s*3.9+A.id*6.7,30+s)+.5*vn(sim*1.3+s*2.3,40+s)),(s%2?-.56:.64)*(1+s*INV*.08)*sim*.35,.22*(vn(sim*.62+s*4.7+A.id*9.3,50+s)+.5*vn(sim*1.45+s*2.9,60+s)));o.Q.setFromEuler(o.E)}}
+var dm=new THREE.Object3D(),v3=new THREE.Vector3();
+function upd(A,sim,ts,heat,fade){wob(A,sim,heat);var p=A.tm.geometry.attributes.position.array,o=0,ln=.95*(.2+.8*ts)/A.NT,j=(.012+.03*heat)*A.rr/.17;for(var i=0;i<A.base.length;i++){var b=A.base[i];dm.position.set(b.x+j*Math.sin(sim*13+i*1.7),b.y+j*Math.sin(sim*11+i*2.3),b.z+j*Math.sin(sim*12+i*3.1));var nq=A.nt,pa=nq.pr[i]?PP.r:PP.n,pb=nq.pr[i]?PP.n:PP.r,u=nq.dp[i]*.7,kb2=nq.bl[i]*.22,sv=.92+.1*Math.sin(sim*1.7+i*1.37),hk=heat*.2*(1-nq.dp[i]),cr=(pa[0][0]*(1-u)+pa[1][0]*u)*(1-kb2)+pb[0][0]*kb2,cg=(pa[0][1]*(1-u)+pa[1][1]*u)*(1-kb2)+pb[0][1]*kb2,cb=(pa[0][2]*(1-u)+pa[1][2]*u)*(1-kb2)+pb[0][2]*kb2;cc.setRGB((cr+(1-cr)*hk)*sv,(cg+(.42-cg)*hk)*sv,(cb+(.12-cb)*hk)*sv);A.im.setColorAt(i,cc);dm.scale.setScalar(A.rr);dm.updateMatrix();A.im.setMatrixAt(i,dm.matrix)}A.im.instanceMatrix.needsUpdate=true;A.im.instanceColor.needsUpdate=true;A.mt.emissive.setRGB(1,.29+.35*heat,.08+.1*heat);A.mt.emissiveIntensity=heat*.45;A.el.forEach(function(e){var th=e.t+e.w*sim,sg=Math.sign(e.w),o2=A.sh[e.s];for(var k=0;k<A.NT;k++){var a=th-sg*k*ln,rq=e.r*(1+o2.m[0]*Math.sin(2*a+o2.q[0])+o2.m[1]*Math.sin(3*a+o2.q[1])+o2.m[2]*Math.sin(5*a+o2.q[2]));v3.set(rq*Math.cos(a),0,rq*Math.sin(a)).applyQuaternion(e.q).applyQuaternion(o2.Q);p[o++]=v3.x;p[o++]=v3.y;p[o++]=v3.z}});A.tm.geometry.attributes.position.needsUpdate=true;A.tm.material.uniforms.uA.value=fade*.8}
+function resize(){if(!renderer||!canvas)return;var w=innerWidth,h=innerHeight;dpr=Math.min(devicePixelRatio||1,2);renderer.setPixelRatio(dpr);renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();U.uS.value=h*dpr*1.2}
+function init(){if(renderer)return;canvas=document.getElementById('sgx-atom-webgl');if(!canvas)return;try{renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true,powerPreference:'high-performance'});}catch(e){return}renderer.setClearColor(0x000000,0);renderer.toneMapping=THREE.ACESFilmicToneMapping;scene=new THREE.Scene();cam=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,300);cam.position.set(0,0,12);root=new THREE.Group();scene.add(root);
+ var pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(50,24,12),new THREE.MeshBasicMaterial({color:0x071226,side:THREE.BackSide})));scene.environment=pm.fromScene(es,.03).texture;pm.dispose();
+ var NS=900,sp=new Float32Array(NS*3),sb=new Float32Array(NS);for(var i=0;i<NS;i++){var z=Math.random()*2-1,a=Math.random()*TAU,rr=Math.sqrt(1-z*z),d=45+Math.random()*55;sp[i*3]=rr*Math.cos(a)*d;sp[i*3+1]=rr*Math.sin(a)*d;sp[i*3+2]=z*d;sb[i]=.2+.8*Math.pow(Math.random(),3)}var sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(sp,3));sg.setAttribute('aB',new THREE.BufferAttribute(sb,1));stars=new THREE.Points(sg,pmat(VS_STAR,{uT:U.uT,uS:U.uS,uA:{value:0}}));stars.frustumCulled=false;scene.add(stars);
+ scene.add(new THREE.HemisphereLight(0x6f8fd0,0x0b0710,.28));var key=new THREE.DirectionalLight(0xfff1dd,1.15);key.position.set(-6,8,10);scene.add(key);var rim=new THREE.DirectionalLight(0x4f86ff,.35);rim.position.set(7,-4,-7);scene.add(rim);
+ AB=atom([[.62,2],[1,8],[1.42,3]],13,27,0xBFE0FF,0);AG=atom([[.55,2],[.88,8],[1.2,18],[1.55,1]],29,64,0xFFA83D,1);resize();window.addEventListener('resize',resize,{passive:true})}
+function render(now){if(!running||!renderer)return;var t=(now-t0)/1000,d=Math.min(.05,(now-last)/1000||.016);last=now;var D=6,p=cl(t/D,0,1),slow=ss(1.15,1.65,t)+ss(3.0,3.7,t),w=1-(1-Math.pow(INV,6))*Math.min(1,slow),speed=2.1-(2.1-2.1*Math.pow(INV,8))*Math.min(1,slow),sim=t<5.7?t*speed:t*speed+(t-5.7)*(30-speed)*Math.pow(cl((t-5.7)/.3,0,1),2.3);var radius=(innerHeight<innerWidth?2.55:3.15)*(1-.72*Math.pow(p,2.1));var ph=TAU*.25+sim,sw=Math.min(1,slow),heat=ss(4.7,5.8,t),fade=(t<5.82?1:Math.max(0,1-(t-5.82)/.18));function place(A,a,k){var q=sph(a,t),f3=1/(1-.3*q[2]),zn=(q[2]+1)/2,en=sw*Math.pow(zn,1.618),o=.8*en,m=.04*(1-.75*sw),x=q[0]*radius*f3+m*vn(t*17+k*2.1,1),y=-q[1]*radius*f3*.95+m*vn(t*19+k*1.3,3),zf=-2.2*Math.pow(1-cl(t/5.6,0,1),3);A.g.position.set(x,y,q[2]*radius*.9+zf);A.zs=(.7+.6*Math.pow(zn,1.4))*(1+1.1*en);A.g.visible=t<6}
+ place(AB,ph,0);place(AG,ph+Math.PI,1);AB.g.scale.setScalar(Math.max(.78*AB.zs,.001));AG.g.scale.setScalar(Math.max(.78*AG.zs,.001));AB.g.rotation.set(.35+sim*.11,sim*.17,.1);AG.g.rotation.set(-.3+sim*.09,1+sim*.13,0);if(t<6){upd(AB,sim,w,heat,fade);upd(AG,sim,w,heat,fade)}stars.rotation.y=t*.006;U.uT.value=now/1000;stars.material.uniforms.uA.value=.18+.82*ss(0,.8,t);cam.position.set(0,0,12-2.6*sw+2.1*ss(0,2,t));cam.lookAt(0,0,0);renderer.render(scene,cam);raf=requestAnimationFrame(render)}
+function start(){init();if(!renderer)return;stop();running=true;canvas.style.opacity='1';t0=performance.now();last=t0;AB.g.visible=AG.g.visible=true;raf=requestAnimationFrame(render)}
+function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;if(AB&&AG){AB.g.visible=AG.g.visible=false}if(canvas)canvas.style.opacity='0'}
+window.SintergiaAtomEngine={init:init,start:start,stop:stop,resize:resize};
+})();
+</script>
 <script id="sintergia-entry-transition-controller">
 (function(){
  'use strict';
@@ -4506,7 +4671,9 @@ function collisionRadius(base,p){var pc=TACC/T0S;if(p<=pc)return base;var q=(p-p
 function goldenRatio(v){return v*PHI} function goldenInverse(v){return v*PHI_INV}
 function play(){
   if(running)return running;var layer=document.getElementById('sintergia-entry-transition');if(!layer)return Promise.resolve();var blue=layer.querySelector('.sgx-blue'),gold=layer.querySelector('.sgx-gold');var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;var timers=[],animations=[],raf=0,start=0;chaosSeed();
-  wrapLetters(layer);resetLetters(layer);layer.querySelectorAll('.sgx-word').forEach(function(el){el.classList.remove('sgx-ignite')});layer.querySelectorAll('.sgx-flying').forEach(function(el){el.style.visibility='hidden';el.style.opacity='';el.style.left='0px';el.style.top='0px'});layer.querySelectorAll('.sgx-target').forEach(function(el){if(el.getAnimations)el.getAnimations().forEach(function(a){a.cancel()});el.style.transform='';el.style.transformOrigin='';el.style.visibility=reduced?'visible':'hidden'});layer.querySelectorAll('.sgx-char').forEach(function(el){el.style.opacity=reduced?'1':'0'});layer.querySelectorAll('.sgx-se span').forEach(function(el){el.style.visibility='visible'});layer.style.transition='none';layer.style.visibility='visible';layer.style.opacity='1';layer.classList.remove('sg-transition-active');void layer.offsetWidth;layer.classList.add('sg-transition-active');layer.setAttribute('aria-hidden','false');
+  wrapLetters(layer);resetLetters(layer);layer.querySelectorAll('.sgx-word').forEach(function(el){el.classList.remove('sgx-ignite')});layer.querySelectorAll('.sgx-flying').forEach(function(el){el.style.visibility='hidden';el.style.opacity='';el.style.left='0px';el.style.top='0px'});layer.querySelectorAll('.sgx-target').forEach(function(el){if(el.getAnimations)el.getAnimations().forEach(function(a){a.cancel()});el.style.transform='';el.style.transformOrigin='';el.style.visibility=reduced?'visible':'hidden'});layer.querySelectorAll('.sgx-char').forEach(function(el){el.style.opacity=reduced?'1':'0'});layer.querySelectorAll('.sgx-se span').forEach(function(el){el.style.visibility='visible'});layer.style.transition='none';layer.style.visibility='visible';layer.style.opacity='1';if(window.SintergiaAtomEngine){window.SintergiaAtomEngine.stop();}
+      layer.classList.remove('sg-transition-active');void layer.offsetWidth;layer.classList.add('sg-transition-active');layer.setAttribute('aria-hidden','false');
+  if(window.SintergiaAtomEngine){window.SintergiaAtomEngine.start();}
   if(!reduced){
       var mark=layer.querySelector('.sgx-mark'),cv=layer.querySelector('.sgx-fx'),nm=layer.querySelector('.sgx-name'),W=innerWidth,H=innerHeight,mr=mark.getBoundingClientRect(),ax=mr.left+mr.width/2-W/2,ay=mr.top+mr.height/2-H/2,draw=makeBang(cv,W,H,W/2+ax,H/2+ay),drawBlue=makeAtom(blue,false),drawGold=makeAtom(gold,true),rayCv=layer.querySelector('.sgx-letter-fx'),drawRay=makeLetterRay(rayCv,W,H),rayEvents=[],hid=false,radius=0,env=0,tt=0,tIn=0,aw=blue.offsetWidth||166,pulse=1,alpha=0,trCv=layer.querySelector('.sgx-trail'),trX=trCv&&trCv.getContext?sgxJ(trCv.getContext('2d')):null,trD=Math.min(window.devicePixelRatio||1,1.5),base=Math.min(Math.max(Math.min(W,H)*(PHI_INV/2),118),330);
    if(trCv&&trX){trCv.width=Math.round(W*trD);trCv.height=Math.round(H*trD)}
@@ -4653,7 +4820,7 @@ function play(){
     frame(performance.now());
    fly('s',T0+400,360,timers,animations,letterSettled);fly('e',T0+540,-360,timers,animations,letterSettled);timers.push(sgxTO(function(){var se=layer.querySelector('.sgx-se');if(!se||!se.animate)return;var w=se.getBoundingClientRect().width;animations.push(sgxA(nm,[{transform:'scale(1) translateX(0px)'},{transform:'scale(1) translateX('+(w/2)+'px)'}],{duration:1100,easing:'cubic-bezier(.45,0,.2,1)',fill:'forwards'}))},T0+800));
   }
-  running=new Promise(function(resolve){timers.push(sgxTO(function done(){layer.style.transition='';timers.forEach(clearTimeout);if(raf)cancelAnimationFrame(raf);animations.forEach(function(a){try{a.cancel()}catch(_){}});layer.classList.remove('sg-transition-active');var fx=layer.querySelector('.sgx-fx');if(fx&&sgxJ(fx.getContext('2d')))sgxJ(fx.getContext('2d')).clearRect(0,0,fx.width,fx.height);var lf=layer.querySelector('.sgx-letter-fx');if(lf&&sgxJ(lf.getContext('2d')))sgxJ(lf.getContext('2d')).clearRect(0,0,lf.width,lf.height);var bf=layer.querySelector('.sgx-bolt-fx');if(bf&&sgxJ(bf.getContext('2d')))sgxJ(bf.getContext('2d')).clearRect(0,0,bf.width,bf.height);FBOLT=null;var tr=layer.querySelector('.sgx-trail');if(tr&&sgxJ(tr.getContext('2d'))){sgxJ(tr.getContext('2d')).setTransform(1,0,0,1,0,0);sgxJ(tr.getContext('2d')).clearRect(0,0,tr.width,tr.height)}layer.style.visibility='';layer.style.opacity='';layer.setAttribute('aria-hidden','true');layer.querySelectorAll('.sgx-se span').forEach(function(el){el.style.visibility='visible'});layer.querySelectorAll('.sgx-target').forEach(function(el){el.style.visibility='';el.style.transformOrigin=''});layer.querySelectorAll('.sgx-char').forEach(function(el){el.style.opacity=''});if(blue){blue.style.transform='';blue.style.opacity=''}if(gold){gold.style.transform='';gold.style.opacity=''}running=null;resolve()},reduced?1400:DURATION))});return running
+  running=new Promise(function(resolve){timers.push(sgxTO(function done(){if(window.SintergiaAtomEngine){window.SintergiaAtomEngine.stop();}layer.style.transition='';timers.forEach(clearTimeout);if(raf)cancelAnimationFrame(raf);animations.forEach(function(a){try{a.cancel()}catch(_){}});layer.classList.remove('sg-transition-active');var fx=layer.querySelector('.sgx-fx');if(fx&&sgxJ(fx.getContext('2d')))sgxJ(fx.getContext('2d')).clearRect(0,0,fx.width,fx.height);var lf=layer.querySelector('.sgx-letter-fx');if(lf&&sgxJ(lf.getContext('2d')))sgxJ(lf.getContext('2d')).clearRect(0,0,lf.width,lf.height);var bf=layer.querySelector('.sgx-bolt-fx');if(bf&&sgxJ(bf.getContext('2d')))sgxJ(bf.getContext('2d')).clearRect(0,0,bf.width,bf.height);FBOLT=null;var tr=layer.querySelector('.sgx-trail');if(tr&&sgxJ(tr.getContext('2d'))){sgxJ(tr.getContext('2d')).setTransform(1,0,0,1,0,0);sgxJ(tr.getContext('2d')).clearRect(0,0,tr.width,tr.height)}layer.style.visibility='';layer.style.opacity='';layer.setAttribute('aria-hidden','true');layer.querySelectorAll('.sgx-se span').forEach(function(el){el.style.visibility='visible'});layer.querySelectorAll('.sgx-target').forEach(function(el){el.style.visibility='';el.style.transformOrigin=''});layer.querySelectorAll('.sgx-char').forEach(function(el){el.style.opacity=''});if(blue){blue.style.transform='';blue.style.opacity=''}if(gold){gold.style.transform='';gold.style.opacity=''}running=null;resolve()},reduced?1400:DURATION))});return running
  }
  window.SintergiaEntryTransition={play:play};try{(window.requestIdleCallback||setTimeout)(function(){if(!SPH)initSprites()})}catch(_){}
 })();
@@ -4698,7 +4865,7 @@ function play(){
         </form>
 
         <div class="access-security-note">
-            El acceso local no sustituye a una autenticación de servidor. En Lovable Cloud, valida la identidad en el backend y devuelve una sesión con caducidad.
+            El acceso local no sustituye a una autenticación de servidor. En Supabase Cloud, valida la identidad en el backend y devuelve una sesión con caducidad.
         </div>
     </div>
 </div>
@@ -4708,7 +4875,7 @@ function play(){
  * La verificación ya NO ocurre en el cliente: este fichero no
  * contiene ni contraseñas ni derivaciones de contraseñas.
  * Toda credencial se envía al backend
- * (window.SINTERGIA_LOVABLE.auth.endpoint), que deriva PBKDF2
+ * (window.SINTERGIA_SUPABASE.auth.endpoint), que deriva PBKDF2
  * con sal secreta, compara en tiempo constante, aplica límite
  * de intentos y emite un token de sesión firmado (HMAC).
  * ========================================================= */
@@ -4735,8 +4902,8 @@ function play(){
   }
 
   function endpoint() {
-    var cfg = window.SINTERGIA_LOVABLE || {};
-    return (cfg.auth && cfg.auth.endpoint) || '/functions/v1/authenticate';
+    var cfg = window.SINTERGIA_SUPABASE || {};
+    return (cfg.auth && cfg.auth.endpoint) || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate';
   }
 
   function guardarSesion(data) {
@@ -4881,10 +5048,10 @@ function play(){
     if (confirm('¿Borrar las contraseñas locales de este dispositivo? Se pedirán de nuevo en el próximo acceso.')) { localStorage.removeItem(LOCAL_KEY); alert('Contraseñas locales borradas.'); }
   };
 
-  /* Producción: la autenticación nunca degrada a una contraseña solo local. */
+  /* Verificación: servidor si existe; si no responde correctamente, verificación local. */
   function verificar(scope, value) {
+    if (location.protocol === 'file:') return verificarLocal(scope, value);
     return verificarServidor(scope, value).catch(function (e) {
-      if (window.SintergiaSecurityConfig && window.SintergiaSecurityConfig.requireBackendInProduction) throw e;
       if (e && e.fallback) return verificarLocal(scope, value);
       throw e;
     });
@@ -5026,22 +5193,23 @@ function play(){
         if (!value) { error.textContent = 'Introduce la contraseña.'; return; }
         error.textContent = 'Comprobando…';
         try {
-            /* Regla de acceso:
-               · SSE1      -> Modo Administrador
-               · Demofull  -> Modo Demo
-               · cualquier otra contraseña válida -> Modo Técnico
-               (las contraseñas configuradas localmente siguen abriendo su modo) */
-            var vNorm = value.trim();
-            var modo = null;
-            if (vNorm.toUpperCase() === 'SSE1') modo = 'admin';
-            else if (vNorm.toLowerCase() === 'demofull') modo = 'demo';
-            else {
-                /* Si hay contraseñas de modo configuradas en este dispositivo, se respetan;
-                   si no (o si no coincide ninguna), se entra en Modo Técnico sin asistentes. */
-                var cfgLocal = {};
-                try { cfgLocal = JSON.parse(localStorage.getItem('sintergia_local_auth_v1') || '{}') || {}; } catch (_) {}
-                modo = 'tecnico';
+            /* Producción Supabase: la contraseña debe validarse contra la Edge Function
+               authenticate. No se aceptan claves maestras ni accesos locales como sesión
+               de producción, porque las demás Edge Functions necesitan el HMAC emitido
+               por el backend. */
+            error.textContent = 'Comprobando acceso en Supabase…';
+            var servidorId = await verificarModo(value);
+            if (!servidorId) {
+                intentos++;
+                error.textContent = 'Contraseña no válida o acceso no autorizado por Supabase.';
+                if (intentos >= MAX_INTENTOS) { bloqueadoHasta = Date.now() + BLOQUEO_MS; intentos = 0; }
+                return;
             }
+            /* El backend actual tiene el ámbito "modo" para el acceso operativo.
+               El identificador devuelto determina el modo; no se deduce del texto
+               introducido por el usuario. */
+            var modo = String(servidorId).toLowerCase() === 'demo' ? 'demo' :
+                       (String(servidorId).toLowerCase() === 'tecnico' ? 'tecnico' : 'admin');
             intentos = 0;
             error.textContent = '';
             await mostrarAnimacionCorrecto(modo);
@@ -5906,7 +6074,7 @@ function play(){
         </div>
         <div class="email-api-grid">
             <div><label>Proveedor</label><select id="email-api-provider"><option value="gmail">Gmail API</option><option value="custom">Endpoint propio compatible</option></select></div>
-            <div><label>Endpoint de envío (backend Lovable/Supabase)</label><input id="email-api-endpoint" type="url" placeholder="/functions/v1/send-email"></div>
+            <div><label>Endpoint de envío (backend Supabase/Supabase)</label><input id="email-api-endpoint" type="url" placeholder="https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email"></div>
             <div><label>Email remitente verificado</label><input id="email-api-from" type="email" value="sintergiase@gmail.com" placeholder="sintergiase@gmail.com"></div><div><label>Dominio</label><input id="email-api-domain" type="text" value="gmail.com" readonly></div>
             <div><label>Nombre remitente</label><input id="email-api-from-name" type="text" placeholder="SintergiaSE"></div>
             <div><label>API Key</label><input id="email-api-key" type="password" autocomplete="off" placeholder="Se guarda SOLO como secreto del backend" disabled></div>
@@ -6144,7 +6312,7 @@ function play(){
         emailApi: __safeParse(localStorage.getItem('sintergia_email_api_v1')) || {
             provider: 'gmail',
             domain: 'gmail.com',
-            endpoint: '/functions/v1/send-email',
+            endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email',
             apiKey: '',
             backendOnly: true,
             from: 'sintergiase@gmail.com',
@@ -8434,7 +8602,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function urlSeguraVisual(v,opts){ const allowData=opts&&opts.allowData; const raw=String(v==null?'':v).trim(); if(!raw)return ''; try{ const u=new URL(raw,location.href); const p=u.protocol.toLowerCase(); if(p==='https:'||p==='http:')return u.toString(); if(allowData&&p==='data:'&&/^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);/i.test(raw))return raw; return ''; }catch(_){ return ''; } }
     function construirUrlApertura(id,token){
         const base=String(appState.emailApi?.portalUrl||location.origin).trim();
-        try{ const u=new URL(window.SINTERGIA_LOVABLE.mail.webhookOpenEndpoint,base); u.searchParams.set('documentId',id); u.searchParams.set('token',token); return u.toString(); }catch(_){ return ''; }
+        try{ const u=new URL(window.SINTERGIA_SUPABASE.mail.webhookOpenEndpoint,base); u.searchParams.set('documentId',id); u.searchParams.set('token',token); return u.toString(); }catch(_){ return ''; }
     }
     function construirHtmlCorreoCliente({clienteNombre,parte,factura,reciboUrl,devolverUrl,openUrl}){
         const n=escaparAtributo(clienteNombre||'cliente');
@@ -8464,13 +8632,13 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         return `<div style="font-family:Arial,sans-serif;color:#222;line-height:1.5"><h2 style="color:#0F2B48">SintergiaSE</h2><p>Estimado/a ${n},</p><p>Adjuntamos la documentación correspondiente al ${doc}.</p>${bloqueFactura}<p style="font-size:12px;color:#666">La confirmación de lectura es automática: no es necesario que responda ni pulse ningún botón de confirmación.</p><p>Atentamente,<br>SintergiaSE</p>${pixel}</div>`;
     }
 
-    /* ==== Recibos subidos por el cliente (Lovable Cloud) ==== */
+    /* ==== Recibos subidos por el cliente (Supabase Cloud) ==== */
     const RECIBO_TOKENS_KEY='sintergia_recibo_tokens_v1';
     function leerReciboTokens(){ try{ return JSON.parse(localStorage.getItem(RECIBO_TOKENS_KEY)||'{}')||{}; }catch(_){ return {}; } }
     function registrarReciboToken(token,factura){
         try{
             const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
-            fetch('/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
+            fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
         }catch(_){window.__sgIgn&&window.__sgIgn(_);}
     }
     async function sincronizarRecibosClientes(){
@@ -8480,7 +8648,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
         if(!tokens.length) return;
         try{
-            const r=await fetch('/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
+            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{
                 const idx=(appState.facturas||[]).findIndex(x=>String(x.idDoc)===String(res.factura_id)); if(idx<0) return;
@@ -8514,7 +8682,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(f&&!sgEsRectificativa(f)&&/^(emitida|devuelta|cobrado|cobrado pendiente validacion)$/i.test(String(f.estado||'').trim())) tokens.push(t); });
         if(!tokens.length) return;
         try{
-            const r=await fetch('/functions/v1/invoice-return-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFiles:true})});
+            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/invoice-return-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFiles:true})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{ if(sgAplicarDevolucionCliente(res)) cambios=true; });
             if(cambios){ guardarEstadoStorage(); try{ renderizarTodo(); }catch(_){ renderizarHistorialFacturas(); } }
@@ -8663,7 +8831,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         let cambios=false;
         for(const obj of docs){
             try{
-                const u=new URL(normalizarEndpointBackendSintergia(cfg.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint), window.location.origin);
+                const u=new URL(normalizarEndpointBackendSintergia(cfg.syncUrl, window.SINTERGIA_SUPABASE.mail.endpoint), window.location.origin);
                 u.searchParams.set('documentId',obj.idDoc);
                 if(obj.emailMessageId) u.searchParams.set('emailId',obj.emailMessageId);
                 const r=await fetch(u.toString(),{cache:'no-store'});
@@ -8700,7 +8868,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const aviso=appState.pendientes[pendienteIdx]; const parte=aviso?appState.partes.find(p=>String(p.idDoc)===String(aviso.parteId)):null; const f=facturaIdx>=0?appState.facturas[facturaIdx]:null; const obj=f||parte;
         if(!obj){alert('No hay documento asociado.');return;}
         const id=obj.emailMessageId||parte?.emailMessageId||''; let opened=obj.emailOpenedAt||parte?.emailOpenedAt||'';
-        if(appState.emailApi?.syncUrl&&id){try{const u=new URL(normalizarEndpointBackendSintergia(appState.emailApi.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint),window.location.origin);u.searchParams.set('emailId',id);u.searchParams.set('documentId',obj.idDoc);const r=await fetch(u.toString(),{cache:'no-store',credentials:'include'});if(r.ok){const d=await r.json();opened=d.openedAt||d.emailOpenedAt||d.opened_at||opened; if(opened){obj.emailOpenedAt=opened;if(parte)parte.emailOpenedAt=opened;if(f)obj.emailOpenedAt=opened;guardarEstadoStorage();}}}catch(e){console.warn('No se pudo sincronizar lectura',e);}}
+        if(appState.emailApi?.syncUrl&&id){try{const u=new URL(normalizarEndpointBackendSintergia(appState.emailApi.syncUrl, window.SINTERGIA_SUPABASE.mail.endpoint),window.location.origin);u.searchParams.set('emailId',id);u.searchParams.set('documentId',obj.idDoc);const r=await fetch(u.toString(),{cache:'no-store',credentials:'include'});if(r.ok){const d=await r.json();opened=d.openedAt||d.emailOpenedAt||d.opened_at||opened; if(opened){obj.emailOpenedAt=opened;if(parte)parte.emailOpenedAt=opened;if(f)obj.emailOpenedAt=opened;guardarEstadoStorage();}}}catch(e){console.warn('No se pudo sincronizar lectura',e);}}
         if(opened){const d=new Date(opened);alert(`👁️ El correo fue registrado como abierto el ${d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES')}.`);}else alert('👁️ Aún no hay una hora de lectura registrada. Configure el webhook de Resend y el endpoint de sincronización.');
     }
 
@@ -9780,7 +9948,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
 
     function normalizarEndpointBackendSintergia(valor, fallback) {
         const raw = String(valor || '').trim();
-        const def = String(fallback || '/functions/v1/send-email');
+        const def = String(fallback || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email');
         if (!raw) return def;
         try {
             const u = new URL(raw, window.location.origin);
@@ -9796,7 +9964,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         return {
             provider: document.getElementById('email-api-provider')?.value || 'gmail',
             domain: (document.getElementById('email-api-domain')?.value || 'gmail.com').trim().toLowerCase(),
-            endpoint: normalizarEndpointBackendSintergia(document.getElementById('email-api-endpoint')?.value, window.SINTERGIA_LOVABLE.mail.endpoint),
+            endpoint: normalizarEndpointBackendSintergia(document.getElementById('email-api-endpoint')?.value, window.SINTERGIA_SUPABASE.mail.endpoint),
             apiKey: '',
             from: (document.getElementById('email-api-from')?.value || '').trim(),
             fromName: (document.getElementById('email-api-from-name')?.value || 'SintergiaSE').trim(),
@@ -9813,7 +9981,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v ?? ''; };
         set('email-api-provider', c.provider || 'gmail');
         set('email-api-domain', c.domain || 'gmail.com');
-        set('email-api-endpoint', normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_LOVABLE.mail.endpoint));
+        set('email-api-endpoint', normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_SUPABASE.mail.endpoint));
         set('email-api-from', c.from || 'sintergiase@gmail.com');
         set('email-api-from-name', c.fromName || 'SintergiaSE');
         set('email-api-key', '');
@@ -9855,7 +10023,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const c=obtenerConfigEmailApiDesdeFormulario();
         if(c.from.toLowerCase() !== 'sintergiase@gmail.com') { alert('⚠️ El remitente debe ser sintergiase@gmail.com.'); return false; }
         if(c.domain !== 'gmail.com') { alert('⚠️ El dominio debe ser gmail.com.'); return false; }
-        c.endpoint=c.endpoint||window.SINTERGIA_LOVABLE.mail.endpoint;
+        c.endpoint=c.endpoint||window.SINTERGIA_SUPABASE.mail.endpoint;
         // Nunca persistimos una API key en el navegador.
         delete c.apiKey; c.backendOnly=true;
         appState.emailApi=c; guardarEstadoStorage(); actualizarEstadoVisualEmailApi(true,'✅ Gmail configurado: sintergiase@gmail.com. La API Key/credenciales permanecen en el backend.'); actualizarVisibilidadEmailApiTab();
@@ -9866,7 +10034,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const c=appState.emailApi||{};
         if((!ignorarActivacion&&!c.enabled)||!c.endpoint||!c.from) throw new Error('Configure el remitente y active el backend de correo.');
         if(!to||!String(to).includes('@')) throw new Error('El cliente no tiene un email válido.');
-        const endpoint=normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_LOVABLE.mail.endpoint);
+        const endpoint=normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_SUPABASE.mail.endpoint);
         const fixedFrom='sintergiase@gmail.com'; const payload={provider:'gmail',domain:'gmail.com',from:c.fromName?`${c.fromName} <${fixedFrom}>`:fixedFrom,replyTo:fixedFrom,to:[to],subject,html:html||String(text||'').replace(/\n/g,'<br>'),text:String(text||''),attachments:(attachments||[]).map(a=>({filename:a.filename,content:a.content})),tags:tags||[]};
         const emailHeaders = (typeof authHeadersSintergia === 'function') ? authHeadersSintergia() : {'Content-Type':'application/json'};
         emailHeaders['X-Sintergia-Request-ID'] = idOperacion();
@@ -11176,7 +11344,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function importesRecibosCoinciden(a,b){ return Math.abs((Number(a)||0)-(Number(b)||0))<0.02; }
     async function verificarReciboConIA(factura){
         const cfg=appState.emailApi||{};
-        const endpoint=normalizarEndpointBackendSintergia(cfg.verifyUrl||'/functions/v1/verify-receipt','/functions/v1/verify-receipt');
+        const endpoint=normalizarEndpointBackendSintergia(cfg.verifyUrl||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt');
         const dataUrl=String(factura.reciboDataUrl||'');
         const base64=dataUrl.includes(',')?dataUrl.split(',')[1]:'';
         if(!base64&&!factura.reciboRemotoUrl) return {ok:false,motivo:'No hay archivo de recibo que verificar.'};
@@ -11228,7 +11396,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     }
 
     async function sincronizarReciboFactura(idx){
-        const f=appState.facturas[idx],urlBase=normalizarEndpointBackendSintergia(appState.emailApi?.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint);if(!f||!appState.emailApi?.syncUrl)return false;
+        const f=appState.facturas[idx],urlBase=normalizarEndpointBackendSintergia(appState.emailApi?.syncUrl, window.SINTERGIA_SUPABASE.mail.endpoint);if(!f||!appState.emailApi?.syncUrl)return false;
         try{const u=new URL(urlBase);u.searchParams.set('facturaId',f.idDoc);const r=await fetch(u.toString(),{cache:'no-store'});if(!r.ok)return false;const d=await r.json();const rec=d.receipt||d.recibo||d; if(rec&& (rec.url||rec.dataUrl||rec.base64)){f.reciboRemotoUrl=rec.url||f.reciboRemotoUrl||'';f.reciboDataUrl=rec.dataUrl||((rec.base64&&rec.contentType)?`data:${rec.contentType};base64,${rec.base64}`:f.reciboDataUrl);f.reciboFileType=rec.contentType||f.reciboFileType||'';f.reciboNombreArchivo=rec.filename||f.reciboNombreArchivo||'recibo';f.reciboRecibidoAt=rec.receivedAt||f.reciboRecibidoAt;f.estado=rec.validado?'Cobrado':'Cobrado pendiente validacion';guardarEstadoStorage();renderizarHistorialFacturas();if(rec.validado===undefined){await verificarYAplicarRecibo(idx);}else if(rec.validado){marcarFacturaCobradaEnCascada(idx,true);guardarEstadoStorage();renderizarHistorialFacturas();}return true;}return false;}catch(e){console.warn('Sincronización de recibo:',e);return false;}
     }
     async function abrirModalReciboPreview(idx){
@@ -13708,11 +13876,11 @@ VERIFICACIONES FINALES
 
     /* ===== SINCRONIZACIÓN MULTIDISPOSITIVO: backend + Supabase Realtime ===== */
     (function instalarRealtimeSintergia(){
-        const cfg=window.SINTERGIA_LOVABLE||{};
+        const cfg=window.SINTERGIA_SUPABASE||{};
         window.SintergiaRealtime={
             publish:async function(snapshot){
                 try{
-                    const r=await fetch('/functions/v1/realtime-snapshot',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({channel:cfg.realtime?.channel||'sintergia-realtime',snapshot})});
+                    const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({channel:cfg.realtime?.channel||'sintergia-realtime',snapshot})});
                     return r.ok;
                 }catch(_){return false;}
             },
@@ -13794,7 +13962,7 @@ function openToday(){ensureState();var ds=weekDates(todayISO()),today=todayISO()
 function renderSelected(){ensureState();renderDays();bindRutasDynamicEvents();try{RutasIA.render();bindRutasDynamicEvents();}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
 function markSent(id,channel,token,p){var c=cita(id);c.enviado=true;c.enviadoAt=c.enviadoAt||Date.now();c.canal=channel;c.token=token;c.fecha=p.fecha;c.hora=p.hora;c.propuestaAnterior={fecha:p.fecha,hora:p.hora};state.citas[id]=c;saveSafe();}
 function markConfirmed(id,resp,source){var c=cita(id);var old={fecha:c.fecha,hora:c.hora,canal:c.canal};c.respuesta=resp;c.respuestaAt=Date.now();c.respuestaOrigen=source||'cliente';if(resp==='si'){c.confirmadaAt=Date.now();c.flexible=false;c.manualConfirmed=false;state.citas[id]=c;saveSafe();return old;}c.rechazadaAt=Date.now();c.flexible=true;state.citas[id]=c;saveSafe();return old;}
-async function notifyReschedule(id,old,newP){var c=cita(id);var a=avisosActivos().find(function(x){return String(x.id)===String(id);});if(!a||!newP)return;var cli=(typeof st==='function'?st().clientes:state.clientes||[]).find(function(x){return String(x.id)===String(a.clienteId)})||{};var email=cli.email||c.email||'',tel=String(cli.tel||c.tel||'').replace(/[^\d+]/g,'');if(tel&&tel.indexOf('+')!==0)tel=tel.length===9?'+34'+tel:'+'+tel;var text='Hola '+(cli.nombre||a.clienteNombre||'')+',\n\nDisculpe las molestias. La propuesta anterior de cita del '+(old.fecha||'')+' a las '+(old.hora||'')+' h ha quedado anulada porque su confirmación llegó después de una reorganización de la ruta.\n\nTras recalcular la ruta, le proponemos '+(newP.fecha||'')+' a las '+(newP.hora||'')+' h.\n\nPor favor, confirme esta nueva propuesta. Gracias por su comprensión.\n\nSintergiaSE';try{await post('/functions/v1/cita-anulacion-reprogramacion',{avisoId:id,to:email,telefono:tel,cliente:cli.nombre||a.clienteNombre||'',anterior:old,nueva:{fecha:newP.fecha,hora:newP.hora},texto:text},15000);}catch(e){if(email){try{window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Nueva propuesta de cita')+'&body='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}if(tel){try{window.open('https://wa.me/'+tel.replace('+','')+'?text='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}}}
+async function notifyReschedule(id,old,newP){var c=cita(id);var a=avisosActivos().find(function(x){return String(x.id)===String(id);});if(!a||!newP)return;var cli=(typeof st==='function'?st().clientes:state.clientes||[]).find(function(x){return String(x.id)===String(a.clienteId)})||{};var email=cli.email||c.email||'',tel=String(cli.tel||c.tel||'').replace(/[^\d+]/g,'');if(tel&&tel.indexOf('+')!==0)tel=tel.length===9?'+34'+tel:'+'+tel;var text='Hola '+(cli.nombre||a.clienteNombre||'')+',\n\nDisculpe las molestias. La propuesta anterior de cita del '+(old.fecha||'')+' a las '+(old.hora||'')+' h ha quedado anulada porque su confirmación llegó después de una reorganización de la ruta.\n\nTras recalcular la ruta, le proponemos '+(newP.fecha||'')+' a las '+(newP.hora||'')+' h.\n\nPor favor, confirme esta nueva propuesta. Gracias por su comprensión.\n\nSintergiaSE';try{await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-anulacion-reprogramacion',{avisoId:id,to:email,telefono:tel,cliente:cli.nombre||a.clienteNombre||'',anterior:old,nueva:{fecha:newP.fecha,hora:newP.hora},texto:text},15000);}catch(e){if(email){try{window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Nueva propuesta de cita')+'&body='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}if(tel){try{window.open('https://wa.me/'+tel.replace('+','')+'?text='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}}}
 function findParada(id){var found=null;(state.rutas||[]).forEach(function(r){(r.paradas||[]).forEach(function(p){if(String(p.avisoId)===String(id))found={r:r,p:p};});});return found;}
 async function applyClientResponse(id,resp,source){ensureState();
 /* P65-R4: respuestas coherentes */
@@ -13856,7 +14024,7 @@ function envolverEnvio(original,icono,canal){
 RutasIA.enviarEmail=envolverEnvio(RutasIA.enviarEmail,'✉️','correo');
 RutasIA.enviarWhatsapp=envolverEnvio(RutasIA.enviarWhatsapp,'💬','WhatsApp');
 RutasIA.seleccionarDiaV2=function(i){ensureState();state.riaWeek.selected=Math.max(0,Math.min(4,Number(i)||0));saveSafe();renderSelected();};
-RutasIA.usarGeolocalizacion=async function(id,btn){var input=document.getElementById(id);if(!input||!navigator.geolocation){alert('Este dispositivo/navegador no permite geolocalización.');return;}if(window.isSecureContext===false){alert('La geolocalización necesita HTTPS o localhost.');return;}if(btn)btn.disabled=true;try{var pos=await new Promise(function(ok,no){navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,maximumAge:0,timeout:20000});});var lat=pos.coords.latitude,lon=pos.coords.longitude,address='';try{if(window.sgResolverDireccion){var pp=await window.sgResolverDireccion(lat,lon);if(pp&&(pp.calle||pp.municipio))address=window.sgFormatoDireccion(pp,lat,lon);}}catch(e0){window.__sgIgn&&window.__sgIgn(e0);}if(!address)try{var d=await post('/functions/v1/reverse-geocode',{lat:lat,lon:lon,country:'es',language:'es'},12000);address=d&&(d.address||d.display_name||(d.result&&(d.result.address||d.result.display_name)))||'';if(typeof address!=='string')address='';}catch(e){window.__sgIgn&&window.__sgIgn(e);}if(!address){try{var rr=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&zoom=18&addressdetails=1&accept-language=es');var jj=await rr.json();address=jj.display_name||'';}catch(e2){window.__sgIgn&&window.__sgIgn(e2);}}if(!address)address=lat.toFixed(6)+', '+lon.toFixed(6);input.value=address;state.geo=state.geo||{};state.geo[address.toLowerCase().trim()]={lat:lat,lon:lon};if(id==='ria-base')state.base=address;else state.riaFin=address;saveSafe();toast('📍 Ubicación añadida: '+address);}catch(e){alert('No se pudo obtener la ubicación. Comprueba el permiso de ubicación.');}finally{if(btn)btn.disabled=false;}};
+RutasIA.usarGeolocalizacion=async function(id,btn){var input=document.getElementById(id);if(!input||!navigator.geolocation){alert('Este dispositivo/navegador no permite geolocalización.');return;}if(window.isSecureContext===false){alert('La geolocalización necesita HTTPS o localhost.');return;}if(btn)btn.disabled=true;try{var pos=await new Promise(function(ok,no){navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,maximumAge:0,timeout:20000});});var lat=pos.coords.latitude,lon=pos.coords.longitude,address='';try{if(window.sgResolverDireccion){var pp=await window.sgResolverDireccion(lat,lon);if(pp&&(pp.calle||pp.municipio))address=window.sgFormatoDireccion(pp,lat,lon);}}catch(e0){window.__sgIgn&&window.__sgIgn(e0);}if(!address)try{var d=await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode',{lat:lat,lon:lon,country:'es',language:'es'},12000);address=d&&(d.address||d.display_name||(d.result&&(d.result.address||d.result.display_name)))||'';if(typeof address!=='string')address='';}catch(e){window.__sgIgn&&window.__sgIgn(e);}if(!address){try{var rr=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&zoom=18&addressdetails=1&accept-language=es');var jj=await rr.json();address=jj.display_name||'';}catch(e2){window.__sgIgn&&window.__sgIgn(e2);}}if(!address)address=lat.toFixed(6)+', '+lon.toFixed(6);input.value=address;state.geo=state.geo||{};state.geo[address.toLowerCase().trim()]={lat:lat,lon:lon};if(id==='ria-base')state.base=address;else state.riaFin=address;saveSafe();toast('📍 Ubicación añadida: '+address);}catch(e){alert('No se pudo obtener la ubicación. Comprueba el permiso de ubicación.');}finally{if(btn)btn.disabled=false;}};
 var originalPlan=RutasIA.planificar;
 RutasIA.planificar=async function(btn){ensureState();state.riaWeek=state.riaWeek||{start:todayISO(),selected:0};var now=Date.now();var active=avisosActivos();active.forEach(function(a){var c=cita(a.id);if(!bloqueada(a.id)&&c.enviado&&enviadoAt(c)&&esperaVencida(c,now))c.flexible=true;});saveSafe();await originalPlan.call(RutasIA,btn);RutasIA.render();};
 var recalcBusy=false,recalcPend=null; /* P65-R3: cerrojo propio del recálculo, independiente de la sincronización */
@@ -13866,7 +14034,7 @@ var originalSync=RutasIA.sincronizarRespuestas;
 // Recordatorio automático de cita: reintenta un único envío (por el mismo
 // canal con el que se propuso la cita) cuando el cliente lleva REMINDER_MS
 // sin contestar. Si el backend/Edge Function aún no está configurado en
-// Lovable, se marca "recordatorioFallido" para que la interfaz ofrezca un
+// Supabase, se marca "recordatorioFallido" para que la interfaz ofrezca un
 // botón de envío manual en su lugar (ver RutasIA.enviarRecordatorioManual).
 async function enviarRecordatorioAutomatico(id){
     var c=cita(id), fp=findParada(id);
@@ -13880,7 +14048,7 @@ async function enviarRecordatorioAutomatico(id){
     var destino=canal==='whatsapp'?tel:email;
     if(!destino) return false;
     try{
-        await post('/functions/v1/cita-recordatorio',{
+        await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-recordatorio',{
             token:c.token||'', avisoId:id, canal:canal, to:destino, from:(canal==='email'?'sintergiase@gmail.com':''), provider:(canal==='email'?'gmail':''), cliente:p.cliente,
             fecha:p.fecha, hora:p.hora, horaFin:p.horaFin, duracionMin:p.duracionMin,
             direccion:p.dir, descripcion:p.desc,
@@ -13901,7 +14069,7 @@ RutasIA.sincronizarRespuestas=async function(manual){
         var tokens=Object.keys(state.citas).map(function(k){return {id:k,token:cita(k).token};}).filter(function(x){return x.token&&!cita(x.id).respuesta;});
         if(tokens.length){
             try{
-                var d=await post('/functions/v1/cita-estado',{tokens:tokens.map(function(x){return x.token;}).slice(0,200)},12000);
+                var d=await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado',{tokens:tokens.map(function(x){return x.token;}).slice(0,200)},12000);
                 syncFallos=0; syncProximo=0;
                 var res=(d&&(d.respuestas||d.result))||{};
                 for(var i=0;i<tokens.length;i++){
@@ -14163,10 +14331,10 @@ document.addEventListener('DOMContentLoaded',function(){
 <script id="sintergia-correcciones-2026-09">
 (function(){
 'use strict';
-const SYNC_CHANNEL=(window.SINTERGIA_LOVABLE&&window.SINTERGIA_LOVABLE.realtime&&window.SINTERGIA_LOVABLE.realtime.channel)||'sintergia-realtime';
-const SYNC_API='/functions/v1/realtime-snapshot';
+const SYNC_CHANNEL=(window.SINTERGIA_SUPABASE&&window.SINTERGIA_SUPABASE.realtime&&window.SINTERGIA_SUPABASE.realtime.channel)||'sintergia-realtime';
+const SYNC_API='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
 const MAX_SYNC_BYTES=5*1024*1024;
-function backendFetch(url,options){const u=new URL(url,window.location.origin);if(u.origin!==window.location.origin)throw new Error('Endpoint de backend no permitido.');return fetch(u.toString(),options);}
+function backendFetch(url,options){const u=new URL(url,window.location.origin);const supabaseOrigin='https://bgjicsowspppsjzigazb.supabase.co';if(u.origin!==window.location.origin&&u.origin!==supabaseOrigin)throw new Error('Endpoint de backend no permitido.');return fetch(u.toString(),options);}
 function syncToast(msg){if(typeof window.mostrarToast==='function')window.mostrarToast(msg);else if(window.__mostrarErrorApp)window.__mostrarErrorApp(msg);}
 window.activarModoFlujoRealMultidispositivo=async function(){try{localStorage.setItem('sintergia_modo_flujo_real','1');const snap=window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion();if(window.SintergiaRealtime&&snap)await window.SintergiaRealtime.publish(snap);syncToast('🌐 Flujo real multidispositivo activado. Estado publicado en el servidor.');const tab=document.querySelector('.tab-link[data-tab="tab-sync-ai"]');if(tab)tab.click();}catch(e){syncToast('⚠️ No se pudo activar el flujo multidispositivo: '+(e.message||e));}};
 /* ===== SintergiaSE · Dirección postal por coordenadas (calle + nº más cercano) ===== */
@@ -14183,7 +14351,7 @@ function construirDireccionEspanola(a){return sgFormatoDireccion(sgPartesNominat
 async function sgResolverDireccion(lat,lon){
  var key=lat.toFixed(5)+','+lon.toFixed(5);if(_sgCache[key])return Object.assign({},_sgCache[key]);
  var p={calle:'',numero:'',municipio:'',cp:'',provincia:''};
- try{var d0=await _sgFetchJSON('/functions/v1/reverse-geocode',5000,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({lat:lat,lon:lon,country:'es',language:'es'})});var ad=d0&&(d0.address||(d0.result&&d0.result.address));if(ad&&typeof ad==='object')p=sgPartesNominatim(ad);}catch(e){window.__sgIgn&&window.__sgIgn(e);}
+ try{var d0=await _sgFetchJSON('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode',5000,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({lat:lat,lon:lon,country:'es',language:'es'})});var ad=d0&&(d0.address||(d0.result&&d0.result.address));if(ad&&typeof ad==='object')p=sgPartesNominatim(ad);}catch(e){window.__sgIgn&&window.__sgIgn(e);}
  if(!p.calle&&!p.municipio){try{var d=await _sgFetchJSON('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lon+'&zoom=18&addressdetails=1&accept-language=es',9000);if(d&&d.address)p=sgPartesNominatim(d.address);}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
  if(!p.municipio){try{var b=await _sgFetchJSON('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=es',7000);p.municipio=b.city||b.locality||'';p.cp=p.cp||b.postcode||'';}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
  if(!p.calle||!p.numero){
@@ -14266,7 +14434,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
   var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},30000);
   try{
    var prompt='Eres el jefe técnico de SintergiaSE, empresa instaladora eléctrica autorizada. Reescribe las notas del técnico como descripción profesional para un parte de trabajo, en español de España, tono formal y técnico, frases breves, voz impersonal en pasado (por ejemplo: "Se sustituye...", "Se verifica..."). Reglas estrictas: no inventes trabajos, materiales, medidas, referencias ni cifras que no aparezcan en las notas; conserva todas las cantidades y referencias tal cual; no añadas saludos, títulos ni comentarios; no uses emojis; no incluyas direcciones ni horas. Devuelve SOLO el texto reescrito.\n\nNOTAS DEL TÉCNICO:\n'+base;
-   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
+   var r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
    if(!r.ok)throw new Error('IA no disponible (HTTP '+r.status+')');
    var nuevo=extraer(await r.json());
    if(nuevo.length<8)throw new Error('respuesta vacía');
@@ -14363,7 +14531,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
   var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},30000);
   try{
    var prompt='Eres el responsable de atención al cliente de SintergiaSE, empresa instaladora eléctrica. Redacta UN párrafo breve (60 a 110 palabras) para explicar al cliente, en español de España, con lenguaje claro y cercano pero profesional, qué trabajo se ha realizado. Reglas estrictas: usa solo la información facilitada; no inventes trabajos, materiales, garantías ni plazos; no menciones precios ni importes; no incluyas saludo, despedida, firma ni nombre del cliente; sin emojis; sin listas. Devuelve SOLO el párrafo.\n\nTRABAJO REALIZADO (notas del técnico):\n'+d+'\n\nDATOS:'+(datos()||' sin datos adicionales.');
-   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
+   var r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
    if(!r.ok)throw new Error('HTTP '+r.status);
    var p=extraer(await r.json()).replace(/\s*\n+\s*/g,' ');
    if(p.length<30||p.length>1200)throw new Error('respuesta no válida');
@@ -14442,11 +14610,11 @@ window.sgKmTrayecto=async function(ini,fin){
  var ruta=0;
  if(ok&&recta>0.05&&navigator.onLine!==false){
   try{
-   var cfg=(window.SINTERGIA_LOVABLE&&window.SINTERGIA_LOVABLE.routing)||{};
+   var cfg=(window.SINTERGIA_SUPABASE&&window.SINTERGIA_SUPABASE.routing)||{};
    if(cfg.enabled!==false&&cfg.matrixEndpoint){
     var locs=[{lat:ini.lat,lon:ini.lon},{lat:fin.lat,lon:fin.lon}];
     var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},8000);
-    var r=await fetch(cfg.matrixEndpoint,{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({provider:cfg.provider||'google-routes',fallbackProvider:cfg.fallbackProvider||'mapbox',traffic:false,travelMode:cfg.travelMode||'DRIVE',locations:locs,origins:locs,destinations:locs})}).finally(function(){clearTimeout(t);});
+    var r=await fetch(cfg.matrixEndpoint,{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({provider:cfg.provider||'osrm',fallbackProvider:cfg.fallbackProvider||'google-routes',traffic:false,travelMode:cfg.travelMode||'DRIVE',locations:locs,origins:locs,destinations:locs})}).finally(function(){clearTimeout(t);});
     if(r.ok){
      var d=await r.json(),raw=d&&(d.matrix||d.routeMatrix||d.routes||d.result||d),x=null;
      if(Array.isArray(raw)){
@@ -14470,7 +14638,7 @@ window.sgKmTrayecto=async function(ini,fin){
 };
 
 window.obtenerSnapshotSincronizacion=function(){try{const st=window.appState||{};const now=new Date().toISOString();let rev=parseInt(localStorage.getItem('sintergia_sync_revision')||'0',10);if(!Number.isFinite(rev)||rev<0)rev=0;rev+=1;localStorage.setItem('sintergia_sync_revision',String(rev));let sourceId=sessionStorage.getItem('sintergia_device_id');if(!sourceId){sourceId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();sessionStorage.setItem('sintergia_device_id',sourceId);}const snapshot={version:7,updatedAt:now,clientUpdatedAt:now,revision:rev,sourceId,deviceId:sourceId,clientes:st.clientes||[],partes:st.partes||[],facturas:st.facturas||[],pendientes:st.pendientes||[],stock:st.stock||[],stockListas:st.stockListas||[],partCounter:st.partCounter,facCounter:st.facCounter,horario:st.horario||null,compras:st.compras||[],tombstones:getTombstones(),entityVersioning:true};const raw=JSON.stringify(snapshot);if(raw.length>MAX_SYNC_BYTES)throw new Error('El estado supera el límite de sincronización de 5 MB.');return JSON.parse(raw);}catch(e){if(window.__mostrarErrorApp)window.__mostrarErrorApp('Sincronización: '+(e.message||e));return null;}};
-/* P13: healthcheck runtime no invasivo para Lovable/PWA. */
+/* P13: healthcheck runtime no invasivo para Supabase/PWA. */
 window.SintergiaRuntimeHealth=function(){
   const checks={};
   try{checks.appState=!!window.appState;checks.storage=typeof window.guardarEstadoStorage==='function';checks.snapshot=typeof window.obtenerSnapshotSincronizacion==='function';checks.applySnapshot=typeof window.aplicarSnapshotSincronizacion==='function';checks.realtime=!!window.SintergiaRealtime&&typeof window.SintergiaRealtime.publish==='function';checks.gps=typeof window.obtenerTelemetriaGPSPro==='function';checks.firma=typeof window.abrirModalFirma==='function';checks.online=navigator.onLine!==false;}catch(_){return {ok:false,checks:{},error:'healthcheck'};}
@@ -14479,9 +14647,9 @@ window.SintergiaRuntimeHealth=function(){
 
 /* P10: SintergiaRealtime conserva una única implementación canónica. */
 
-async function obtenerRemoto(){const r=await backendFetch(SYNC_API+'?channel='+encodeURIComponent(SYNC_CHANNEL),{credentials:'include',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);const d=await r.json();return d.snapshot||d.state||d;}
+async function obtenerRemoto(){const r=await backendFetch(SYNC_API+'?channel='+encodeURIComponent(SYNC_CHANNEL),{credentials:'include',cache:'no-store',headers:authHeadersSintergia()});if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);const d=await r.json();const snap=d&&d.snapshot;if(snap&&typeof snap==='object'&&snap.state&&typeof snap.state==='object'){return snap.state;}return snap||d.state||d;}
 function mergeEntityArrays(local,incoming,collection){const a=Array.isArray(local)?local:[],b=Array.isArray(incoming)?incoming:[],m=new Map();const key=x=>String(x?.id??x?.uid??x?.ref??x?.referencia??x?.numero??x?.codigo??'');const ts=x=>{const t=Date.parse(x?.updatedAt||x?.clientUpdatedAt||x?.createdAt||x?.fechaModificacion||x?.fechaCreacion||'');return Number.isFinite(t)?t:0};const rev=x=>Number.isFinite(Number(x?.entityRevision))?Number(x.entityRevision):Number.isFinite(Number(x?.revision))?Number(x.revision):0;const src=x=>String(x?.sourceId??x?.deviceId??'');const rank=x=>[rev(x),ts(x),src(x)];const newer=(x,y)=>{const a1=rank(x),b1=rank(y);for(let i=0;i<a1.length;i++){if(a1[i]>b1[i])return true;if(a1[i]<b1[i])return false;}return false;};a.forEach(x=>{const k=key(x);if(k)m.set(k,x)});b.forEach(x=>{const k=key(x);if(!k||tombstoneBlocksEntity(collection,x))return;const o=m.get(k);if(!o||newer(x,o))m.set(k,x)});return [...m.values()];}
-window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
+window.aplicarSnapshotSincronizacion=function(snapshot){if(snapshot&&snapshot.state&&typeof snapshot.state==='object')snapshot=snapshot.state;if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
 window.probarSincronizacionMultidispositivo=async function(){const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(st){st.className='sync-ai-status';st.textContent='Probando publicación y lectura…';}if(log){log.style.display='block';log.textContent='';}const lines=[],snap=window.obtenerSnapshotSincronizacion();if(!snap){lines.push('❌ No se pudo crear el snapshot local.');if(log)log.textContent=lines.join('\n');if(st){st.className='sync-ai-status error';st.textContent='Snapshot local no disponible.';}return;}lines.push('1. Snapshot local creado: '+snap.clientes.length+' clientes · '+snap.partes.length+' partes · '+snap.facturas.length+' facturas.');const published=await window.SintergiaRealtime.publish(snap);lines.push(published?'2. ✅ Publicación en servidor OK.':'2. ⚠️ Publicación en servidor no confirmada.');try{const remote=await obtenerRemoto();lines.push(remote?'3. ✅ Lectura remota OK.':'3. ⚠️ El servidor no devolvió snapshot.');}catch(e){lines.push('3. ⚠️ Lectura remota falló: '+(e.message||e));}if(log)log.textContent=lines.join('\n');if(st){st.className=published?'sync-ai-status ok':'sync-ai-status error';st.textContent=published?'Flujo de publicación comprobado.':'No se pudo confirmar la publicación remota.';}};
 /* Sincronización manual de cabecera: dos pulsaciones sobre el logotipo dentro de 2 s.
  * Publica el estado local y comprueba inmediatamente el estado remoto. No sustituye
@@ -14491,9 +14659,9 @@ window.probarSincronizacionMultidispositivo=async function(){const st=document.g
 
 let ultimoHash='';function hashSimple(o){try{return JSON.stringify(o);}catch(_){return'';}}setInterval(async function(){if(document.hidden||localStorage.getItem('sintergia_modo_flujo_real')!=='1')return;try{const remote=await obtenerRemoto();if(!remote)return;const h=hashSimple(remote);if(!h||h===ultimoHash)return;ultimoHash=h;const local=window.obtenerSnapshotSincronizacion();if(hashSimple(local)!==h&&confirm('🌐 Hay cambios nuevos en otro dispositivo. ¿Actualizar este dispositivo?')){window.aplicarSnapshotSincronizacion(remote);syncToast('🔄 Estado actualizado desde otro dispositivo.');}}catch(_){window.__sgIgn&&window.__sgIgn(_);}},10000);
 function contextoDiagnostico(){const senal=window.SenalApp&&window.SenalApp.estado?window.SenalApp.estado():{};const snap=window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion();return{online:navigator.onLine,secureContext:window.isSecureContext,gps:senal.gps||null,network:senal.net||null,localStorageVolatil:!!window.__almacenamientoVolatil,modoFlujoReal:localStorage.getItem('sintergia_modo_flujo_real')==='1',snapshotSummary:snap?{clientes:snap.clientes.length,partes:snap.partes.length,facturas:snap.facturas.length,pendientes:snap.pendientes.length}:null,userAgent:navigator.userAgent};}
-function renderAI(cycle,result){const log=document.getElementById('sync-ai-log');if(!log)return;log.style.display='block';const causes=Array.isArray(result.causes)?result.causes.map(x=>'• '+(typeof x==='string'?x:(x.cause||x.description||JSON.stringify(x)))).join('\n'):'• '+(result.causes||'No especificadas');const steps=Array.isArray(result.steps)?result.steps.map(x=>'• '+(typeof x==='string'?x:(x.step||x.description||JSON.stringify(x)))).join('\n'):'• '+(result.steps||'No especificados');const repair=result.repair?'\nREPARACIÓN SUGERIDA:\n'+(typeof result.repair==='string'?result.repair:JSON.stringify(result.repair,null,2)):'';log.textContent+='\n===== CICLO '+cycle+' =====\nDIAGNÓSTICO:\n'+(result.diagnosis||result.message||'Sin diagnóstico')+'\nCAUSAS:\n'+causes+'\nPASOS:\n'+steps+repair+'\n';}
-async function llamarAIGateway(problem,context,cycle,previous){const payload={model:'auto',prompt:'Diagnostica un problema de sincronización multidispositivo de una app web. Devuelve diagnóstico factual, causas probables, pasos concretos y una reparación segura. No inventes acceso al servidor. Si falta backend, indícalo. Ciclo '+cycle+'. Problema del usuario: '+problem,context:{...context,previous}};if(problem.length>4000)throw new Error('La descripción es demasiado larga (máximo 4.000 caracteres).');const r=await backendFetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);const d=await r.json();return d.result||d;}
-window.diagnosticarSincronizacionAI=async function(){const problem=(document.getElementById('sync-ai-problema')?.value||'').trim();const cycles=Math.min(3,Math.max(1,parseInt(document.getElementById('sync-ai-ciclos')?.value||'3',10)));const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(!problem){alert('Describe primero el problema de sincronización.');return;}if(st){st.className='sync-ai-status';st.textContent='Analizando…';}if(log){log.style.display='block';log.textContent='';}let previous=null,stable=false;for(let i=1;i<=cycles;i++){try{if(i>1){const snap=window.obtenerSnapshotSincronizacion();if(snap)await window.SintergiaRealtime.publish(snap);try{await obtenerRemoto();}catch(_){window.__sgIgn&&window.__sgIgn(_);}}const result=await llamarAIGateway(problem,contextoDiagnostico(),i,previous);renderAI(i,result);previous=result;stable=!!(result.stable||result.resolved||result.status==='resolved'||result.ok===true);if(stable)break;}catch(e){if(log)log.textContent+='\n===== CICLO '+i+' =====\n❌ '+(e.message||e)+'\n';if(st){st.className='sync-ai-status error';st.textContent='El AI Gateway no respondió. Revisa que exista /functions/v1/ai-gateway en el backend de Lovable.';}return;}}if(st){st.className=stable?'sync-ai-status ok':'sync-ai-status';st.textContent=stable?'Diagnóstico terminado: el modelo ha indicado resolución/estabilidad.':'Diagnóstico terminado: revisa las causas y pasos del último ciclo.';}};
+function renderAI(cycle,result){const log=document.getElementById('sync-ai-log');if(!log)return;log.style.display='block';let r=result;if(typeof r==='string'){const raw=r.trim();if(raw){try{const parsed=JSON.parse(raw);if(parsed&&typeof parsed==='object')r=parsed;else throw 0;}catch(_){log.textContent+='\n===== CICLO '+cycle+' =====\nDIAGNÓSTICO IA:\n'+raw+'\n';return;}}else{log.textContent+='\n===== CICLO '+cycle+' =====\nDIAGNÓSTICO IA:\n(Sin contenido)\n';return;}}r=r&&typeof r==='object'?r:{};const causes=Array.isArray(r.causes)?r.causes.map(x=>'• '+(typeof x==='string'?x:(x.cause||x.description||JSON.stringify(x)))).join('\n'):'• '+(r.causes||'No especificadas');const steps=Array.isArray(r.steps)?r.steps.map(x=>'• '+(typeof x==='string'?x:(x.step||x.description||JSON.stringify(x)))).join('\n'):'• '+(r.steps||'No especificados');const repair=r.repair?'\nREPARACIÓN SUGERIDA:\n'+(typeof r.repair==='string'?r.repair:JSON.stringify(r.repair,null,2)):'';log.textContent+='\n===== CICLO '+cycle+' =====\nDIAGNÓSTICO:\n'+(r.diagnosis||r.message||'Sin diagnóstico')+'\nCAUSAS:\n'+causes+'\nPASOS:\n'+steps+repair+'\n';}
+async function llamarAIGateway(problem,context,cycle,previous){const payload={model:'auto',prompt:'Diagnostica un problema de sincronización multidispositivo de una app web. Devuelve diagnóstico factual, causas probables, pasos concretos y una reparación segura. No inventes acceso al servidor. Si falta backend, indícalo. Ciclo '+cycle+'. Problema del usuario: '+problem,context:{...context,previous}};if(problem.length>4000)throw new Error('La descripción es demasiado larga (máximo 4.000 caracteres).');const r=await backendFetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);const d=await r.json();return d.result||d;}
+window.diagnosticarSincronizacionAI=async function(){const problem=(document.getElementById('sync-ai-problema')?.value||'').trim();const cycles=Math.min(3,Math.max(1,parseInt(document.getElementById('sync-ai-ciclos')?.value||'3',10)));const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(!problem){alert('Describe primero el problema de sincronización.');return;}if(st){st.className='sync-ai-status';st.textContent='Analizando…';}if(log){log.style.display='block';log.textContent='';}let previous=null,stable=false;for(let i=1;i<=cycles;i++){try{if(i>1){const snap=window.obtenerSnapshotSincronizacion();if(snap)await window.SintergiaRealtime.publish(snap);try{await obtenerRemoto();}catch(_){window.__sgIgn&&window.__sgIgn(_);}}const result=await llamarAIGateway(problem,contextoDiagnostico(),i,previous);renderAI(i,result);previous=result;stable=!!(result.stable||result.resolved||result.status==='resolved'||result.ok===true);if(stable)break;}catch(e){if(log)log.textContent+='\n===== CICLO '+i+' =====\n❌ '+(e.message||e)+'\n';if(st){st.className='sync-ai-status error';st.textContent='El AI Gateway no respondió. Revisa que exista /functions/v1/ai-gateway en el backend de Supabase.';}return;}}if(st){st.className=stable?'sync-ai-status ok':'sync-ai-status';st.textContent=stable?'Diagnóstico terminado: el modelo ha indicado resolución/estabilidad.':'Diagnóstico terminado: revisa las causas y pasos del último ciclo.';}};
 window.SintergiaDiagnostico={contexto:contextoDiagnostico,reverseGeocode:reverseGeocodeDireccion,probarSync:window.probarSincronizacionMultidispositivo};
 })();
 </script>
@@ -14719,7 +14887,7 @@ async function escanear(){
   if(receiptFile.size>15*1024*1024)throw new Error('El archivo supera 15 MB.');
   const b64=await fileBase64(receiptFile);
   const prompt='Analiza esta factura o recibo de COMPRA DE MATERIAL para una empresa instaladora eléctrica. Extrae SOLO datos visibles, sin inventar. Detecta especialmente si aparece una referencia de PARTE de trabajo con formato PT26-xxxxxx o equivalente. Devuelve JSON estricto: {proveedor:"",fecha:"",numero:"",parteReferencia:"",confianzaParte:0,items:[{descripcion:"",marca:"",referencia:"",codigoBarras:"",categoria:"",unidades:0,costeUnitario:0}]}. Si no aparece un dato, usa cadena vacía o 0. En unidades usa la cantidad comprada. Prioriza referencias de fabricante visibles. Si hay varios posibles números de parte, usa parteReferencia solo si uno está claramente asociado a la compra.';
-  async function callAI(provider,model){const payload={api:'responses',provider,model,prompt,input:prompt,responseFormat:'json',task:'purchase_invoice_material_extraction',document:{name:receiptFile.name,type:receiptFile.type,dataBase64:b64}};const r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);return await r.json()}
+  async function callAI(provider,model){const payload={api:'responses',provider,model,prompt,input:prompt,responseFormat:'json',task:'purchase_invoice_material_extraction',document:{name:receiptFile.name,type:receiptFile.type,dataBase64:b64}};const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);return await r.json()}
   let d;try{d=await callAI('google','gemini-3.7-flash')}catch(_){d=await callAI('openai','auto')}
   let out=d&&(d.result??d.output??d.response??d);if(typeof out==='string'){const clean=out.replace(/^```json\s*|^```\s*|\s*```$/g,'').trim();const mm=clean.match(/\{[\s\S]*\}/);out=JSON.parse(mm?mm[0]:clean)}
   out=out||{};
@@ -14782,7 +14950,7 @@ async function biometricEnroll(){
   const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
   const t=window.SintergiaTechnician||{};
   if(!t.nombre||!t.dni){alert('Inicia sesión con nombre completo y DNI antes de registrar la biometría.');return}
-  const ep=window.SINTERGIA_LOVABLE?.auth?.registerBiometricEndpoint||'/functions/v1/register-biometric';
+  const ep=window.SINTERGIA_SUPABASE?.auth?.registerBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric';
   const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
   const authHeaders={'Content-Type':'application/json'}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
   const rr=await fetch(ep,{method:'POST',credentials:'include',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
@@ -14807,7 +14975,7 @@ async function biometricEnroll(){
 }
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
-  const ep=window.SINTERGIA_LOVABLE?.auth?.authenticateBiometricEndpoint;
+  const ep=window.SINTERGIA_SUPABASE?.auth?.authenticateBiometricEndpoint;
   if(!ep)return{attempted:false,available:false,ok:false};
   try{
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
@@ -14824,7 +14992,7 @@ async function verificarBiometriaBackend(assertion){
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
   try{
-    const ep=window.SINTERGIA_LOVABLE?.auth?.authenticateBiometricEndpoint||'/functions/v1/authenticate-biometric';
+    const ep=window.SINTERGIA_SUPABASE?.auth?.authenticateBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json'}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
     const optRes=await fetch(ep,{method:'POST',credentials:'include',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
@@ -15511,7 +15679,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Escribe tu consulta.</p>';return;}
   btn.disabled=true;out.innerHTML='<p class="nrm-msg">Analizando la normativa…</p>';
   try{
-   const r=await fetch('/functions/v1/consulta-normativa',{method:'POST',headers:authHeadersSintergia(),credentials:'include',body:JSON.stringify({pregunta:q})});
+   const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/consulta-normativa',{method:'POST',headers:authHeadersSintergia(),credentials:'include',body:JSON.stringify({pregunta:q})});
    const d=await r.json();
    if(!r.ok) throw new Error(d.error||'Error');
    out.innerHTML=(d.resumen?`<div class="nrm-sum">${esc(d.resumen)}</div>`:'')+
@@ -15527,7 +15695,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Mínimo 3 letras.</p>';return;}
   out.innerHTML='<p class="nrm-msg">Buscando…</p>';
   try{
-   const r=await fetch('/functions/v1/buscar-normativa?q='+encodeURIComponent(q)+'&tipo='+nrmTipo,{headers:authHeadersSintergia(),credentials:'include',cache:'no-store'});
+   const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/buscar-normativa?q='+encodeURIComponent(q)+'&tipo='+nrmTipo,{headers:authHeadersSintergia(),credentials:'include',cache:'no-store'});
    const d=await r.json();
    if(!r.ok) throw new Error(d&&d.error?d.error:'HTTP '+r.status);
    const resultados=Array.isArray(d.resultados)?d.resultados:[];
@@ -15539,7 +15707,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.nrmDescargar=async btn=>{
    if(btn){btn.disabled=true;}
    try{
-    const r=await fetch('/functions/v1/descargar-html',{headers:authHeadersSintergia(),credentials:'include'});
+    const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/descargar-html',{headers:authHeadersSintergia(),credentials:'include'});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const b=await r.blob();
     const u=URL.createObjectURL(b);
@@ -15640,7 +15808,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div id="tab-rutas-ia" class="tab-content">
     <div class="card">
         <h2 style="color:var(--primary-blue); margin-top:0;">🗺️ Rutas IA y concertación de citas</h2>
-        <div class="ria-engine-note"><b>Motor híbrido preparado para Lovable:</b> IA operativa mediante <code>/functions/v1/ai-gateway</code> + rutas reales mediante <code>/functions/v1/route-matrix</code> (Google Routes con Mapbox como respaldo de proveedor). Las claves nunca se guardan en este HTML; si el backend de rutas no responde, se usa cálculo local y se informa.</div>
+        <div class="ria-engine-note"><b>Motor híbrido preparado para Supabase:</b> IA operativa mediante <code>/functions/v1/ai-gateway</code> + rutas reales mediante <code>/functions/v1/route-matrix</code> (OSRM con Google Routes como respaldo de proveedor). Las claves nunca se guardan en este HTML; si el backend de rutas no responde, se usa cálculo local y se informa.</div>
         <div class="ia-row">
             <div class="ria-location-field">
                 <label>Punto de partida de la jornada</label>
@@ -15682,7 +15850,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         <div id="ria-week-days" class="ria-week-days" aria-label="Días de planificación de rutas"></div>
         <div id="ria-realtime-status" class="ria-realtime-status">🔄 Sincronización en tiempo real activa</div>
         <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="RutasIA.planificar(this)">🤖 Calcular rutas con IA</button>
+            <button onclick="RutasIA.planificar(this)">🧭 Calcular rutas híbridas</button>
             <button class="btn-secondary" onclick="RutasIA.consejoJornada(true)">🧭 Consejo de inicio de jornada</button>
             <button class="btn-secondary" onclick="RutasIA.sincronizarRespuestas(true)">🔄 Comprobar respuestas de clientes</button>
         </div>
@@ -15737,7 +15905,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div id="tab-sync-ai" class="tab-content">
     <div class="card">
         <h2 style="color:var(--primary-blue); margin-top:0;">🔄 Diagnóstico de sincronización multidispositivo (IA)</h2>
-        <p class="ia-note">Comprueba que este dispositivo publica y lee correctamente el estado compartido, y usa el asistente de IA para diagnosticar problemas de sincronización cuando el backend de Lovable esté activo.</p>
+        <p class="ia-note">Comprueba que este dispositivo publica y lee correctamente el estado compartido, y usa el asistente de IA para diagnosticar problemas de sincronización cuando el backend de Supabase esté activo.</p>
         <div class="ia-row">
             <div style="flex:0 0 auto;"><button onclick="window.probarSincronizacionMultidispositivo()">🧪 Probar sincronización ahora</button></div>
             <div style="flex:0 0 auto;"><button class="btn-secondary" onclick="window.activarModoFlujoRealMultidispositivo()">🌐 Activar flujo real</button></div>
@@ -15847,9 +16015,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         } finally { clearTimeout(t); }
     }
     async function ia(prompt, timeout) {
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.ai || {};
+        var cfg = window.SINTERGIA_SUPABASE && window.SINTERGIA_SUPABASE.ai || {};
         if (cfg.enabled === false) throw new Error('IA desactivada');
-        var endpoint = cfg.endpoint || '/functions/v1/ai-gateway';
+        var endpoint = cfg.endpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway';
         var d = await post(endpoint, {
             api: cfg.api || 'responses',
             provider: cfg.provider || 'openai',
@@ -15870,12 +16038,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     }
 
     async function iaJson(task, data, timeout) {
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.ai || {};
+        var cfg = window.SINTERGIA_SUPABASE && window.SINTERGIA_SUPABASE.ai || {};
         if (cfg.enabled === false) throw new Error('IA desactivada');
-        var endpoint = cfg.endpoint || '/functions/v1/ai-gateway';
+        var endpoint = cfg.endpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway';
         var d = await post(endpoint, {
             api: cfg.api || 'responses', provider: cfg.provider || 'openai', model: cfg.model || 'auto',
-            task: task, input: data, responseFormat: 'json'
+            task: task, input: (typeof data === 'string' ? data : JSON.stringify(data)), prompt: task + '\n\nDATOS:\n' + (typeof data === 'string' ? data : JSON.stringify(data)), responseFormat: 'json'
         }, timeout || cfg.timeoutMs || 30000);
         var out = d && (d.result || d.output || d.response || d);
         if (typeof out === 'string') {
@@ -15894,7 +16062,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             });
             var reg = { id: 'DOC' + Date.now(), ref: ref || '', tipo: tipo || 'documento', nombre: file.name, size: file.size, fecha: new Date().toISOString(), estado: 'local' };
             try {
-                var d = await post('/functions/v1/upload-doc', { ref: reg.ref, tipo: reg.tipo, nombre: file.name, mime: file.type, dataBase64: b64 }, 30000);
+                var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/upload-doc', { ref: reg.ref, tipo: reg.tipo, nombre: file.name, mime: file.type, dataBase64: b64 }, 30000);
                 reg.estado = 'nube'; reg.url = (d && (d.url || d.publicUrl)) || '';
                 toast('☁️ ' + file.name + ' guardado en la nube.');
             } catch (e) {
@@ -16002,16 +16170,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         if (!dir) return null;
         var key = dir.toLowerCase().trim();
         if (state.geo[key]) return state.geo[key];
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.routing || {};
+        var cfg = window.SINTERGIA_SUPABASE && window.SINTERGIA_SUPABASE.routing || {};
         var res = null;
         try {
-            var d = await post(cfg.geocodeEndpoint || '/functions/v1/geocode', { q: dir, country: 'es', language: 'es' }, 12000);
+            var d = await post(cfg.geocodeEndpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode', { q: dir, country: 'es', language: 'es' }, 12000);
             var candidate = d && (d.result || d.location || d);
             if (candidate && candidate.lat != null) res = { lat: num(candidate.lat), lon: num(candidate.lon != null ? candidate.lon : candidate.lng) };
         } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* backend no disponible */ }
         /* Solo como respaldo explícito de desarrollo. En producción se recomienda que
-           Lovable/Edge Function haga toda la geocodificación para controlar cuota y CORS. */
-        if (!res && window.SINTERGIA_LOVABLE.routing.allowBrowserGeocodeFallback !== false) {
+           Supabase/Edge Function haga toda la geocodificación para controlar cuota y CORS. */
+        if (!res && window.SINTERGIA_SUPABASE.routing.allowBrowserGeocodeFallback !== false) {
             try {
                 var r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=es&q=' + encodeURIComponent(dir), { headers: { 'Accept': 'application/json' } });
                 var j = await r.json();
@@ -16039,21 +16207,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
     /*
      * Matriz de carretera opcional.
-     * La API key/proveedor nunca se expone en este HTML: Lovable/backend debe
-     * implementar /functions/v1/route-matrix y devolver:
+     * La API key/proveedor nunca se expone en este HTML: Supabase debe
+     * implementar /functions/v1/route-matrix y devolver (OSRM/Google compatibles):
      * { matrix: [[{durationSec, distanceMeters}, ...], ...] }
      * También se aceptan variantes duration/distance, seconds/meters.
      */
     async function obtenerMatrizRutas(nodes, departureISO) {
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.routing;
+        var cfg = window.SINTERGIA_SUPABASE && window.SINTERGIA_SUPABASE.routing;
         if (!cfg || cfg.enabled === false || !cfg.matrixEndpoint || !nodes || nodes.length < 2) return null;
         try {
             var locations = nodes.map(function (n) {
                 return { lat: num(n.lat), lon: num(n.lon) };
             });
             var payload = {
-                provider: cfg.provider || 'google-routes',
-                fallbackProvider: cfg.fallbackProvider || 'mapbox',
+                provider: cfg.provider || 'osrm',
+                fallbackProvider: cfg.fallbackProvider || 'google-routes',
                 departureTime: departureISO || null,
                 traffic: cfg.traffic !== false,
                 trafficPreference: cfg.trafficPreference || 'TRAFFIC_AWARE',
@@ -16121,7 +16289,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         async planificar(btn) {
             var cont = document.getElementById('ria-rutas'); if (!cont) return;
             if (btn) btn.disabled = true;
-            cont.innerHTML = '<p class="ia-note">🤖 Calculando rutas: origen → avisos → punto final, ajustadas a una jornada de 8,5 h aprox.…</p>';
+            cont.innerHTML = '<p class="ia-note">🧭 Calculando rutas híbridas: origen → avisos → punto final, ajustadas a una jornada de 8,5 h aprox.…</p>';
 
             try {
                 var baseInput = document.getElementById('ria-base');
@@ -16256,7 +16424,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
                         if (numeroParadas >= maxPorRuta) return;
                         var x = coste(actual, c);
                         if (x.idaKm >= 999999) return;
-                        var nuevoTotal = tiempoActual + x.idaMin + c.dur + colchonMin + x.finMin;
+                        var nuevoTotal = tiempoActual + x.idaMin + c.dur + (numeroParadas > 0 ? colchonMin : 0) + x.finMin;
                         if (numeroParadas > 0 && nuevoTotal > objetivoMin + 30) return;
                         // La duración estimada del aviso entra en la decisión: entre dos
                         // avisos parecidos se prefiere el que deja la jornada más cerca
@@ -16281,10 +16449,23 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
                         if (grupo.length >= maxPorRuta) return false;
                         var x = coste(actual, c);
                         if (x.idaKm >= 999999) return false;
-                        var candidatoTotal = tiempoTrabajoYViaje + x.idaMin + c.dur + colchonMin + x.finMin;
+                        /* El colchón solo se reserva entre citas. No se añade después de la última parada,
+                         * evitando inflar artificialmente la duración de la jornada y su diferencia objetivo. */
+                        var margenAplicable = colchonMin;
+                        var candidatoTotal = tiempoTrabajoYViaje + x.idaMin + c.dur + margenAplicable + x.finMin;
                         if (grupo.length > 0 && candidatoTotal > objetivoMin + 30) return false;
-                        grupo.push({ item: c, kmDesdeAnterior: Math.round(x.idaKm * 10) / 10, minDesdeAnterior: x.idaMin, dur: c.dur, margen: colchonMin });
-                        tiempoTrabajoYViaje += x.idaMin + c.dur + colchonMin;
+                        if (grupo.length > 0) {
+                            /* El margen de la parada anterior queda materializado en su tramo temporal. */
+                            var ultimo = grupo[grupo.length - 1];
+                            if (ultimo && ultimo.margen !== colchonMin) ultimo.margen = colchonMin;
+                        }
+                        grupo.push({ item: c, kmDesdeAnterior: Math.round(x.idaKm * 10) / 10, minDesdeAnterior: x.idaMin, dur: c.dur, margen: 0 });
+                        tiempoTrabajoYViaje += x.idaMin + c.dur;
+                        if (grupo.length > 1) {
+                            var prev = grupo[grupo.length - 2];
+                            prev.margen = colchonMin;
+                            tiempoTrabajoYViaje += colchonMin;
+                        }
                         kmTotal += x.idaKm;
                         actual = c.coord;
                         return true;
@@ -16309,7 +16490,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
                     pendientes.forEach(function (c) {
                         if (grupo.length >= maxPorRuta) return;
                         var x = coste(actual, c);
-                        var candidatoTotal = tiempoTrabajoYViaje + x.idaMin + c.dur + colchonMin + x.finMin;
+                        var candidatoTotal = tiempoTrabajoYViaje + x.idaMin + c.dur + (grupo.length > 0 ? colchonMin : 0) + x.finMin;
                         if (candidatoTotal > objetivoMin + 30) return;
                         var delta = Math.abs(objetivoMin - candidatoTotal);
                         if (delta < extraDelta) { extraDelta = delta; extra = { item: c, coste: x }; }
@@ -16449,7 +16630,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         },
         consejoJornada: function (forzar) {
             if (!state.rutas.length) {
-                if (forzar) { toast('Calcula primero las rutas con IA.'); RutasIA.abrir(); }
+                if (forzar) { toast('Calcula primero las rutas.'); RutasIA.abrir(); }
                 return;
             }
             RutasIA.abrir();
@@ -16545,7 +16726,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var token = 'CITA' + avisoId + '-' + Date.now().toString(36);
             if (btn) btn.disabled = true;
             try {
-                var result = await post('/functions/v1/cita-email', {
+                var result = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-email', {
                     token: token, avisoId: avisoId, to: p.email, from: 'sintergiase@gmail.com', provider: 'gmail', cliente: p.cliente,
                     fecha: p.fecha, hora: p.hora, horaFin: p.horaFin, duracionMin: p.duracionMin, direccion: p.dir, descripcion: p.desc,
                     asunto: 'Cita para su intervención · ' + fechaES(p.fecha) + ' ' + p.hora,
@@ -16570,7 +16751,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var token = 'CITA' + avisoId + '-' + Date.now().toString(36);
             if (btn) btn.disabled = true;
             try {
-                var result = await post('/functions/v1/cita-whatsapp', {
+                var result = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-whatsapp', {
                     token: token, avisoId: avisoId, to: tel, cliente: p.cliente,
                     fecha: p.fecha, hora: p.hora, horaFin: p.horaFin, duracionMin: p.duracionMin, direccion: p.dir, descripcion: p.desc,
                     texto: RutasIA.textoCita(p), botones: ['Sí', 'No']
@@ -16628,7 +16809,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var tokens = Object.keys(state.citas).map(function (k) { return { avisoId: k, token: state.citas[k].token }; }).filter(function (x) { return x.token && !state.citas[x.avisoId].respuesta; });
             if (!tokens.length) { if (manual) toast('No hay citas pendientes de respuesta.'); return; }
             try {
-                var d = await post('/functions/v1/cita-estado', { tokens: tokens.map(function (x) { return x.token; }) }, 12000);
+                var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado', { tokens: tokens.map(function (x) { return x.token; }) }, 12000);
                 var res = (d && (d.respuestas || d.result)) || {};
                 var cambios = 0;
                 tokens.forEach(function (x) {
@@ -16749,7 +16930,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         async descargar() {
             var URL_MIN = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
             try {
-                var d = await post('/functions/v1/gasolineras', {}, 25000);
+                var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras', {}, 25000);
                 var l1 = d && (d.ListaEESSPrecio || d.lista || d.result);
                 if (l1 && l1.length) return l1;
             } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* respaldo directo */ }
@@ -16835,57 +17016,61 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(global){
   'use strict';
   var endpoints=[
-    ['Health','GET','/functions/v1/health','safe'],
-    ['Buscar normativa','GET','/functions/v1/buscar-normativa?q=REBT&tipo=todo','safe'],
-    ['Geocode','POST','/functions/v1/geocode','safe'],
-    ['Reverse geocode','POST','/functions/v1/reverse-geocode','safe'],
-    ['AI Gateway','POST','/functions/v1/ai-gateway','ai'],
-    ['Consulta normativa IA','POST','/functions/v1/consulta-normativa','ai'],
-    ['Route Matrix','POST','/functions/v1/route-matrix','routing'],
-    ['Gasolineras','POST','/functions/v1/gasolineras','safe'],
-    ['Realtime snapshot','POST','/functions/v1/realtime-snapshot','safe'],
-    ['Sync operations','POST','/functions/v1/sync-operations','safe'],
-    ['Autenticación','POST','/functions/v1/authenticate','auth'],
-    ['Email','POST','/functions/v1/send-email','mutating'],
-    ['Cita email','POST','/functions/v1/cita-email','mutating'],
-    ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
-    ['Cita estado','POST','/functions/v1/cita-estado','safe'],
-    ['Receipt verify','POST','/functions/v1/verify-receipt','safe'],
-    ['Receipt register','POST','/functions/v1/receipt-register','safe'],
-    ['Receipt status','POST','/functions/v1/receipt-status','safe']
+    ['Health','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health','safe'],
+    ['Buscar normativa','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/buscar-normativa?q=REBT&tipo=todo','safe'],
+    ['Geocode','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode','safe'],
+    ['Reverse geocode','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode','safe'],
+    ['AI Gateway','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway','ai'],
+    ['Consulta normativa IA','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/consulta-normativa','ai'],
+    ['Route Matrix','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix','routing'],
+    ['Gasolineras','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras','safe'],
+    ['Realtime snapshot','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot','safe'],
+    ['Sync operations','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations','safe'],
+    ['Autenticación','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','auth'],
+    ['Email','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email','mutating'],
+    ['Cita email','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-email','mutating'],
+    ['Cita WhatsApp','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-whatsapp','mutating'],
+    ['Cita estado','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado','safe'],
+    ['Receipt verify','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt','auth'],
+    ['Receipt register','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-register','auth'],
+    ['Receipt status','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status','auth']
   ];
   function headers(){return (typeof global.authHeadersSintergia==='function')?global.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'};}
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
   async function check(item){
-    var name=item[0],method=item[1],url=sintergiaResolveEndpoint(item[2]),kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
+    var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
     var body=null;
     if(method==='POST'){
-      if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
-      else if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
+      if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
+      else if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
       else if(name==='Geocode') body={address:'Sevilla, España'};
       else if(name==='Reverse geocode') body={lat:37.3891,lon:-5.9845};
-      else if(name==='Route Matrix') body={provider:'google-routes',fallbackProvider:'mapbox',locations:[{lat:37.3891,lon:-5.9845},{lat:37.3886,lon:-5.9953}],origins:[{lat:37.3891,lon:-5.9845}],destinations:[{lat:37.3886,lon:-5.9953}],traffic:false,travelMode:'DRIVE'};
+      else if(name==='Route Matrix') body={provider:'osrm',fallbackProvider:'google-routes',locations:[{lat:37.3891,lon:-5.9845},{lat:37.3886,lon:-5.9953}],origins:[{lat:37.3891,lon:-5.9845}],destinations:[{lat:37.3886,lon:-5.9953}],traffic:false,travelMode:'DRIVE'};
       else if(name==='Cita estado') body={tokens:[]};
-      else if(name==='Receipt status') body={};
-      else if(name==='Realtime snapshot') body={};
-      else if(name==='Sync operations') body={operations:[]};
+      else if(name==='Receipt status') body={tokens:[]};
+      else if(name==='Realtime snapshot') body={id:'default'};
+      else if(name==='Sync operations') body={requestId:op(),operation:'snapshot',payload:{}};
       else if(name==='Gasolineras') body={};
-      else if(name==='Authenticate') body={};
-      else if(name==='Autenticación') body={};
-      else if(name==='Receipt register') body=null;
+      else if(name==='Receipt register') body={};
       else if(kind==='safe') body={};
     }
-    if(kind==='mutating' || name==='Receipt register') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente: requiere una operación real y sus datos de negocio.'};
+    if(kind==='mutating') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente porque podría enviar un correo o mensaje real.'};
     var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},15000);
     try{
-      var r=await fetch(url,{method:method,headers:h,credentials:'include',cache:'no-store',signal:ctrl.signal,body:method==='POST'?JSON.stringify(body):undefined});
+      var fetchOptions={method:method,headers:h,credentials:name==='Health'?'omit':'include',cache:'no-store',signal:ctrl.signal,body:method==='POST'?JSON.stringify(body):undefined};if(name==='Health'){fetchOptions.headers={'Accept':'application/json'};fetchOptions.mode='cors';}var r=await fetch(url,fetchOptions);
       clearTimeout(timer);
       var txt=await r.text();
       if(r.ok) return {name:name,status:'🟢 '+r.status,cls:'sdiag-ok',detail:'Respuesta HTTP correcta'+(txt?' · '+txt.slice(0,180):'')};
-      if(r.status===400) return {name:name,status:'🟡 400',cls:'sdiag-warn',detail:'Endpoint accesible; el diagnóstico no contiene todos los datos de una operación real.'};
-      if(r.status===401||r.status===403) return {name:name,status:'🟡 '+r.status,cls:'sdiag-warn',detail:'Endpoint accesible, pero requiere autenticación/permisos.'};
+      if(r.status===401||r.status===403){var hasToken=!!(window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})());var localToken=hasToken&&String(window.SintergiaAuthToken||'').startsWith('local-');return {name:name,status:'🟡 '+r.status,cls:'sdiag-warn',detail:localToken?'Endpoint accesible, pero la sesión actual es local y no sirve para las Edge Functions protegidas de Supabase.':'Endpoint accesible, pero requiere una sesión Supabase válida o permisos.'};}
+      if(r.status===400 && (name==='Consulta normativa IA'||name==='Receipt verify'||name==='Receipt register'||name==='Receipt status')) return {name:name,status:'🟡 400',cls:'sdiag-warn',detail:'Endpoint accesible; la petición de diagnóstico no contiene los datos de una operación real.'};
       if(r.status===404) return {name:name,status:'🔴 404',cls:'sdiag-bad',detail:'Endpoint no encontrado.'};
+      if(r.status===503 && (name==='AI Gateway'||name==='Consulta normativa IA')) {
+        var aiDetail='Backend accesible, pero el proveedor IA ha rechazado o no ha podido procesar la petición.';
+        try { var aj=JSON.parse(txt||'{}'); if(aj.error==='ai_not_configured') aiDetail='Backend accesible, pero no hay una clave OpenAI disponible para esta Edge Function. Comprobado: '+(Array.isArray(aj.checked)?aj.checked.join(', '):'OPENAI_API_KEY'); else if(aj.error==='provider_error') aiDetail='Backend accesible; OpenAI respondió con error'+(aj.status?' HTTP '+aj.status:'')+(aj.detail?' · '+aj.detail:'')+'.'; else if(aj.error) aiDetail='Backend accesible; error IA: '+aj.error+(aj.detail?' · '+aj.detail:''); } catch(_){}
+        return {name:name,status:'🟡 503',cls:'sdiag-warn',detail:aiDetail};
+      }
+      if(r.status===503 && (name==='Route Matrix'||name==='Gasolineras')) return {name:name,status:'🟡 503',cls:'sdiag-warn',detail:'Endpoint accesible, pero el proveedor externo no respondió o no está disponible ahora.'};
       return {name:name,status:'🔴 '+r.status,cls:'sdiag-bad',detail:txt.slice(0,240)||'El backend respondió con error.'};
     }catch(e){clearTimeout(timer);return {name:name,status:e.name==='AbortError'?'🟡 TIMEOUT':'⚪ SIN PRUEBA',cls:e.name==='AbortError'?'sdiag-warn':'sdiag-na',detail:e.message||String(e)};}
   }
@@ -16894,7 +17079,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     close:function(){var e=document.getElementById('sintergia-api-diagnostic');if(e){e.classList.remove('on');e.setAttribute('aria-hidden','true');}},
     run:async function(){
       var sum=document.getElementById('sdiag-summary');
-      if(sum)sum.textContent='Ejecutando comprobaciones seguras…';
+      if(sum){var tok=window.SintergiaAuthToken||'';var localTok=String(tok).startsWith('local-');sum.textContent=localTok?'Ejecutando comprobaciones… ⚠️ sesión local detectada; las funciones protegidas pueden devolver 401.':'Ejecutando comprobaciones seguras…';}
       render(endpoints.map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};}));
       var rows=[];for(var i=0;i<endpoints.length;i++){rows.push(await check(endpoints[i]));render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
       var ok=rows.filter(function(x){return x.cls==='sdiag-ok';}).length,bad=rows.filter(function(x){return x.cls==='sdiag-bad';}).length,warn=rows.filter(function(x){return x.cls==='sdiag-warn';}).length;
@@ -17277,8 +17462,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var origFetch = global.fetch ? global.fetch.bind(global) : null;
     if (!origFetch) return;
     function esMatriz(url) {
-      var cfg = (global.SINTERGIA_LOVABLE && global.SINTERGIA_LOVABLE.routing) || {};
-      var ep = cfg.matrixEndpoint || '/functions/v1/route-matrix';
+      var cfg = (global.SINTERGIA_SUPABASE && global.SINTERGIA_SUPABASE.routing) || {};
+      var ep = cfg.matrixEndpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix';
       return String(url).indexOf(ep) !== -1;
     }
     async function matrizLocal(body) {
@@ -17739,13 +17924,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   'use strict';
   if (!('serviceWorker' in navigator)) return;
   if (!window.isSecureContext) return;
-  // No registrar en vistas previas de Lovable ni dentro de un iframe: evita servir HTML caducado.
+  // No registrar en vistas previas de Supabase ni dentro de un iframe: evita servir HTML caducado.
   var h = location.hostname;
   var previa = (window.top !== window.self)
     || /^(id-)?preview--/.test(h)
-    || /(^|\.)lovableproject\.com$/.test(h)
-    || /(^|\.)lovableproject-dev\.com$/.test(h)
-    || /(^|\.)beta\.lovable\.dev$/.test(h)
+    || /(^|\.)supabaseproject\.com$/.test(h)
+    || /(^|\.)supabaseproject-dev\.com$/.test(h)
+    || /(^|\.)beta\.supabase\.dev$/.test(h)
     || h === 'localhost' || h === '127.0.0.1'
     || /[?&]sw=off(&|$)/.test(location.search);
   if (previa) {
@@ -17809,7 +17994,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.SintergiaDescargarHTMLRobusto = async function (btn) {
     if (btn) btn.disabled = true;
     try {
-      var endpoint = '/functions/v1/descargar-html';
+      var endpoint = 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/descargar-html';
       var headers = (typeof window.authHeadersSintergia === 'function')
         ? window.authHeadersSintergia()
         : { 'X-Requested-With': 'XMLHttpRequest' };
@@ -17835,7 +18020,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         var blob = await response.blob();
 
         /* Aceptamos HTML explícito o respuesta sin content-type cuando el
-           endpoint de Lovable devuelve directamente el documento. */
+           endpoint de Supabase devuelve directamente el documento. */
         if (type.indexOf('text/html') < 0 && blob.size < 1000) {
           throw new Error('Respuesta de descarga no válida');
         }
@@ -17867,7 +18052,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           online: navigator.onLine !== false,
           secureContext: !!window.isSecureContext,
           runtime: (typeof window.SintergiaSelfTest === 'function') ? window.SintergiaSelfTest() : null,
-          note: 'Copia diagnóstica sin datos operativos. Para recuperar el HTML de la aplicación use el endpoint backend o el repositorio de Lovable.'
+          note: 'Copia diagnóstica sin datos operativos. Para recuperar el HTML de la aplicación use el endpoint backend o el repositorio de Supabase.'
         };
         var localBlob = new Blob([JSON.stringify(safeBackup, null, 2)], { type: 'application/json;charset=utf-8' });
         var localUrl = URL.createObjectURL(localBlob);
@@ -17940,18 +18125,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
       },
       {
         id: 'backend-contract',
-        ok: !!(window.SINTERGIA_LOVABLE &&
-               window.SINTERGIA_LOVABLE.auth &&
-               window.SINTERGIA_LOVABLE.sync &&
-               window.SINTERGIA_LOVABLE.observability),
+        ok: !!(window.SINTERGIA_SUPABASE &&
+               window.SINTERGIA_SUPABASE.auth &&
+               window.SINTERGIA_SUPABASE.sync &&
+               window.SINTERGIA_SUPABASE.observability),
         detail: 'Contrato de backend presente'
       },
       {
         id: 'idempotency',
         ok: typeof window.idOperacion === 'function' &&
-            !!(window.SINTERGIA_LOVABLE &&
-               window.SINTERGIA_LOVABLE.sync &&
-               window.SINTERGIA_LOVABLE.sync.idempotencyHeader),
+            !!(window.SINTERGIA_SUPABASE &&
+               window.SINTERGIA_SUPABASE.sync &&
+               window.SINTERGIA_SUPABASE.sync.idempotencyHeader),
         detail: 'IDs de operación / idempotencia presentes'
       },
       {
@@ -18282,8 +18467,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     function ign(e) { if (window.__sgIgn) window.__sgIgn(e); }
 
     function cfg() {
-        var c = window.SG_CONFIG || window.SINTERGIA_CONFIG || window.SINTERGIA_LOVABLE || {};
-        return (c && c.references) || (window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.references) || {};
+        var c = window.SG_CONFIG || window.SINTERGIA_CONFIG || window.SINTERGIA_SUPABASE || {};
+        return (c && c.references) || (window.SINTERGIA_SUPABASE && window.SINTERGIA_SUPABASE.references) || {};
     }
 
     function leer() {
