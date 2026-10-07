@@ -2684,7 +2684,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
  var endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health', fallbackEndpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health', timer=null, busy=false, last=null;
  function el(id){return document.getElementById(id)}
  function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Supabase operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
- async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'omit',signal:c.signal,headers:{'X-Sintergia-Health-Check':'1'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'omit',headers:{'X-Sintergia-Health-Check':'1'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
+ async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'omit',signal:c.signal,headers:{'Accept':'application/json'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'omit',headers:{'Accept':'application/json'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
  function start(){ping(false);if(timer)clearInterval(timer);timer=setInterval(function(){if(!document.hidden)ping(false)},30000);window.addEventListener('online',function(){ping(true);try{window.SintergiaOffline&&window.SintergiaOffline.flush&&window.SintergiaOffline.flush()}catch(_){window.__sgIgn&&window.__sgIgn(_);} });window.addEventListener('offline',function(){render(false,'Sin conexión de red')});}
  window.SintergiaBackendHealth={ping:ping,last:function(){return last},start:start,endpoint:endpoint};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
@@ -3441,7 +3441,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return {value:merged,conflicts};
   }
   async function fetchRemoteForConflict(){
-    const endpoint='/functions/v1/realtime-snapshot?channel='+encodeURIComponent(CHANNEL);
+    const endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot?channel='+encodeURIComponent(CHANNEL);
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Accept':'application/json'});
     const r=await rawFetch(endpoint,{credentials:'omit',cache:'no-store',headers:hdr});
     if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);
@@ -5819,7 +5819,7 @@ function play(){
         </div>
         <div class="email-api-grid">
             <div><label>Proveedor</label><select id="email-api-provider"><option value="gmail">Gmail API</option><option value="custom">Endpoint propio compatible</option></select></div>
-            <div><label>Endpoint de envío (backend Supabase/Supabase)</label><input id="email-api-endpoint" type="url" placeholder="/functions/v1/send-email"></div>
+            <div><label>Endpoint de envío (backend Supabase/Supabase)</label><input id="email-api-endpoint" type="url" placeholder="https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email"></div>
             <div><label>Email remitente verificado</label><input id="email-api-from" type="email" value="sintergiase@gmail.com" placeholder="sintergiase@gmail.com"></div><div><label>Dominio</label><input id="email-api-domain" type="text" value="gmail.com" readonly></div>
             <div><label>Nombre remitente</label><input id="email-api-from-name" type="text" placeholder="SintergiaSE"></div>
             <div><label>API Key</label><input id="email-api-key" type="password" autocomplete="off" placeholder="Se guarda SOLO como secreto del backend" disabled></div>
@@ -8383,7 +8383,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function registrarReciboToken(token,factura){
         try{
             const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
-            fetch('/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
+            fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
         }catch(_){window.__sgIgn&&window.__sgIgn(_);}
     }
     async function sincronizarRecibosClientes(){
@@ -8393,7 +8393,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
         if(!tokens.length) return;
         try{
-            const r=await fetch('/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
+            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{
                 const idx=(appState.facturas||[]).findIndex(x=>String(x.idDoc)===String(res.factura_id)); if(idx<0) return;
@@ -8427,7 +8427,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(f&&!sgEsRectificativa(f)&&/^(emitida|devuelta|cobrado|cobrado pendiente validacion)$/i.test(String(f.estado||'').trim())) tokens.push(t); });
         if(!tokens.length) return;
         try{
-            const r=await fetch('/functions/v1/invoice-return-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFiles:true})});
+            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/invoice-return-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFiles:true})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{ if(sgAplicarDevolucionCliente(res)) cambios=true; });
             if(cambios){ guardarEstadoStorage(); try{ renderizarTodo(); }catch(_){ renderizarHistorialFacturas(); } }
@@ -11089,7 +11089,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function importesRecibosCoinciden(a,b){ return Math.abs((Number(a)||0)-(Number(b)||0))<0.02; }
     async function verificarReciboConIA(factura){
         const cfg=appState.emailApi||{};
-        const endpoint=normalizarEndpointBackendSintergia(cfg.verifyUrl||'/functions/v1/verify-receipt','/functions/v1/verify-receipt');
+        const endpoint=normalizarEndpointBackendSintergia(cfg.verifyUrl||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt');
         const dataUrl=String(factura.reciboDataUrl||'');
         const base64=dataUrl.includes(',')?dataUrl.split(',')[1]:'';
         if(!base64&&!factura.reciboRemotoUrl) return {ok:false,motivo:'No hay archivo de recibo que verificar.'};
@@ -13707,7 +13707,7 @@ function openToday(){ensureState();var ds=weekDates(todayISO()),today=todayISO()
 function renderSelected(){ensureState();renderDays();bindRutasDynamicEvents();try{RutasIA.render();bindRutasDynamicEvents();}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
 function markSent(id,channel,token,p){var c=cita(id);c.enviado=true;c.enviadoAt=c.enviadoAt||Date.now();c.canal=channel;c.token=token;c.fecha=p.fecha;c.hora=p.hora;c.propuestaAnterior={fecha:p.fecha,hora:p.hora};state.citas[id]=c;saveSafe();}
 function markConfirmed(id,resp,source){var c=cita(id);var old={fecha:c.fecha,hora:c.hora,canal:c.canal};c.respuesta=resp;c.respuestaAt=Date.now();c.respuestaOrigen=source||'cliente';if(resp==='si'){c.confirmadaAt=Date.now();c.flexible=false;c.manualConfirmed=false;state.citas[id]=c;saveSafe();return old;}c.rechazadaAt=Date.now();c.flexible=true;state.citas[id]=c;saveSafe();return old;}
-async function notifyReschedule(id,old,newP){var c=cita(id);var a=avisosActivos().find(function(x){return String(x.id)===String(id);});if(!a||!newP)return;var cli=(typeof st==='function'?st().clientes:state.clientes||[]).find(function(x){return String(x.id)===String(a.clienteId)})||{};var email=cli.email||c.email||'',tel=String(cli.tel||c.tel||'').replace(/[^\d+]/g,'');if(tel&&tel.indexOf('+')!==0)tel=tel.length===9?'+34'+tel:'+'+tel;var text='Hola '+(cli.nombre||a.clienteNombre||'')+',\n\nDisculpe las molestias. La propuesta anterior de cita del '+(old.fecha||'')+' a las '+(old.hora||'')+' h ha quedado anulada porque su confirmación llegó después de una reorganización de la ruta.\n\nTras recalcular la ruta, le proponemos '+(newP.fecha||'')+' a las '+(newP.hora||'')+' h.\n\nPor favor, confirme esta nueva propuesta. Gracias por su comprensión.\n\nSintergiaSE';try{await post('/functions/v1/cita-anulacion-reprogramacion',{avisoId:id,to:email,telefono:tel,cliente:cli.nombre||a.clienteNombre||'',anterior:old,nueva:{fecha:newP.fecha,hora:newP.hora},texto:text},15000);}catch(e){if(email){try{window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Nueva propuesta de cita')+'&body='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}if(tel){try{window.open('https://wa.me/'+tel.replace('+','')+'?text='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}}}
+async function notifyReschedule(id,old,newP){var c=cita(id);var a=avisosActivos().find(function(x){return String(x.id)===String(id);});if(!a||!newP)return;var cli=(typeof st==='function'?st().clientes:state.clientes||[]).find(function(x){return String(x.id)===String(a.clienteId)})||{};var email=cli.email||c.email||'',tel=String(cli.tel||c.tel||'').replace(/[^\d+]/g,'');if(tel&&tel.indexOf('+')!==0)tel=tel.length===9?'+34'+tel:'+'+tel;var text='Hola '+(cli.nombre||a.clienteNombre||'')+',\n\nDisculpe las molestias. La propuesta anterior de cita del '+(old.fecha||'')+' a las '+(old.hora||'')+' h ha quedado anulada porque su confirmación llegó después de una reorganización de la ruta.\n\nTras recalcular la ruta, le proponemos '+(newP.fecha||'')+' a las '+(newP.hora||'')+' h.\n\nPor favor, confirme esta nueva propuesta. Gracias por su comprensión.\n\nSintergiaSE';try{await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-anulacion-reprogramacion',{avisoId:id,to:email,telefono:tel,cliente:cli.nombre||a.clienteNombre||'',anterior:old,nueva:{fecha:newP.fecha,hora:newP.hora},texto:text},15000);}catch(e){if(email){try{window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Nueva propuesta de cita')+'&body='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}if(tel){try{window.open('https://wa.me/'+tel.replace('+','')+'?text='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}}}
 function findParada(id){var found=null;(state.rutas||[]).forEach(function(r){(r.paradas||[]).forEach(function(p){if(String(p.avisoId)===String(id))found={r:r,p:p};});});return found;}
 async function applyClientResponse(id,resp,source){ensureState();
 /* P65-R4: respuestas coherentes */
@@ -13769,7 +13769,7 @@ function envolverEnvio(original,icono,canal){
 RutasIA.enviarEmail=envolverEnvio(RutasIA.enviarEmail,'✉️','correo');
 RutasIA.enviarWhatsapp=envolverEnvio(RutasIA.enviarWhatsapp,'💬','WhatsApp');
 RutasIA.seleccionarDiaV2=function(i){ensureState();state.riaWeek.selected=Math.max(0,Math.min(4,Number(i)||0));saveSafe();renderSelected();};
-RutasIA.usarGeolocalizacion=async function(id,btn){var input=document.getElementById(id);if(!input||!navigator.geolocation){alert('Este dispositivo/navegador no permite geolocalización.');return;}if(window.isSecureContext===false){alert('La geolocalización necesita HTTPS o localhost.');return;}if(btn)btn.disabled=true;try{var pos=await new Promise(function(ok,no){navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,maximumAge:0,timeout:20000});});var lat=pos.coords.latitude,lon=pos.coords.longitude,address='';try{if(window.sgResolverDireccion){var pp=await window.sgResolverDireccion(lat,lon);if(pp&&(pp.calle||pp.municipio))address=window.sgFormatoDireccion(pp,lat,lon);}}catch(e0){window.__sgIgn&&window.__sgIgn(e0);}if(!address)try{var d=await post('/functions/v1/reverse-geocode',{lat:lat,lon:lon,country:'es',language:'es'},12000);address=d&&(d.address||d.display_name||(d.result&&(d.result.address||d.result.display_name)))||'';if(typeof address!=='string')address='';}catch(e){window.__sgIgn&&window.__sgIgn(e);}if(!address){try{var rr=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&zoom=18&addressdetails=1&accept-language=es');var jj=await rr.json();address=jj.display_name||'';}catch(e2){window.__sgIgn&&window.__sgIgn(e2);}}if(!address)address=lat.toFixed(6)+', '+lon.toFixed(6);input.value=address;state.geo=state.geo||{};state.geo[address.toLowerCase().trim()]={lat:lat,lon:lon};if(id==='ria-base')state.base=address;else state.riaFin=address;saveSafe();toast('📍 Ubicación añadida: '+address);}catch(e){alert('No se pudo obtener la ubicación. Comprueba el permiso de ubicación.');}finally{if(btn)btn.disabled=false;}};
+RutasIA.usarGeolocalizacion=async function(id,btn){var input=document.getElementById(id);if(!input||!navigator.geolocation){alert('Este dispositivo/navegador no permite geolocalización.');return;}if(window.isSecureContext===false){alert('La geolocalización necesita HTTPS o localhost.');return;}if(btn)btn.disabled=true;try{var pos=await new Promise(function(ok,no){navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,maximumAge:0,timeout:20000});});var lat=pos.coords.latitude,lon=pos.coords.longitude,address='';try{if(window.sgResolverDireccion){var pp=await window.sgResolverDireccion(lat,lon);if(pp&&(pp.calle||pp.municipio))address=window.sgFormatoDireccion(pp,lat,lon);}}catch(e0){window.__sgIgn&&window.__sgIgn(e0);}if(!address)try{var d=await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode',{lat:lat,lon:lon,country:'es',language:'es'},12000);address=d&&(d.address||d.display_name||(d.result&&(d.result.address||d.result.display_name)))||'';if(typeof address!=='string')address='';}catch(e){window.__sgIgn&&window.__sgIgn(e);}if(!address){try{var rr=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&zoom=18&addressdetails=1&accept-language=es');var jj=await rr.json();address=jj.display_name||'';}catch(e2){window.__sgIgn&&window.__sgIgn(e2);}}if(!address)address=lat.toFixed(6)+', '+lon.toFixed(6);input.value=address;state.geo=state.geo||{};state.geo[address.toLowerCase().trim()]={lat:lat,lon:lon};if(id==='ria-base')state.base=address;else state.riaFin=address;saveSafe();toast('📍 Ubicación añadida: '+address);}catch(e){alert('No se pudo obtener la ubicación. Comprueba el permiso de ubicación.');}finally{if(btn)btn.disabled=false;}};
 var originalPlan=RutasIA.planificar;
 RutasIA.planificar=async function(btn){ensureState();state.riaWeek=state.riaWeek||{start:todayISO(),selected:0};var now=Date.now();var active=avisosActivos();active.forEach(function(a){var c=cita(a.id);if(!bloqueada(a.id)&&c.enviado&&enviadoAt(c)&&esperaVencida(c,now))c.flexible=true;});saveSafe();await originalPlan.call(RutasIA,btn);RutasIA.render();};
 var recalcBusy=false,recalcPend=null; /* P65-R3: cerrojo propio del recálculo, independiente de la sincronización */
@@ -13814,7 +13814,7 @@ RutasIA.sincronizarRespuestas=async function(manual){
         var tokens=Object.keys(state.citas).map(function(k){return {id:k,token:cita(k).token};}).filter(function(x){return x.token&&!cita(x.id).respuesta;});
         if(tokens.length){
             try{
-                var d=await post('/functions/v1/cita-estado',{tokens:tokens.map(function(x){return x.token;}).slice(0,200)},12000);
+                var d=await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado',{tokens:tokens.map(function(x){return x.token;}).slice(0,200)},12000);
                 syncFallos=0; syncProximo=0;
                 var res=(d&&(d.respuestas||d.result))||{};
                 for(var i=0;i<tokens.length;i++){
@@ -14096,7 +14096,7 @@ function construirDireccionEspanola(a){return sgFormatoDireccion(sgPartesNominat
 async function sgResolverDireccion(lat,lon){
  var key=lat.toFixed(5)+','+lon.toFixed(5);if(_sgCache[key])return Object.assign({},_sgCache[key]);
  var p={calle:'',numero:'',municipio:'',cp:'',provincia:''};
- try{var d0=await _sgFetchJSON('/functions/v1/reverse-geocode',5000,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({lat:lat,lon:lon,country:'es',language:'es'})});var ad=d0&&(d0.address||(d0.result&&d0.result.address));if(ad&&typeof ad==='object')p=sgPartesNominatim(ad);}catch(e){window.__sgIgn&&window.__sgIgn(e);}
+ try{var d0=await _sgFetchJSON('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode',5000,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({lat:lat,lon:lon,country:'es',language:'es'})});var ad=d0&&(d0.address||(d0.result&&d0.result.address));if(ad&&typeof ad==='object')p=sgPartesNominatim(ad);}catch(e){window.__sgIgn&&window.__sgIgn(e);}
  if(!p.calle&&!p.municipio){try{var d=await _sgFetchJSON('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lon+'&zoom=18&addressdetails=1&accept-language=es',9000);if(d&&d.address)p=sgPartesNominatim(d.address);}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
  if(!p.municipio){try{var b=await _sgFetchJSON('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=es',7000);p.municipio=b.city||b.locality||'';p.cp=p.cp||b.postcode||'';}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
  if(!p.calle||!p.numero){
@@ -15425,7 +15425,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Escribe tu consulta.</p>';return;}
   btn.disabled=true;out.innerHTML='<p class="nrm-msg">Analizando la normativa…</p>';
   try{
-   const r=await fetch('/functions/v1/consulta-normativa',{method:'POST',headers:authHeadersSintergia(),credentials:'omit',body:JSON.stringify({pregunta:q})});
+   const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/consulta-normativa',{method:'POST',headers:authHeadersSintergia(),credentials:'omit',body:JSON.stringify({pregunta:q})});
    const d=await r.json();
    if(!r.ok) throw new Error(d.error||'Error');
    out.innerHTML=(d.resumen?`<div class="nrm-sum">${esc(d.resumen)}</div>`:'')+
@@ -15441,7 +15441,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Mínimo 3 letras.</p>';return;}
   out.innerHTML='<p class="nrm-msg">Buscando…</p>';
   try{
-   const r=await fetch('/functions/v1/buscar-normativa?q='+encodeURIComponent(q)+'&tipo='+nrmTipo,{headers:authHeadersSintergia(),credentials:'omit',cache:'no-store'});
+   const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/buscar-normativa?q='+encodeURIComponent(q)+'&tipo='+nrmTipo,{headers:authHeadersSintergia(),credentials:'omit',cache:'no-store'});
    const d=await r.json();
    if(!r.ok) throw new Error(d&&d.error?d.error:'HTTP '+r.status);
    const resultados=Array.isArray(d.resultados)?d.resultados:[];
@@ -15453,7 +15453,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.nrmDescargar=async btn=>{
    if(btn){btn.disabled=true;}
    try{
-    const r=await fetch('/functions/v1/descargar-html',{headers:authHeadersSintergia(),credentials:'omit'});
+    const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/descargar-html',{headers:authHeadersSintergia(),credentials:'omit'});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const b=await r.blob();
     const u=URL.createObjectURL(b);
@@ -15808,7 +15808,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             });
             var reg = { id: 'DOC' + Date.now(), ref: ref || '', tipo: tipo || 'documento', nombre: file.name, size: file.size, fecha: new Date().toISOString(), estado: 'local' };
             try {
-                var d = await post('/functions/v1/upload-doc', { ref: reg.ref, tipo: reg.tipo, nombre: file.name, mime: file.type, dataBase64: b64 }, 30000);
+                var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/upload-doc', { ref: reg.ref, tipo: reg.tipo, nombre: file.name, mime: file.type, dataBase64: b64 }, 30000);
                 reg.estado = 'nube'; reg.url = (d && (d.url || d.publicUrl)) || '';
                 toast('☁️ ' + file.name + ' guardado en la nube.');
             } catch (e) {
@@ -16459,7 +16459,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var token = 'CITA' + avisoId + '-' + Date.now().toString(36);
             if (btn) btn.disabled = true;
             try {
-                var result = await post('/functions/v1/cita-email', {
+                var result = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-email', {
                     token: token, avisoId: avisoId, to: p.email, from: 'sintergiase@gmail.com', provider: 'gmail', cliente: p.cliente,
                     fecha: p.fecha, hora: p.hora, horaFin: p.horaFin, duracionMin: p.duracionMin, direccion: p.dir, descripcion: p.desc,
                     asunto: 'Cita para su intervención · ' + fechaES(p.fecha) + ' ' + p.hora,
@@ -16484,7 +16484,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var token = 'CITA' + avisoId + '-' + Date.now().toString(36);
             if (btn) btn.disabled = true;
             try {
-                var result = await post('/functions/v1/cita-whatsapp', {
+                var result = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-whatsapp', {
                     token: token, avisoId: avisoId, to: tel, cliente: p.cliente,
                     fecha: p.fecha, hora: p.hora, horaFin: p.horaFin, duracionMin: p.duracionMin, direccion: p.dir, descripcion: p.desc,
                     texto: RutasIA.textoCita(p), botones: ['Sí', 'No']
@@ -16542,7 +16542,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var tokens = Object.keys(state.citas).map(function (k) { return { avisoId: k, token: state.citas[k].token }; }).filter(function (x) { return x.token && !state.citas[x.avisoId].respuesta; });
             if (!tokens.length) { if (manual) toast('No hay citas pendientes de respuesta.'); return; }
             try {
-                var d = await post('/functions/v1/cita-estado', { tokens: tokens.map(function (x) { return x.token; }) }, 12000);
+                var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado', { tokens: tokens.map(function (x) { return x.token; }) }, 12000);
                 var res = (d && (d.respuestas || d.result)) || {};
                 var cambios = 0;
                 tokens.forEach(function (x) {
@@ -16663,7 +16663,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         async descargar() {
             var URL_MIN = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
             try {
-                var d = await post('/functions/v1/gasolineras', {}, 25000);
+                var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras', {}, 25000);
                 var l1 = d && (d.ListaEESSPrecio || d.lista || d.result);
                 if (l1 && l1.length) return l1;
             } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* respaldo directo */ }
@@ -16750,35 +16750,35 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   'use strict';
   var endpoints=[
     ['Health','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health','safe'],
-    ['Buscar normativa','GET','/functions/v1/buscar-normativa?q=REBT&tipo=todo','safe'],
+    ['Buscar normativa','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/buscar-normativa?q=REBT&tipo=todo','safe'],
     ['Geocode','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode','safe'],
-    ['Reverse geocode','POST','/functions/v1/reverse-geocode','safe'],
+    ['Reverse geocode','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/reverse-geocode','safe'],
     ['AI Gateway','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway','ai'],
-    ['Consulta normativa IA','POST','/functions/v1/consulta-normativa','ai'],
+    ['Consulta normativa IA','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/consulta-normativa','ai'],
     ['Route Matrix','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix','routing'],
-    ['Gasolineras','POST','/functions/v1/gasolineras','safe'],
+    ['Gasolineras','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras','safe'],
     ['Realtime snapshot','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot','safe'],
     ['Sync operations','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations','safe'],
-    ['Autenticación','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','auth'],
+    ['Autenticación','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','safe'],
     ['Email','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email','mutating'],
-    ['Cita email','POST','/functions/v1/cita-email','mutating'],
-    ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
-    ['Cita estado','POST','/functions/v1/cita-estado','safe'],
+    ['Cita email','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-email','mutating'],
+    ['Cita WhatsApp','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-whatsapp','mutating'],
+    ['Cita estado','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-estado','safe'],
     /* Recibos: no se ejecutan en el diagnóstico. Ambos endpoints requieren un recibo/factura real;
        mandar {} produce 400 por diseño y no demuestra que el endpoint esté roto. */
-    ['Receipt verify','POST','/functions/v1/verify-receipt','real-data'],
-    ['Receipt register','POST','/functions/v1/receipt-register','real-data'],
-    ['Receipt status','POST','/functions/v1/receipt-status','real-data']
+    ['Receipt verify','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/verify-receipt','real-data'],
+    ['Receipt register','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-register','real-data'],
+    ['Receipt status','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status','real-data']
   ];
   function headers(){return (typeof global.authHeadersSintergia==='function')?global.authHeadersSintergia():{'Content-Type':'application/json'};}
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
   async function check(item){
-    var name=item[0],method=item[1],url=item[2],kind=item[3],h=(name==='Health'?{'Content-Type':'application/json'}:headers());if(name!=='Health')h['X-Sintergia-Request-ID']=op();
+    var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
     var body=null;
     if(method==='POST'){
-      if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
-      else if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
+      if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
+      else if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
       else if(name==='Geocode') body={address:'Sevilla, España'};
       else if(name==='Reverse geocode') body={lat:37.3891,lon:-5.9845};
       else if(name==='Route Matrix') body={provider:'google-routes',fallbackProvider:'mapbox',locations:[{lat:37.3891,lon:-5.9845},{lat:37.3886,lon:-5.9953}],origins:[{lat:37.3891,lon:-5.9845}],destinations:[{lat:37.3886,lon:-5.9953}],traffic:false,travelMode:'DRIVE'};
@@ -17724,7 +17724,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.SintergiaDescargarHTMLRobusto = async function (btn) {
     if (btn) btn.disabled = true;
     try {
-      var endpoint = '/functions/v1/descargar-html';
+      var endpoint = 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/descargar-html';
       var headers = (typeof window.authHeadersSintergia === 'function')
         ? window.authHeadersSintergia()
         : { 'Content-Type': 'application/json' };
