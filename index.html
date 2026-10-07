@@ -676,7 +676,7 @@ window.__SINTERGIA_BACKEND_COMPAT_NOOP = true;
 
             /* Nunca enviar tokens locales/de demostración como Bearer. */
             if (token && !String(token).startsWith('local-')) {
-                headers.Authorization = 'Bearer ' + String(token);
+                headers['X-Sintergia-Session'] = String(token);
             }
             return headers;
         };
@@ -13662,7 +13662,7 @@ function post(url,body,timeout){
   var token=window.SintergiaAuthToken||'';
   try{if(!token)token=JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||'';}catch(e){window.__sgIgn&&window.__sgIgn(e);}
   var headers={'Content-Type':'application/json'};
-  if(token&&!String(token).startsWith('local-'))headers.Authorization='Bearer '+token;
+  if(token&&!String(token).startsWith('local-'))headers['X-Sintergia-Session']=String(token);
   var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},timeout||15000);
   return fetch(url,{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'omit',headers:headers,body:JSON.stringify(body||{})})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
@@ -14728,6 +14728,7 @@ function biometricSessionError(){
   const token=getBiometricAuthToken();
   if(!token)return 'No hay una sesión de servidor activa. Entra de nuevo en SintergiaSE con conexión a Supabase antes de configurar la biometría.';
   if(String(token).startsWith('local-'))return 'La sesión actual es local/offline. La biometría no puede registrarse ni validarse en modo offline. Vuelve a entrar con el backend disponible.';
+  if(!/^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(String(token)))return 'La sesión de servidor no tiene un formato válido. Cierra sesión y vuelve a entrar con conexión a Supabase.';
   return '';
 }
 function biometricFriendlyError(e){
@@ -14817,6 +14818,7 @@ async function biometricUnlock(){
     if(res.reason==='401'){alert('⚠️ El servidor no acepta la sesión actual (HTTP 401). Vuelve a entrar con conexión.');audit('BIOMETRIC_UNLOCK_FAIL','HTTP 401 en validación biométrica');return false}
     if(!res.attempted||!res.available){alert('⚠️ El backend biométrico no está disponible. Por seguridad no se desbloquea la sesión.');audit('BIOMETRIC_UNLOCK_FAIL','Backend biométrico no disponible');return false}
     if(!res.ok){alert('⚠️ El servidor ha rechazado la credencial biométrica.');audit('BIOMETRIC_UNLOCK_FAIL','Rechazado por backend');return false}
+    if(res.data&&res.data.session&&res.data.session.token){window.SintergiaAuthToken=String(res.data.session.token);try{sessionStorage.setItem('sintergia_auth_token',JSON.stringify({token:res.data.session.token,scope:res.data.session.scope,id:res.data.session.id,expiresAt:Date.parse(res.data.session.expiresAt)||0}));}catch(_){} }
     sessionStorage.setItem('sintergia_biometric_auth','1');audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend');return true;
   }catch(e){alert('No se pudo validar la biometría: '+(e.message||e));return false}
 }
@@ -15810,7 +15812,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         var token = window.SintergiaAuthToken || '';
         try { if (!token) token = JSON.parse(sessionStorage.getItem('sintergia_auth_token') || 'null')?.token || ''; } catch(_){window.__sgIgn&&window.__sgIgn(_);}
         var h = { 'Content-Type': 'application/json', 'Content-Type': 'application/json' };
-        if (token && !String(token).startsWith('local-')) h.Authorization = 'Bearer ' + token;
+        if (token && !String(token).startsWith('local-')) h['X-Sintergia-Session'] = String(token);
         return h;
     }
     async function post(url, body, timeout) {
