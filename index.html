@@ -16731,15 +16731,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         },
         async descargar() {
             var URL_MIN = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
+            var CACHE_KEY='sintergia_gasolineras_cache_v2', CACHE_MAX=7*24*60*60*1000;
+            function guardarCache(lista,origen){try{localStorage.setItem(CACHE_KEY,JSON.stringify({at:Date.now(),origen:origen||'backend',lista:lista||[]}));}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
+            function leerCache(){try{var x=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(x&&Array.isArray(x.lista)&&x.lista.length&&(Date.now()-Number(x.at||0))<=CACHE_MAX)return x.lista;}catch(e){window.__sgIgn&&window.__sgIgn(e);}return null;}
             try {
                 var d = await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras', {}, 25000);
-                var l1 = d && (d.ListaEESSPrecio || d.lista || d.result);
-                if (l1 && l1.length) return l1;
-            } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* respaldo directo */ }
-            var r = await fetch(URL_MIN, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-            if (!r.ok) throw new Error('Ministerio HTTP ' + r.status);
-            var j = await r.json();
-            return j.ListaEESSPrecio || [];
+                var l1 = d && (d.ListaEESSPrecio || d.lista || d.result || (d.data && (d.data.ListaEESSPrecio || d.data.lista)));
+                if (l1 && l1.length) { guardarCache(l1,'supabase'); return l1; }
+            } catch (e) { window.__sgIgn&&window.__sgIgn(e); }
+            try {
+                var r = await fetch(URL_MIN, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                if (r.ok) { var j = await r.json(), direct=j.ListaEESSPrecio||[]; if(direct.length){guardarCache(direct,'ministerio');return direct;} }
+            } catch (e) { window.__sgIgn&&window.__sgIgn(e); }
+            var cached=leerCache();
+            if(cached) return cached;
+            throw new Error('No hay conexión con el backend ni datos de gasolineras en caché.');
         },
         guardarFurgoneta: function () {
             var m = (document.getElementById('cmb-nuevo-modelo') || {}).value || '';
@@ -16825,7 +16831,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ['AI Gateway','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway','ai'],
     ['Consulta normativa IA','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/consulta-normativa','ai'],
     ['Route Matrix','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix','routing'],
-    ['Gasolineras','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras','safe'],
+    ['Gasolineras','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/gasolineras','safe'],
     ['Realtime snapshot','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot','safe'],
     ['Sync operations','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations','safe'],
     ['Autenticación','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','safe'],
@@ -16855,8 +16861,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       else if(name==='Receipt status') body={};
       else if(name==='Realtime snapshot') body={};
       else if(name==='Sync operations') body={operations:[]};
-      else if(name==='Gasolineras') body={};
-      else if(name==='Receipt register') body={};
+            else if(name==='Receipt register') body={};
       else if(kind==='safe') body={};
     }
     if(kind==='mutating') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente porque podría enviar un correo o mensaje real.'};
@@ -16869,6 +16874,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var txt=await r.text();
       if(r.ok) return {name:name,status:'🟢 '+r.status,cls:'sdiag-ok',detail:'Respuesta HTTP correcta'+(txt?' · '+txt.slice(0,180):'')};
       if(r.status===401||r.status===403) return {name:name,status:'🟡 '+r.status,cls:'sdiag-warn',detail:'Endpoint accesible, pero requiere autenticación/permisos.'};
+      if(name==='Gasolineras'&&r.status===503) return {name:name,status:'🟡 503',cls:'sdiag-warn',detail:'Backend accesible; el proveedor oficial del Ministerio no responde ahora. La aplicación puede usar la caché disponible.'};
       if(r.status===404) return {name:name,status:'🔴 404',cls:'sdiag-bad',detail:'Endpoint no encontrado.'};
       return {name:name,status:'🔴 '+r.status,cls:'sdiag-bad',detail:txt.slice(0,240)||'El backend respondió con error.'};
     }catch(e){clearTimeout(timer);return {name:name,status:e.name==='AbortError'?'🟡 TIMEOUT':'⚪ SIN PRUEBA',cls:e.name==='AbortError'?'sdiag-warn':'sdiag-na',detail:e.message||String(e)};}
