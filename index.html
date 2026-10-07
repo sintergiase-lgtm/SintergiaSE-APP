@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
-<meta name="sintergia-release" content="2026-10-06-public-ready-01">
+<meta name="sintergia-release" content="2026-10-07-receipt-diag-01">
 <!-- V3.49: núcleo 3D mixto de protones/neutrones, distribución volumétrica Fibonacci/ángulo áureo y masa física base con amplificación visual áurea; acceso correcto acelerado. -->
 <!-- V3.51: sin tambaleo final; deformación S/E a 128 Hz internos con 129 puntos por rebote, fluida en 60/120 Hz. -->
 <!-- V3.25 (bloque 2): rebote de S y E con elasticidad (estirar al caer/subir, aplastar al contacto, volumen constante), la S un rebote mas que la E, alturas/deslizamiento/giro aleatorios por letra, ultimo contacto exacto en t=1 (01/10/2026) -->
@@ -8469,8 +8469,13 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function leerReciboTokens(){ try{ return JSON.parse(localStorage.getItem(RECIBO_TOKENS_KEY)||'{}')||{}; }catch(_){ return {}; } }
     function registrarReciboToken(token,factura){
         try{
+            const faltan=[];
+            if(String(token==null?'':token).trim()==='') faltan.push('token');
+            if(!factura||String(factura.idDoc==null?'':factura.idDoc).trim()==='') faltan.push('referencia de la factura');
+            if(!factura||factura.total===undefined||factura.total===null||String(factura.total).trim()===''||!Number.isFinite(Number(factura.total))) faltan.push('importe de la factura');
+            if(faltan.length){console.warn('Recibo: no se registra; faltan datos obligatorios ('+faltan.join(', ')+').');mostrarToast('⚠️ No se puede registrar el recibo: faltan datos obligatorios ('+faltan.join(', ')+').');return;}
             const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
-            fetch('/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
+            fetch('/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).then(async r=>{if(!r||r.ok)return;let msg='';try{const t=await r.text();try{const j=JSON.parse(t);msg=String((j&&(j.error||j.message))||'');}catch(_){msg=t;}}catch(_){window.__sgIgn&&window.__sgIgn(_);}msg=String(msg||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,120);console.warn('Recibo: receipt-register respondió HTTP '+r.status+(msg?' · '+msg:''));mostrarToast('⚠️ No se pudo registrar el recibo en el servidor (HTTP '+r.status+(msg?': '+msg:'')+').');}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
         }catch(_){window.__sgIgn&&window.__sgIgn(_);}
     }
     async function sincronizarRecibosClientes(){
@@ -11180,6 +11185,10 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const dataUrl=String(factura.reciboDataUrl||'');
         const base64=dataUrl.includes(',')?dataUrl.split(',')[1]:'';
         if(!base64&&!factura.reciboRemotoUrl) return {ok:false,motivo:'No hay archivo de recibo que verificar.'};
+        const faltan=[];
+        if(String(factura.idDoc==null?'':factura.idDoc).trim()==='') faltan.push('referencia de la factura');
+        if(factura.total===undefined||factura.total===null||String(factura.total).trim()===''||!Number.isFinite(Number(factura.total))) faltan.push('importe de la factura');
+        if(faltan.length) return {ok:false,validacion:true,motivo:'No se puede verificar el recibo: faltan datos obligatorios ('+faltan.join(', ')+').'};
         try{
             const verifyHeaders = (typeof authHeadersSintergia === 'function') ? authHeadersSintergia() : {'Content-Type':'application/json'};
             verifyHeaders['X-Sintergia-Request-ID'] = idOperacion();
@@ -11193,7 +11202,12 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 fileUrl:factura.reciboRemotoUrl||'',
                 fileBase64:base64
             })});
-            if(!r.ok) return {ok:false,motivo:`El verificador respondió ${r.status}.`};
+            if(!r.ok){
+                let msg='';
+                try{const t=await r.text();try{const j=JSON.parse(t);msg=String((j&&(j.error||j.message||j.motivo))||'');}catch(_){msg=t;}}catch(_){window.__sgIgn&&window.__sgIgn(_);}
+                msg=String(msg||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,160);
+                return {ok:false,status:r.status,motivo:'El verificador respondió '+r.status+(msg?': '+msg:'')+'.'};
+            }
             const d=await r.json().catch(function(){return {};});
             const refDetectada=String(d.referencia||d.concepto||'');
             const refOk=(d.referenciaCoincide!==undefined)?!!d.referenciaCoincide:refDetectada.toUpperCase().includes(String(factura.idDoc).toUpperCase());
@@ -16850,15 +16864,26 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ['Cita email','POST','/functions/v1/cita-email','mutating'],
     ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
     ['Cita estado','POST','/functions/v1/cita-estado','safe'],
-    ['Receipt verify','POST','/functions/v1/verify-receipt','safe'],
-    ['Receipt register','POST','/functions/v1/receipt-register','safe'],
+    ['Receipt verify','POST','/functions/v1/verify-receipt','op'],
+    ['Receipt register','POST','/functions/v1/receipt-register','op'],
     ['Receipt status','POST','/functions/v1/receipt-status','safe']
   ];
   function headers(){return (typeof global.authHeadersSintergia==='function')?global.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'};}
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
-  async function check(item){
+  /* Operaciones reales (verificar/registrar recibo) exigen datos de negocio: el diagnóstico NO las llama con un cuerpo vacío.
+     Su disponibilidad se deduce del Health (mecanismo existente); la operación real se valida en su propio flujo. */
+  function disponibilidadPorHealth(name,health){
+    var nota='La operación real no se ejecuta en el diagnóstico: necesita los datos de un recibo/factura y se valida en su propio flujo.';
+    if(!health) return {name:name,status:'⚪ SIN COMPROBAR',cls:'sdiag-na',detail:'Sin resultado de Health. '+nota};
+    if(health.cls==='sdiag-ok') return {name:name,status:'🟢 DISPONIBLE',cls:'sdiag-ok',detail:'Backend disponible (Health OK). '+nota};
+    if(health.cls==='sdiag-bad') return {name:name,status:'🔴 NO DISPONIBLE',cls:'sdiag-bad',detail:'Health respondió '+health.status+'. '+nota};
+    if(health.cls==='sdiag-warn') return {name:name,status:'🟡 SIN CONFIRMAR',cls:'sdiag-warn',detail:'Health no confirmó el backend ('+health.status+'). '+nota};
+    return {name:name,status:'⚪ SIN COMPROBAR',cls:'sdiag-na',detail:'No se pudo contactar con Health: '+(health.detail||'sin respuesta')+'. '+nota};
+  }
+  async function check(item,ctx){
     var name=item[0],method=item[1],url=sintergiaResolveEndpoint(item[2]),kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
+    if(kind==='op') return disponibilidadPorHealth(name,ctx&&ctx.health);
     var body=null;
     if(method==='POST'){
       if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
@@ -16873,10 +16898,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       else if(name==='Gasolineras') body={};
       else if(name==='Authenticate') body={};
       else if(name==='Autenticación') body={};
-      else if(name==='Receipt register') body=null;
       else if(kind==='safe') body={};
     }
-    if(kind==='mutating' || name==='Receipt register') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente: requiere una operación real y sus datos de negocio.'};
+    if(kind==='mutating') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente: requiere una operación real y sus datos de negocio.'};
     var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},15000);
     try{
       var r=await fetch(url,{method:method,headers:h,credentials:'include',cache:'no-store',signal:ctrl.signal,body:method==='POST'?JSON.stringify(body):undefined});
@@ -16896,9 +16920,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var sum=document.getElementById('sdiag-summary');
       if(sum)sum.textContent='Ejecutando comprobaciones seguras…';
       render(endpoints.map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};}));
-      var rows=[];for(var i=0;i<endpoints.length;i++){rows.push(await check(endpoints[i]));render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
+      var rows=[],ctx={health:null};for(var i=0;i<endpoints.length;i++){var row=await check(endpoints[i],ctx);if(endpoints[i][0]==='Health')ctx.health=row;rows.push(row);render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
       var ok=rows.filter(function(x){return x.cls==='sdiag-ok';}).length,bad=rows.filter(function(x){return x.cls==='sdiag-bad';}).length,warn=rows.filter(function(x){return x.cls==='sdiag-warn';}).length;
-      if(sum)sum.textContent='Resultado: '+ok+' OK · '+bad+' con error · '+warn+' requieren atención. Los envíos reales se omiten por seguridad.';
+      if(sum)sum.textContent='Resultado: '+ok+' OK · '+bad+' con error · '+warn+' requieren atención. Los envíos reales se omiten por seguridad; Receipt verify/register se comprueban por Health sin ejecutar la operación.'+(function(){var m=document.querySelector('meta[name="sintergia-release"]');return m&&m.content?' · versión '+m.content:'';})();
       try{sessionStorage.setItem('sintergia_last_api_diag',JSON.stringify({at:new Date().toISOString(),rows:rows}));}catch(_){window.__sgIgn&&window.__sgIgn(_);}
       return rows;
     }
