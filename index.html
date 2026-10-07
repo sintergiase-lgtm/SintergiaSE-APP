@@ -16777,8 +16777,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
     var body=null;
     if(method==='POST'){
-      if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
-      else if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
+      if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
+      else if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
       else if(name==='Geocode') body={address:'Sevilla, España'};
       else if(name==='Reverse geocode') body={lat:37.3891,lon:-5.9845};
       else if(name==='Route Matrix') body={provider:'google-routes',fallbackProvider:'mapbox',locations:[{lat:37.3891,lon:-5.9845},{lat:37.3886,lon:-5.9953}],origins:[{lat:37.3891,lon:-5.9845}],destinations:[{lat:37.3886,lon:-5.9953}],traffic:false,travelMode:'DRIVE'};
