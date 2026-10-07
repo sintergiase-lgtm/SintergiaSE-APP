@@ -1,3 +1,4 @@
+<!-- AUTH FINAL SUPABASE v14 · CORS corregido · sin fallback de autenticación -->
 <!-- V3.45: E inicia el tambaleo exactamente en el último contacto del rebote, con apoyo en la base y caída lateral agresiva -->
 <!-- V3.41: giro spinner S/E amortiguado por impactos; S invierte en antepenúltimo y último rebote -->
 <!-- V3.40: caída S/E ligeramente más rápida (4.20/4.06 s); idénticos rebotes y asentamiento simultáneo -->
@@ -4655,8 +4656,7 @@ function play(){
   }
 
   function endpoint() {
-    var cfg = window.SINTERGIA_BACKEND || {};
-    return (cfg.auth && cfg.auth.endpoint) || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate';
+    return 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate';
   }
 
   function guardarSesion(data) {
@@ -4804,14 +4804,17 @@ function play(){
   /* AUTENTICACIÓN SUPABASE EXCLUSIVA: sin fallback local para ningún acceso. */
   function verificar(scope, value) {
     if (location.protocol === 'file:') {
-      return Promise.reject(new Error('La autenticación requiere abrir la aplicación desde un servidor conectado a Supabase.'));
+      return Promise.reject(new Error('La autenticación requiere HTTPS para comunicarse con Supabase.'));
+    }
+    if (scope !== 'modo' && scope !== 'operacion') {
+      return Promise.reject(new Error('Ámbito de autenticación no válido.'));
     }
     return verificarServidor(scope, value);
   }
   function verificarServidor(scope, value) {
     return fetch(endpoint(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       cache: 'no-store',
       credentials: 'omit',
       body: JSON.stringify({ scope: String(scope || ''), password: String(value == null ? '' : value) })
