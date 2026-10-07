@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
-<meta name="sintergia-release" content="2026-10-07-receipt-diag-01">
+<meta name="sintergia-release" content="2026-10-06-public-ready-01">
 <!-- V3.49: núcleo 3D mixto de protones/neutrones, distribución volumétrica Fibonacci/ángulo áureo y masa física base con amplificación visual áurea; acceso correcto acelerado. -->
 <!-- V3.51: sin tambaleo final; deformación S/E a 128 Hz internos con 129 puntos por rebote, fluida en 60/120 Hz. -->
 <!-- V3.25 (bloque 2): rebote de S y E con elasticidad (estirar al caer/subir, aplastar al contacto, volumen constante), la S un rebote mas que la E, alturas/deslizamiento/giro aleatorios por letra, ultimo contacto exacto en t=1 (01/10/2026) -->
@@ -608,6 +608,7 @@ window.SINTERGIA_LOVABLE = Object.freeze({
 ========================================================= -->
 <script>
 window.__SINTERGIA_LOVABLE_NOOP = true;
+window.sgBioErrMsg=function(e){var m=String(e&&e.message||e||'');if(e&&e.name==='NotAllowedError')return 'Operación cancelada o no permitida por el dispositivo.';if(e&&e.name==='TypeError'&&/fetch|network|load failed/i.test(m))return 'No se pudo contactar con el servidor de biometría (red, CORS o función no desplegada). No es un fallo de la huella/rostro del dispositivo.';return m;};
 (function(global){'use strict';function base(){var raw=global.SINTERGIA_BACKEND_ORIGIN||global.SUPABASE_URL||'';try{return new URL(String(raw),global.location.href).toString().replace(/\/$/,'');}catch(_){return '';}}global.sintergiaResolveEndpoint=function(raw){var u=String(raw||'');if(!/^\/functions\/v1\//.test(u))return u;var b=base();return b?b+u:u;};})(window);
 
 /* =====================================================================
@@ -647,8 +648,7 @@ window.__SINTERGIA_LOVABLE_NOOP = true;
             } catch(_){window.__sgIgn&&window.__sgIgn(_);}
 
             var headers = {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             };
 
             /* Nunca enviar tokens locales/de demostración como Bearer. */
@@ -2661,7 +2661,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
  var endpoint=cfg.healthEndpoint||'/api/public/health', fallbackEndpoint='/functions/v1/health', timer=null, busy=false, last=null;
  function el(id){return document.getElementById(id)}
  function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Lovable operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
- async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'include',signal:c.signal,headers:{'X-Sintergia-Health-Check':'1'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'include',headers:{'X-Sintergia-Health-Check':'1'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
+ async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'omit',signal:c.signal,headers:{'X-Sintergia-Health-Check':'1'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'omit',headers:{'X-Sintergia-Health-Check':'1'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
  function start(){ping(false);if(timer)clearInterval(timer);timer=setInterval(function(){if(!document.hidden)ping(false)},30000);window.addEventListener('online',function(){ping(true);try{window.SintergiaOffline&&window.SintergiaOffline.flush&&window.SintergiaOffline.flush()}catch(_){window.__sgIgn&&window.__sgIgn(_);} });window.addEventListener('offline',function(){render(false,'Sin conexión de red')});}
  window.SintergiaBackendHealth={ping:ping,last:function(){return last},start:start,endpoint:endpoint};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
@@ -3423,7 +3423,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   async function fetchRemoteForConflict(){
     const endpoint='/functions/v1/realtime-snapshot?channel='+encodeURIComponent(CHANNEL);
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Accept':'application/json'});
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{credentials:'include',cache:'no-store',headers:hdr});
+    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{credentials:'omit',cache:'no-store',headers:hdr});
     if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);
     const d=await r.json();
     return d.snapshot||d.state||d;
@@ -3472,7 +3472,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'});
     const headers=new Headers(hdr);
     headers.set('Content-Type','application/json');
-    headers.set('X-Requested-With','XMLHttpRequest');
+    
     headers.set('X-Sintergia-Request-ID',String(item.operationId));
     const payload={
       channel:CHANNEL,
@@ -3490,7 +3490,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       },
       deviceId:DEVICE
     };
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers,credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
+    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
     if(r.status===404||r.status===405)return {unsupported:true};
     let data=null; try{data=await r.json();}catch(_){}
     if(r.status===401||r.status===403)throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true});
@@ -3505,13 +3505,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   async function postSnapshot(item){
     const endpoint='/functions/v1/realtime-snapshot';
     const payload={channel:CHANNEL,snapshot:item.snapshot,deviceId:DEVICE,clientChangeId:item.id,clientUpdatedAt:item.snapshot&&item.snapshot.clientUpdatedAt||item.createdAt};
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-Sintergia-Request-ID':item.id},credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
+    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers:{'Content-Type':'application/json','X-Sintergia-Request-ID':item.id},credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     return true;
   }
   async function postApi(item){
     const headers=Object.assign({},item.headers,{'X-Sintergia-Request-ID':item.requestId});
-    const r=await rawFetch(sintergiaResolveEndpoint(item.url),{method:'POST',headers:headers,credentials:'include',cache:'no-store',body:item.body});
+    const r=await rawFetch(sintergiaResolveEndpoint(item.url),{method:'POST',headers:headers,credentials:'omit',cache:'no-store',body:item.body});
     if(!r.ok){if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429)throw Object.assign(new Error('HTTP '+r.status),{permanent:true});throw new Error('HTTP '+r.status);}
     return true;
   }
@@ -8467,25 +8467,33 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     /* ==== Recibos subidos por el cliente (Lovable Cloud) ==== */
     const RECIBO_TOKENS_KEY='sintergia_recibo_tokens_v1';
     function leerReciboTokens(){ try{ return JSON.parse(localStorage.getItem(RECIBO_TOKENS_KEY)||'{}')||{}; }catch(_){ return {}; } }
-    function registrarReciboToken(token,factura){
+    function guardarReciboTokens(m){try{localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));}catch(_){window.__sgIgn&&window.__sgIgn(_);}}
+    function marcarReciboToken(token,estado,extra){const m=leerReciboTokens();if(!m[token])return;m[token]=Object.assign(m[token],{estado:estado,upd:Date.now()},extra||{});guardarReciboTokens(m);}
+    /* Estados: PENDING -> REGISTERED | FAILED_RETRYABLE | FAILED_PERMANENT. REGISTERED solo tras 2xx/409 del servidor. */
+    async function registrarReciboToken(token,factura){
+        if(!token||!factura)return;
+        const importe=Math.round(Number(factura.total)*100)/100;
+        const m=leerReciboTokens(); if(m[token]&&m[token].estado==='REGISTERED')return;
+        m[token]=Object.assign(m[token]||{},{idDoc:factura.idDoc,at:(m[token]&&m[token].at)||Date.now(),estado:'PENDING'}); guardarReciboTokens(m);
+        if(!isFinite(importe)||importe<0){marcarReciboToken(token,'FAILED_PERMANENT',{err:'importe inválido'});return;}
+        const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
         try{
-            const faltan=[];
-            if(String(token==null?'':token).trim()==='') faltan.push('token');
-            if(!factura||String(factura.idDoc==null?'':factura.idDoc).trim()==='') faltan.push('referencia de la factura');
-            if(!factura||factura.total===undefined||factura.total===null||String(factura.total).trim()===''||!Number.isFinite(Number(factura.total))) faltan.push('importe de la factura');
-            if(faltan.length){console.warn('Recibo: no se registra; faltan datos obligatorios ('+faltan.join(', ')+').');mostrarToast('⚠️ No se puede registrar el recibo: faltan datos obligatorios ('+faltan.join(', ')+').');return;}
-            const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
-            fetch('/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).then(async r=>{if(!r||r.ok)return;let msg='';try{const t=await r.text();try{const j=JSON.parse(t);msg=String((j&&(j.error||j.message))||'');}catch(_){msg=t;}}catch(_){window.__sgIgn&&window.__sgIgn(_);}msg=String(msg||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,120);console.warn('Recibo: receipt-register respondió HTTP '+r.status+(msg?' · '+msg:''));mostrarToast('⚠️ No se pudo registrar el recibo en el servidor (HTTP '+r.status+(msg?': '+msg:'')+').');}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
-        }catch(_){window.__sgIgn&&window.__sgIgn(_);}
+            const r=await fetch(sintergiaResolveEndpoint('/functions/v1/receipt-register'),{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'omit',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:importe,cliente:factura.clienteNombre||''})});
+            clearTimeout(timer);
+            if(r.ok||r.status===409)marcarReciboToken(token,'REGISTERED',{err:''});
+            else if(r.status===400)marcarReciboToken(token,'FAILED_PERMANENT',{err:'HTTP 400'});
+            else marcarReciboToken(token,'FAILED_RETRYABLE',{err:'HTTP '+r.status});
+        }catch(e){clearTimeout(timer);marcarReciboToken(token,'FAILED_RETRYABLE',{err:String(e&&e.message||e)});window.__sgIgn&&window.__sgIgn(e);}
     }
     async function sincronizarRecibosClientes(){
         if(location.protocol==='file:') return;
+        { const pend=leerReciboTokens(); for(const t of Object.keys(pend)){ const e=pend[t]; if(e.estado==='REGISTERED'||e.estado==='FAILED_PERMANENT') continue; if((e.n||0)>=5){marcarReciboToken(t,'FAILED_PERMANENT',{});continue;} const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(e.idDoc)); if(!f) continue; marcarReciboToken(t,e.estado||'PENDING',{n:(e.n||0)+1}); await registrarReciboToken(t,f); } }
         const m=leerReciboTokens(); const tokens=[];
-        Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(!f||f.estado==='Cobrado'||!sgFacturaAdmiteRecibo(f)){ if(!f||Date.now()-m[t].at>90*864e5) delete m[t]; return; } tokens.push(t); });
+        Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(!f||f.estado==='Cobrado'||!sgFacturaAdmiteRecibo(f)){ if(!f||Date.now()-m[t].at>90*864e5) delete m[t]; return; } if(m[t].estado==='REGISTERED') tokens.push(t); });
         localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
         if(!tokens.length) return;
         try{
-            const r=await fetch('/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
+            const r=await fetch('/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{
                 const idx=(appState.facturas||[]).findIndex(x=>String(x.idDoc)===String(res.factura_id)); if(idx<0) return;
@@ -8519,7 +8527,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(f&&!sgEsRectificativa(f)&&/^(emitida|devuelta|cobrado|cobrado pendiente validacion)$/i.test(String(f.estado||'').trim())) tokens.push(t); });
         if(!tokens.length) return;
         try{
-            const r=await fetch('/functions/v1/invoice-return-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFiles:true})});
+            const r=await fetch('/functions/v1/invoice-return-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFiles:true})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{ if(sgAplicarDevolucionCliente(res)) cambios=true; });
             if(cambios){ guardarEstadoStorage(); try{ renderizarTodo(); }catch(_){ renderizarHistorialFacturas(); } }
@@ -8705,7 +8713,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const aviso=appState.pendientes[pendienteIdx]; const parte=aviso?appState.partes.find(p=>String(p.idDoc)===String(aviso.parteId)):null; const f=facturaIdx>=0?appState.facturas[facturaIdx]:null; const obj=f||parte;
         if(!obj){alert('No hay documento asociado.');return;}
         const id=obj.emailMessageId||parte?.emailMessageId||''; let opened=obj.emailOpenedAt||parte?.emailOpenedAt||'';
-        if(appState.emailApi?.syncUrl&&id){try{const u=new URL(normalizarEndpointBackendSintergia(appState.emailApi.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint),window.location.origin);u.searchParams.set('emailId',id);u.searchParams.set('documentId',obj.idDoc);const r=await fetch(u.toString(),{cache:'no-store',credentials:'include'});if(r.ok){const d=await r.json();opened=d.openedAt||d.emailOpenedAt||d.opened_at||opened; if(opened){obj.emailOpenedAt=opened;if(parte)parte.emailOpenedAt=opened;if(f)obj.emailOpenedAt=opened;guardarEstadoStorage();}}}catch(e){console.warn('No se pudo sincronizar lectura',e);}}
+        if(appState.emailApi?.syncUrl&&id){try{const u=new URL(normalizarEndpointBackendSintergia(appState.emailApi.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint),window.location.origin);u.searchParams.set('emailId',id);u.searchParams.set('documentId',obj.idDoc);const r=await fetch(u.toString(),{cache:'no-store',credentials:'omit'});if(r.ok){const d=await r.json();opened=d.openedAt||d.emailOpenedAt||d.opened_at||opened; if(opened){obj.emailOpenedAt=opened;if(parte)parte.emailOpenedAt=opened;if(f)obj.emailOpenedAt=opened;guardarEstadoStorage();}}}catch(e){console.warn('No se pudo sincronizar lectura',e);}}
         if(opened){const d=new Date(opened);alert(`👁️ El correo fue registrado como abierto el ${d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES')}.`);}else alert('👁️ Aún no hay una hora de lectura registrada. Configure el webhook de Resend y el endpoint de sincronización.');
     }
 
@@ -9875,7 +9883,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const fixedFrom='sintergiase@gmail.com'; const payload={provider:'gmail',domain:'gmail.com',from:c.fromName?`${c.fromName} <${fixedFrom}>`:fixedFrom,replyTo:fixedFrom,to:[to],subject,html:html||String(text||'').replace(/\n/g,'<br>'),text:String(text||''),attachments:(attachments||[]).map(a=>({filename:a.filename,content:a.content})),tags:tags||[]};
         const emailHeaders = (typeof authHeadersSintergia === 'function') ? authHeadersSintergia() : {'Content-Type':'application/json'};
         emailHeaders['X-Sintergia-Request-ID'] = idOperacion();
-        const resp=await fetch(endpoint,{method:'POST',headers:emailHeaders,credentials:'include',cache:'no-store',body:JSON.stringify(payload)});
+        const resp=await fetch(endpoint,{method:'POST',headers:emailHeaders,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
         const raw=await resp.text(); let data={}; try{data=raw?JSON.parse(raw):{};}catch(_){data={raw};}
         if(!resp.ok) throw new Error(data?.message||data?.error||`Error HTTP ${resp.status}`);
         return data;
@@ -11185,14 +11193,10 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const dataUrl=String(factura.reciboDataUrl||'');
         const base64=dataUrl.includes(',')?dataUrl.split(',')[1]:'';
         if(!base64&&!factura.reciboRemotoUrl) return {ok:false,motivo:'No hay archivo de recibo que verificar.'};
-        const faltan=[];
-        if(String(factura.idDoc==null?'':factura.idDoc).trim()==='') faltan.push('referencia de la factura');
-        if(factura.total===undefined||factura.total===null||String(factura.total).trim()===''||!Number.isFinite(Number(factura.total))) faltan.push('importe de la factura');
-        if(faltan.length) return {ok:false,validacion:true,motivo:'No se puede verificar el recibo: faltan datos obligatorios ('+faltan.join(', ')+').'};
         try{
             const verifyHeaders = (typeof authHeadersSintergia === 'function') ? authHeadersSintergia() : {'Content-Type':'application/json'};
             verifyHeaders['X-Sintergia-Request-ID'] = idOperacion();
-            const r=await fetch(endpoint,{method:'POST',headers:verifyHeaders,credentials:'include',body:JSON.stringify({
+            const r=await fetch(endpoint,{method:'POST',headers:verifyHeaders,credentials:'omit',body:JSON.stringify({
                 facturaId:factura.idDoc,
                 referencia:factura.idDoc,
                 importe:Number(factura.total)||0,
@@ -11202,12 +11206,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 fileUrl:factura.reciboRemotoUrl||'',
                 fileBase64:base64
             })});
-            if(!r.ok){
-                let msg='';
-                try{const t=await r.text();try{const j=JSON.parse(t);msg=String((j&&(j.error||j.message||j.motivo))||'');}catch(_){msg=t;}}catch(_){window.__sgIgn&&window.__sgIgn(_);}
-                msg=String(msg||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,160);
-                return {ok:false,status:r.status,motivo:'El verificador respondió '+r.status+(msg?': '+msg:'')+'.'};
-            }
+            if(!r.ok) return {ok:false,motivo:`El verificador respondió ${r.status}.`};
             const d=await r.json().catch(function(){return {};});
             const refDetectada=String(d.referencia||d.concepto||'');
             const refOk=(d.referenciaCoincide!==undefined)?!!d.referenciaCoincide:refDetectada.toUpperCase().includes(String(factura.idDoc).toUpperCase());
@@ -13726,7 +13725,7 @@ VERIFICACIONES FINALES
         window.SintergiaRealtime={
             publish:async function(snapshot){
                 try{
-                    const r=await fetch('/functions/v1/realtime-snapshot',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',body:JSON.stringify({channel:cfg.realtime?.channel||'sintergia-realtime',snapshot})});
+                    const r=await fetch('/functions/v1/realtime-snapshot',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({channel:cfg.realtime?.channel||'sintergia-realtime',snapshot})});
                     return r.ok;
                 }catch(_){return false;}
             },
@@ -13762,10 +13761,10 @@ function ensureState(){
 function post(url,body,timeout){
   var token=window.SintergiaAuthToken||'';
   try{if(!token)token=JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||'';}catch(e){window.__sgIgn&&window.__sgIgn(e);}
-  var headers={'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'};
+  var headers={'Content-Type':'application/json'};
   if(token&&!String(token).startsWith('local-'))headers.Authorization='Bearer '+token;
   var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},timeout||15000);
-  return fetch(url,{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'include',headers:headers,body:JSON.stringify(body||{})})
+  return fetch(url,{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'omit',headers:headers,body:JSON.stringify(body||{})})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .finally(function(){clearTimeout(timer);});
 }
@@ -14280,7 +14279,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
   var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},30000);
   try{
    var prompt='Eres el jefe técnico de SintergiaSE, empresa instaladora eléctrica autorizada. Reescribe las notas del técnico como descripción profesional para un parte de trabajo, en español de España, tono formal y técnico, frases breves, voz impersonal en pasado (por ejemplo: "Se sustituye...", "Se verifica..."). Reglas estrictas: no inventes trabajos, materiales, medidas, referencias ni cifras que no aparezcan en las notas; conserva todas las cantidades y referencias tal cual; no añadas saludos, títulos ni comentarios; no uses emojis; no incluyas direcciones ni horas. Devuelve SOLO el texto reescrito.\n\nNOTAS DEL TÉCNICO:\n'+base;
-   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
+   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
    if(!r.ok)throw new Error('IA no disponible (HTTP '+r.status+')');
    var nuevo=extraer(await r.json());
    if(nuevo.length<8)throw new Error('respuesta vacía');
@@ -14377,7 +14376,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
   var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},30000);
   try{
    var prompt='Eres el responsable de atención al cliente de SintergiaSE, empresa instaladora eléctrica. Redacta UN párrafo breve (60 a 110 palabras) para explicar al cliente, en español de España, con lenguaje claro y cercano pero profesional, qué trabajo se ha realizado. Reglas estrictas: usa solo la información facilitada; no inventes trabajos, materiales, garantías ni plazos; no menciones precios ni importes; no incluyas saludo, despedida, firma ni nombre del cliente; sin emojis; sin listas. Devuelve SOLO el párrafo.\n\nTRABAJO REALIZADO (notas del técnico):\n'+d+'\n\nDATOS:'+(datos()||' sin datos adicionales.');
-   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
+   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
    if(!r.ok)throw new Error('HTTP '+r.status);
    var p=extraer(await r.json()).replace(/\s*\n+\s*/g,' ');
    if(p.length<30||p.length>1200)throw new Error('respuesta no válida');
@@ -14460,7 +14459,7 @@ window.sgKmTrayecto=async function(ini,fin){
    if(cfg.enabled!==false&&cfg.matrixEndpoint){
     var locs=[{lat:ini.lat,lon:ini.lon},{lat:fin.lat,lon:fin.lon}];
     var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},8000);
-    var r=await fetch(cfg.matrixEndpoint,{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'include',cache:'no-store',signal:c.signal,body:JSON.stringify({provider:cfg.provider||'google-routes',fallbackProvider:cfg.fallbackProvider||'mapbox',traffic:false,travelMode:cfg.travelMode||'DRIVE',locations:locs,origins:locs,destinations:locs})}).finally(function(){clearTimeout(t);});
+    var r=await fetch(cfg.matrixEndpoint,{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({provider:cfg.provider||'google-routes',fallbackProvider:cfg.fallbackProvider||'mapbox',traffic:false,travelMode:cfg.travelMode||'DRIVE',locations:locs,origins:locs,destinations:locs})}).finally(function(){clearTimeout(t);});
     if(r.ok){
      var d=await r.json(),raw=d&&(d.matrix||d.routeMatrix||d.routes||d.result||d),x=null;
      if(Array.isArray(raw)){
@@ -14493,7 +14492,7 @@ window.SintergiaRuntimeHealth=function(){
 
 /* P10: SintergiaRealtime conserva una única implementación canónica. */
 
-async function obtenerRemoto(){const r=await backendFetch(SYNC_API+'?channel='+encodeURIComponent(SYNC_CHANNEL),{credentials:'include',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);const d=await r.json();return d.snapshot||d.state||d;}
+async function obtenerRemoto(){const r=await backendFetch(SYNC_API+'?channel='+encodeURIComponent(SYNC_CHANNEL),{credentials:'omit',cache:'no-store',headers:{}});if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);const d=await r.json();return d.snapshot||d.state||d;}
 function mergeEntityArrays(local,incoming,collection){const a=Array.isArray(local)?local:[],b=Array.isArray(incoming)?incoming:[],m=new Map();const key=x=>String(x?.id??x?.uid??x?.ref??x?.referencia??x?.numero??x?.codigo??'');const ts=x=>{const t=Date.parse(x?.updatedAt||x?.clientUpdatedAt||x?.createdAt||x?.fechaModificacion||x?.fechaCreacion||'');return Number.isFinite(t)?t:0};const rev=x=>Number.isFinite(Number(x?.entityRevision))?Number(x.entityRevision):Number.isFinite(Number(x?.revision))?Number(x.revision):0;const src=x=>String(x?.sourceId??x?.deviceId??'');const rank=x=>[rev(x),ts(x),src(x)];const newer=(x,y)=>{const a1=rank(x),b1=rank(y);for(let i=0;i<a1.length;i++){if(a1[i]>b1[i])return true;if(a1[i]<b1[i])return false;}return false;};a.forEach(x=>{const k=key(x);if(k)m.set(k,x)});b.forEach(x=>{const k=key(x);if(!k||tombstoneBlocksEntity(collection,x))return;const o=m.get(k);if(!o||newer(x,o))m.set(k,x)});return [...m.values()];}
 window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
 window.probarSincronizacionMultidispositivo=async function(){const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(st){st.className='sync-ai-status';st.textContent='Probando publicación y lectura…';}if(log){log.style.display='block';log.textContent='';}const lines=[],snap=window.obtenerSnapshotSincronizacion();if(!snap){lines.push('❌ No se pudo crear el snapshot local.');if(log)log.textContent=lines.join('\n');if(st){st.className='sync-ai-status error';st.textContent='Snapshot local no disponible.';}return;}lines.push('1. Snapshot local creado: '+snap.clientes.length+' clientes · '+snap.partes.length+' partes · '+snap.facturas.length+' facturas.');const published=await window.SintergiaRealtime.publish(snap);lines.push(published?'2. ✅ Publicación en servidor OK.':'2. ⚠️ Publicación en servidor no confirmada.');try{const remote=await obtenerRemoto();lines.push(remote?'3. ✅ Lectura remota OK.':'3. ⚠️ El servidor no devolvió snapshot.');}catch(e){lines.push('3. ⚠️ Lectura remota falló: '+(e.message||e));}if(log)log.textContent=lines.join('\n');if(st){st.className=published?'sync-ai-status ok':'sync-ai-status error';st.textContent=published?'Flujo de publicación comprobado.':'No se pudo confirmar la publicación remota.';}};
@@ -14506,7 +14505,7 @@ window.probarSincronizacionMultidispositivo=async function(){const st=document.g
 let ultimoHash='';function hashSimple(o){try{return JSON.stringify(o);}catch(_){return'';}}setInterval(async function(){if(document.hidden||localStorage.getItem('sintergia_modo_flujo_real')!=='1')return;try{const remote=await obtenerRemoto();if(!remote)return;const h=hashSimple(remote);if(!h||h===ultimoHash)return;ultimoHash=h;const local=window.obtenerSnapshotSincronizacion();if(hashSimple(local)!==h&&confirm('🌐 Hay cambios nuevos en otro dispositivo. ¿Actualizar este dispositivo?')){window.aplicarSnapshotSincronizacion(remote);syncToast('🔄 Estado actualizado desde otro dispositivo.');}}catch(_){window.__sgIgn&&window.__sgIgn(_);}},10000);
 function contextoDiagnostico(){const senal=window.SenalApp&&window.SenalApp.estado?window.SenalApp.estado():{};const snap=window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion();return{online:navigator.onLine,secureContext:window.isSecureContext,gps:senal.gps||null,network:senal.net||null,localStorageVolatil:!!window.__almacenamientoVolatil,modoFlujoReal:localStorage.getItem('sintergia_modo_flujo_real')==='1',snapshotSummary:snap?{clientes:snap.clientes.length,partes:snap.partes.length,facturas:snap.facturas.length,pendientes:snap.pendientes.length}:null,userAgent:navigator.userAgent};}
 function renderAI(cycle,result){const log=document.getElementById('sync-ai-log');if(!log)return;log.style.display='block';const causes=Array.isArray(result.causes)?result.causes.map(x=>'• '+(typeof x==='string'?x:(x.cause||x.description||JSON.stringify(x)))).join('\n'):'• '+(result.causes||'No especificadas');const steps=Array.isArray(result.steps)?result.steps.map(x=>'• '+(typeof x==='string'?x:(x.step||x.description||JSON.stringify(x)))).join('\n'):'• '+(result.steps||'No especificados');const repair=result.repair?'\nREPARACIÓN SUGERIDA:\n'+(typeof result.repair==='string'?result.repair:JSON.stringify(result.repair,null,2)):'';log.textContent+='\n===== CICLO '+cycle+' =====\nDIAGNÓSTICO:\n'+(result.diagnosis||result.message||'Sin diagnóstico')+'\nCAUSAS:\n'+causes+'\nPASOS:\n'+steps+repair+'\n';}
-async function llamarAIGateway(problem,context,cycle,previous){const payload={model:'auto',prompt:'Diagnostica un problema de sincronización multidispositivo de una app web. Devuelve diagnóstico factual, causas probables, pasos concretos y una reparación segura. No inventes acceso al servidor. Si falta backend, indícalo. Ciclo '+cycle+'. Problema del usuario: '+problem,context:{...context,previous}};if(problem.length>4000)throw new Error('La descripción es demasiado larga (máximo 4.000 caracteres).');const r=await backendFetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);const d=await r.json();return d.result||d;}
+async function llamarAIGateway(problem,context,cycle,previous){const payload={model:'auto',prompt:'Diagnostica un problema de sincronización multidispositivo de una app web. Devuelve diagnóstico factual, causas probables, pasos concretos y una reparación segura. No inventes acceso al servidor. Si falta backend, indícalo. Ciclo '+cycle+'. Problema del usuario: '+problem,context:{...context,previous}};if(problem.length>4000)throw new Error('La descripción es demasiado larga (máximo 4.000 caracteres).');const r=await backendFetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);const d=await r.json();return d.result||d;}
 window.diagnosticarSincronizacionAI=async function(){const problem=(document.getElementById('sync-ai-problema')?.value||'').trim();const cycles=Math.min(3,Math.max(1,parseInt(document.getElementById('sync-ai-ciclos')?.value||'3',10)));const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(!problem){alert('Describe primero el problema de sincronización.');return;}if(st){st.className='sync-ai-status';st.textContent='Analizando…';}if(log){log.style.display='block';log.textContent='';}let previous=null,stable=false;for(let i=1;i<=cycles;i++){try{if(i>1){const snap=window.obtenerSnapshotSincronizacion();if(snap)await window.SintergiaRealtime.publish(snap);try{await obtenerRemoto();}catch(_){window.__sgIgn&&window.__sgIgn(_);}}const result=await llamarAIGateway(problem,contextoDiagnostico(),i,previous);renderAI(i,result);previous=result;stable=!!(result.stable||result.resolved||result.status==='resolved'||result.ok===true);if(stable)break;}catch(e){if(log)log.textContent+='\n===== CICLO '+i+' =====\n❌ '+(e.message||e)+'\n';if(st){st.className='sync-ai-status error';st.textContent='El AI Gateway no respondió. Revisa que exista /functions/v1/ai-gateway en el backend de Lovable.';}return;}}if(st){st.className=stable?'sync-ai-status ok':'sync-ai-status';st.textContent=stable?'Diagnóstico terminado: el modelo ha indicado resolución/estabilidad.':'Diagnóstico terminado: revisa las causas y pasos del último ciclo.';}};
 window.SintergiaDiagnostico={contexto:contextoDiagnostico,reverseGeocode:reverseGeocodeDireccion,probarSync:window.probarSincronizacionMultidispositivo};
 })();
@@ -14733,7 +14732,7 @@ async function escanear(){
   if(receiptFile.size>15*1024*1024)throw new Error('El archivo supera 15 MB.');
   const b64=await fileBase64(receiptFile);
   const prompt='Analiza esta factura o recibo de COMPRA DE MATERIAL para una empresa instaladora eléctrica. Extrae SOLO datos visibles, sin inventar. Detecta especialmente si aparece una referencia de PARTE de trabajo con formato PT26-xxxxxx o equivalente. Devuelve JSON estricto: {proveedor:"",fecha:"",numero:"",parteReferencia:"",confianzaParte:0,items:[{descripcion:"",marca:"",referencia:"",codigoBarras:"",categoria:"",unidades:0,costeUnitario:0}]}. Si no aparece un dato, usa cadena vacía o 0. En unidades usa la cantidad comprada. Prioriza referencias de fabricante visibles. Si hay varios posibles números de parte, usa parteReferencia solo si uno está claramente asociado a la compra.';
-  async function callAI(provider,model){const payload={api:'responses',provider,model,prompt,input:prompt,responseFormat:'json',task:'purchase_invoice_material_extraction',document:{name:receiptFile.name,type:receiptFile.type,dataBase64:b64}};const r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}),credentials:'include',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);return await r.json()}
+  async function callAI(provider,model){const payload={api:'responses',provider,model,prompt,input:prompt,responseFormat:'json',task:'purchase_invoice_material_extraction',document:{name:receiptFile.name,type:receiptFile.type,dataBase64:b64}};const r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);return await r.json()}
   let d;try{d=await callAI('google','gemini-3.7-flash')}catch(_){d=await callAI('openai','auto')}
   let out=d&&(d.result??d.output??d.response??d);if(typeof out==='string'){const clean=out.replace(/^```json\s*|^```\s*|\s*```$/g,'').trim();const mm=clean.match(/\{[\s\S]*\}/);out=JSON.parse(mm?mm[0]:clean)}
   out=out||{};
@@ -14799,7 +14798,7 @@ async function biometricEnroll(){
   const ep=window.SINTERGIA_LOVABLE?.auth?.registerBiometricEndpoint||'/functions/v1/register-biometric';
   const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
   const authHeaders={'Content-Type':'application/json'}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
-  const rr=await fetch(ep,{method:'POST',credentials:'include',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
+  const rr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
   if(!rr.ok)throw new Error('El backend de registro biométrico no está disponible (HTTP '+rr.status+').');
   const opt=await rr.json();
   if(!opt||!opt.ok||!opt.challenge||!opt.rpId||!opt.user||!opt.user.id)throw new Error('Respuesta WebAuthn de registro incompleta.');
@@ -14810,14 +14809,14 @@ async function biometricEnroll(){
   const cred=await navigator.credentials.create({publicKey:publicKey});
   if(!cred)throw new Error('No se creó la credencial.');
   const registration={action:'verify-registration',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),attestationObject:b64u(cred.response.attestationObject)},technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}};
-  const vr=await fetch(ep,{method:'POST',credentials:'include',cache:'no-store',headers:authHeaders,body:JSON.stringify(registration)});
+  const vr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(registration)});
   if(!vr.ok)throw new Error('El backend rechazó el registro biométrico (HTTP '+vr.status+').');
   const vd=await vr.json().catch(()=>null);if(!vd||!vd.ok)throw new Error(vd&&vd.message||'El backend no confirmó el registro biométrico.');
   localStorage.setItem(BIO,JSON.stringify({id:b64u(cred.rawId),createdAt:new Date().toISOString(),backendRegistered:true,credentialId:vd.credentialId||cred.id}));
   audit('BIOMETRIC_ENROLL','Biometría registrada y verificada en backend');
   alert('Biometría configurada y registrada en el servidor.');
   renderSecurityBio();
- }catch(e){alert('No se pudo configurar la biometría: '+(e.message||e))}
+ }catch(e){alert('No se pudo configurar la biometría: '+window.sgBioErrMsg(e))}
 }
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
@@ -14827,7 +14826,7 @@ async function verificarBiometriaBackend(assertion){
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json'};
     if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
-    const r=await fetch(ep,{method:'POST',credentials:'include',cache:'no-store',headers:authHeaders,body:JSON.stringify(assertion)});
+    const r=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(assertion)});
     const ct=(r.headers.get('content-type')||'').toLowerCase();
     if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false};
     const d=await r.json().catch(()=>null);
@@ -14841,7 +14840,7 @@ async function biometricUnlock(){
     const ep=window.SINTERGIA_LOVABLE?.auth?.authenticateBiometricEndpoint||'/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json'}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
-    const optRes=await fetch(ep,{method:'POST',credentials:'include',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
+    const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
     if(!optRes.ok)throw new Error('El backend biométrico no está disponible para obtener el challenge (HTTP '+optRes.status+').');
     const opt=await optRes.json();
     if(!opt||!opt.ok||!opt.challenge)throw new Error('El backend no devolvió un challenge biométrico válido.');
@@ -15525,7 +15524,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Escribe tu consulta.</p>';return;}
   btn.disabled=true;out.innerHTML='<p class="nrm-msg">Analizando la normativa…</p>';
   try{
-   const r=await fetch('/functions/v1/consulta-normativa',{method:'POST',headers:authHeadersSintergia(),credentials:'include',body:JSON.stringify({pregunta:q})});
+   const r=await fetch('/functions/v1/consulta-normativa',{method:'POST',headers:authHeadersSintergia(),credentials:'omit',body:JSON.stringify({pregunta:q})});
    const d=await r.json();
    if(!r.ok) throw new Error(d.error||'Error');
    out.innerHTML=(d.resumen?`<div class="nrm-sum">${esc(d.resumen)}</div>`:'')+
@@ -15541,7 +15540,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Mínimo 3 letras.</p>';return;}
   out.innerHTML='<p class="nrm-msg">Buscando…</p>';
   try{
-   const r=await fetch('/functions/v1/buscar-normativa?q='+encodeURIComponent(q)+'&tipo='+nrmTipo,{headers:authHeadersSintergia(),credentials:'include',cache:'no-store'});
+   const r=await fetch('/functions/v1/buscar-normativa?q='+encodeURIComponent(q)+'&tipo='+nrmTipo,{headers:authHeadersSintergia(),credentials:'omit',cache:'no-store'});
    const d=await r.json();
    if(!r.ok) throw new Error(d&&d.error?d.error:'HTTP '+r.status);
    const resultados=Array.isArray(d.resultados)?d.resultados:[];
@@ -15553,7 +15552,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.nrmDescargar=async btn=>{
    if(btn){btn.disabled=true;}
    try{
-    const r=await fetch('/functions/v1/descargar-html',{headers:authHeadersSintergia(),credentials:'include'});
+    const r=await fetch('/functions/v1/descargar-html',{headers:authHeadersSintergia(),credentials:'omit'});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const b=await r.blob();
     const u=URL.createObjectURL(b);
@@ -15840,7 +15839,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     function authHeadersSintergia() {
         var token = window.SintergiaAuthToken || '';
         try { if (!token) token = JSON.parse(sessionStorage.getItem('sintergia_auth_token') || 'null')?.token || ''; } catch(_){window.__sgIgn&&window.__sgIgn(_);}
-        var h = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+        var h = { 'Content-Type': 'application/json' };
         if (token && !String(token).startsWith('local-')) h.Authorization = 'Bearer ' + token;
         return h;
     }
@@ -15852,7 +15851,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var headers = authHeadersSintergia();
             headers['X-Sintergia-Request-ID'] = opId;
             var r = await fetch(url, {
-                method: 'POST', signal: ctrl.signal, cache: 'no-store', credentials: 'include',
+                method: 'POST', signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
                 headers: headers,
                 body: JSON.stringify(body || {})
             });
@@ -16864,26 +16863,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ['Cita email','POST','/functions/v1/cita-email','mutating'],
     ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
     ['Cita estado','POST','/functions/v1/cita-estado','safe'],
-    ['Receipt verify','POST','/functions/v1/verify-receipt','op'],
-    ['Receipt register','POST','/functions/v1/receipt-register','op'],
+    ['Receipt verify','POST','/functions/v1/verify-receipt','safe'],
+    ['Receipt register','POST','/functions/v1/receipt-register','safe'],
     ['Receipt status','POST','/functions/v1/receipt-status','safe']
   ];
-  function headers(){return (typeof global.authHeadersSintergia==='function')?global.authHeadersSintergia():{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'};}
+  function headers(){return (typeof global.authHeadersSintergia==='function')?global.authHeadersSintergia():{'Content-Type':'application/json'};}
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
-  /* Operaciones reales (verificar/registrar recibo) exigen datos de negocio: el diagnóstico NO las llama con un cuerpo vacío.
-     Su disponibilidad se deduce del Health (mecanismo existente); la operación real se valida en su propio flujo. */
-  function disponibilidadPorHealth(name,health){
-    var nota='La operación real no se ejecuta en el diagnóstico: necesita los datos de un recibo/factura y se valida en su propio flujo.';
-    if(!health) return {name:name,status:'⚪ SIN COMPROBAR',cls:'sdiag-na',detail:'Sin resultado de Health. '+nota};
-    if(health.cls==='sdiag-ok') return {name:name,status:'🟢 DISPONIBLE',cls:'sdiag-ok',detail:'Backend disponible (Health OK). '+nota};
-    if(health.cls==='sdiag-bad') return {name:name,status:'🔴 NO DISPONIBLE',cls:'sdiag-bad',detail:'Health respondió '+health.status+'. '+nota};
-    if(health.cls==='sdiag-warn') return {name:name,status:'🟡 SIN CONFIRMAR',cls:'sdiag-warn',detail:'Health no confirmó el backend ('+health.status+'). '+nota};
-    return {name:name,status:'⚪ SIN COMPROBAR',cls:'sdiag-na',detail:'No se pudo contactar con Health: '+(health.detail||'sin respuesta')+'. '+nota};
-  }
-  async function check(item,ctx){
+  async function check(item,rows){
     var name=item[0],method=item[1],url=sintergiaResolveEndpoint(item[2]),kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
-    if(kind==='op') return disponibilidadPorHealth(name,ctx&&ctx.health);
     var body=null;
     if(method==='POST'){
       if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
@@ -16898,12 +16886,14 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       else if(name==='Gasolineras') body={};
       else if(name==='Authenticate') body={};
       else if(name==='Autenticación') body={};
+      else if(name==='Receipt register') body=null;
       else if(kind==='safe') body={};
     }
+    if(name==='Receipt verify'||name==='Receipt register'){var hr=(rows||[]).filter(function(x){return x.name==='Health';})[0];return {name:name,status:'⚪ NO PROBADA',cls:'sdiag-na',detail:(hr&&hr.cls==='sdiag-ok'?'Health OK (no prueba esta operación). ':'')+'No se ejecuta en el diagnóstico: requiere factura y recibo reales.'};}
     if(kind==='mutating') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente: requiere una operación real y sus datos de negocio.'};
     var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},15000);
     try{
-      var r=await fetch(url,{method:method,headers:h,credentials:'include',cache:'no-store',signal:ctrl.signal,body:method==='POST'?JSON.stringify(body):undefined});
+      var r=await fetch(url,{method:method,headers:h,credentials:'omit',cache:'no-store',signal:ctrl.signal,body:method==='POST'?JSON.stringify(body):undefined});
       clearTimeout(timer);
       var txt=await r.text();
       if(r.ok) return {name:name,status:'🟢 '+r.status,cls:'sdiag-ok',detail:'Respuesta HTTP correcta'+(txt?' · '+txt.slice(0,180):'')};
@@ -16920,9 +16910,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var sum=document.getElementById('sdiag-summary');
       if(sum)sum.textContent='Ejecutando comprobaciones seguras…';
       render(endpoints.map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};}));
-      var rows=[],ctx={health:null};for(var i=0;i<endpoints.length;i++){var row=await check(endpoints[i],ctx);if(endpoints[i][0]==='Health')ctx.health=row;rows.push(row);render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
+      var rows=[];for(var i=0;i<endpoints.length;i++){rows.push(await check(endpoints[i],rows));render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
       var ok=rows.filter(function(x){return x.cls==='sdiag-ok';}).length,bad=rows.filter(function(x){return x.cls==='sdiag-bad';}).length,warn=rows.filter(function(x){return x.cls==='sdiag-warn';}).length;
-      if(sum)sum.textContent='Resultado: '+ok+' OK · '+bad+' con error · '+warn+' requieren atención. Los envíos reales se omiten por seguridad; Receipt verify/register se comprueban por Health sin ejecutar la operación.'+(function(){var m=document.querySelector('meta[name="sintergia-release"]');return m&&m.content?' · versión '+m.content:'';})();
+      if(sum)sum.textContent='Resultado: '+ok+' OK · '+bad+' con error · '+warn+' requieren atención. Los envíos reales se omiten por seguridad.';
       try{sessionStorage.setItem('sintergia_last_api_diag',JSON.stringify({at:new Date().toISOString(),rows:rows}));}catch(_){window.__sgIgn&&window.__sgIgn(_);}
       return rows;
     }
@@ -17836,7 +17826,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       var endpoint = '/functions/v1/descargar-html';
       var headers = (typeof window.authHeadersSintergia === 'function')
         ? window.authHeadersSintergia()
-        : { 'X-Requested-With': 'XMLHttpRequest' };
+        : {  };
 
       var controller = window.AbortController ? new AbortController() : null;
       var timer = setTimeout(function () {
@@ -17846,7 +17836,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       try {
         var response = await fetch(endpoint, {
           method: 'GET',
-          credentials: 'include',
+          credentials: 'omit',
           cache: 'no-store',
           headers: headers,
           signal: controller ? controller.signal : undefined
