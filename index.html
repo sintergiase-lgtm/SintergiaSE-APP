@@ -14689,86 +14689,155 @@ function cerrarPreview(){document.getElementById('compra-preview-modal').style.d
 /* Biometría: WebAuthn/Passkey. Se registra y se verifica obligatoriamente contra Supabase mediante registerBiometricEndpoint / authenticateBiometricEndpoint; si el backend no responde, no se acepta un desbloqueo local como sustituto. */
 function b64u(buf){const a=new Uint8Array(buf);let s='';for(const b of a)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function ub64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);return Uint8Array.from(b,c=>c.charCodeAt(0))}
-async function biometricEnroll(){
- if(!window.PublicKeyCredential){alert('Este navegador no ofrece WebAuthn/biometría.');return}
- try{
-  const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
-  const t=window.SintergiaTechnician||{};
-  if(!t.nombre||!t.dni){alert('Inicia sesión con nombre completo y DNI antes de registrar la biometría.');return}
-  const ep=window.SINTERGIA_BACKEND?.auth?.registerBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric';
-  const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-  const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-REG-'+Date.now().toString(36)}; if(!authToken||String(authToken).startsWith('local-')) throw new Error('Sesión de servidor no válida. Cierra sesión y vuelve a entrar contra Supabase antes de configurar la biometría.'); authHeaders['X-Sintergia-Session']=String(authToken);
-  const rr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
-  if(!rr.ok)throw new Error('El backend de registro biométrico no está disponible (HTTP '+rr.status+').');
-  const opt=await rr.json();
-  if(!opt||!opt.ok||!opt.challenge||!opt.rpId||!opt.user||!opt.user.id)throw new Error('Respuesta WebAuthn de registro incompleta.');
-  const publicKey=Object.assign({},opt);
-  publicKey.challenge=ub64u(opt.challenge);publicKey.rp={name:opt.rpName||'SintergiaSE APP',id:opt.rpId};publicKey.user=Object.assign({},opt.user,{id:ub64u(opt.user.id)});
-  if(!publicKey.pubKeyCredParams)publicKey.pubKeyCredParams=[{type:'public-key',alg:-7},{type:'public-key',alg:-257}];
-  publicKey.authenticatorSelection=publicKey.authenticatorSelection||{authenticatorAttachment:'platform',userVerification:'required'};
-  const cred=await navigator.credentials.create({publicKey:publicKey});
-  if(!cred)throw new Error('No se creó la credencial.');
-  const registration={action:'verify-registration',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),attestationObject:b64u(cred.response.attestationObject)},technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}};
-  authHeaders['X-Sintergia-Request-ID']='BIO-REG-VERIFY-'+Date.now().toString(36);
-  const vr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(registration)});
-  if(!vr.ok)throw new Error('El backend rechazó el registro biométrico (HTTP '+vr.status+').');
-  const vd=await vr.json().catch(()=>null);if(!vd||!vd.ok)throw new Error(vd&&vd.message||'El backend no confirmó el registro biométrico.');
-  localStorage.setItem(BIO,JSON.stringify({id:b64u(cred.rawId),createdAt:new Date().toISOString(),backendRegistered:true,credentialId:vd.credentialId||cred.id}));
-  audit('BIOMETRIC_ENROLL','Biometría registrada y verificada en backend');
-  alert('Biometría configurada y registrada en el servidor.');
-  renderSecurityBio();
- }catch(e){alert('No se pudo configurar la biometría: '+(e.message||e))}
+let SINTERGIA_BIOMETRIC_BACKEND_STATE='unknown';
+function getBiometricAuthToken(){
+  try{
+    const direct=window.SintergiaAuthToken;
+    if(direct) return String(direct);
+    const raw=sessionStorage.getItem('sintergia_auth_token')||'';
+    const data=raw?JSON.parse(raw):null;
+    return data?.token?String(data.token):'';
+  }catch(_){return ''}
 }
-/* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
+function biometricBackendHealthEndpoint(){
+  return window.SINTERGIA_BACKEND?.observability?.healthEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health';
+}
+async function checkBiometricBackend(timeoutMs){
+  timeoutMs=Number(timeoutMs)||7000;
+  if(navigator.onLine===false){
+    SINTERGIA_BIOMETRIC_BACKEND_STATE='offline';
+    return {ok:false,kind:'offline',message:'No hay conexión de red.'};
+  }
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+    const r=await fetch(biometricBackendHealthEndpoint(),{method:'GET',credentials:'omit',cache:'no-store',signal:ctrl.signal,headers:{'Accept':'application/json'}});
+    const d=await r.json().catch(()=>null);
+    if(!r.ok||!d?.ok){
+      SINTERGIA_BIOMETRIC_BACKEND_STATE='down';
+      return {ok:false,kind:'http',status:r.status,data:d};
+    }
+    SINTERGIA_BIOMETRIC_BACKEND_STATE='online';
+    return {ok:true,data:d};
+  }catch(e){
+    SINTERGIA_BIOMETRIC_BACKEND_STATE='offline';
+    return {ok:false,kind:'network',error:e};
+  }finally{clearTimeout(timer)}
+}
+function biometricSessionError(){
+  const token=getBiometricAuthToken();
+  if(!token)return 'No hay una sesión de servidor activa. Entra de nuevo en SintergiaSE con conexión a Supabase antes de configurar la biometría.';
+  if(String(token).startsWith('local-'))return 'La sesión actual es local/offline. La biometría no puede registrarse ni validarse en modo offline. Vuelve a entrar con el backend disponible.';
+  return '';
+}
+function biometricFriendlyError(e){
+  const code=e&&e.code||'';
+  if(code==='BIO_BACKEND_OFFLINE')return 'No hay conexión con el backend de Supabase. La biometría requiere conexión al servidor y no se habilita un sustituto local.';
+  if(code==='BIO_SESSION')return 'La sesión de servidor no es válida o ha caducado. El backend sí responde, pero debes cerrar sesión y volver a entrar con conexión antes de usar la biometría.';
+  if(code==='BIO_401')return 'El backend responde, pero la sesión de servidor ha caducado o no es válida (HTTP 401). Cierra sesión y vuelve a entrar con conexión.';
+  if(code==='BIO_HTTP')return 'El backend biométrico respondió con HTTP '+String(e.status||500)+'. Revisa la conexión al servidor.';
+  return e?.message||String(e||'Error desconocido');
+}
+function makeBioError(code,message,status){const e=new Error(message||code);e.code=code;if(status)e.status=status;return e}
+async function biometricEnroll(){
+  if(!window.PublicKeyCredential){alert('Este navegador no ofrece WebAuthn/biometría.');return}
+  try{
+    const probe=await checkBiometricBackend();
+    if(!probe.ok)throw makeBioError('BIO_BACKEND_OFFLINE');
+    const sessionErr=biometricSessionError();
+    if(sessionErr)throw makeBioError('BIO_SESSION');
+    const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
+    if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
+    const t=window.SintergiaTechnician||{};
+    if(!t.nombre||!t.dni){alert('Inicia sesión con nombre completo y DNI antes de registrar la biometría.');return}
+    const ep=window.SINTERGIA_BACKEND?.auth?.registerBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric';
+    const authToken=getBiometricAuthToken();
+    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-REG-'+Date.now().toString(36),'X-Sintergia-Session':authToken};
+    const rr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
+    if(rr.status===401)throw makeBioError('BIO_401');
+    if(!rr.ok)throw makeBioError('BIO_HTTP','',rr.status);
+    const opt=await rr.json();
+    if(!opt||!opt.ok||!opt.challenge||!opt.rpId||!opt.user||!opt.user.id)throw new Error('Respuesta WebAuthn de registro incompleta.');
+    const publicKey=Object.assign({},opt);
+    publicKey.challenge=ub64u(opt.challenge);publicKey.rp={name:opt.rpName||'SintergiaSE APP',id:opt.rpId};publicKey.user=Object.assign({},opt.user,{id:ub64u(opt.user.id)});
+    if(!publicKey.pubKeyCredParams)publicKey.pubKeyCredParams=[{type:'public-key',alg:-7},{type:'public-key',alg:-257}];
+    publicKey.authenticatorSelection=publicKey.authenticatorSelection||{authenticatorAttachment:'platform',userVerification:'required'};
+    const cred=await navigator.credentials.create({publicKey:publicKey});
+    if(!cred)throw new Error('No se creó la credencial.');
+    const registration={action:'verify-registration',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),attestationObject:b64u(cred.response.attestationObject)},technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}};
+    authHeaders['X-Sintergia-Request-ID']='BIO-REG-VERIFY-'+Date.now().toString(36);
+    const vr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(registration)});
+    if(vr.status===401)throw makeBioError('BIO_401');
+    if(!vr.ok)throw makeBioError('BIO_HTTP','',vr.status);
+    const vd=await vr.json().catch(()=>null);if(!vd||!vd.ok)throw new Error(vd&&vd.message||'El backend no confirmó el registro biométrico.');
+    localStorage.setItem(BIO,JSON.stringify({id:b64u(cred.rawId),createdAt:new Date().toISOString(),backendRegistered:true,credentialId:vd.credentialId||cred.id}));
+    audit('BIOMETRIC_ENROLL','Biometría registrada y verificada en backend');
+    alert('✅ Biometría configurada y registrada en el servidor.');
+    renderSecurityBio();
+  }catch(e){alert('No se pudo configurar la biometría: '+biometricFriendlyError(e))}
+}
+/* Verificación biométrica: sin backend no se muestra ni acepta un desbloqueo local. */
 async function verificarBiometriaBackend(assertion){
   const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint;
-  if(!ep)return{attempted:false,available:false,ok:false};
+  if(!ep)return{attempted:false,available:false,ok:false,reason:'missing-endpoint'};
   try{
-    const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-VERIFY-'+Date.now().toString(36)};
-    if(!authToken||String(authToken).startsWith('local-')) throw new Error('Sesión de servidor no válida. Cierra sesión y vuelve a entrar contra Supabase antes de configurar la biometría.'); authHeaders['X-Sintergia-Session']=String(authToken);
+    const sessionErr=biometricSessionError();
+    if(sessionErr)return{attempted:false,available:false,ok:false,reason:'session'};
+    const authToken=getBiometricAuthToken();
+    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-VERIFY-'+Date.now().toString(36),'X-Sintergia-Session':authToken};
     const r=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(assertion)});
     const ct=(r.headers.get('content-type')||'').toLowerCase();
-    if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false};
+    if(r.status===401)return{attempted:true,available:true,ok:false,reason:'401',status:401};
+    if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false,reason:'http',status:r.status};
     const d=await r.json().catch(()=>null);
-    if(!d)return{attempted:true,available:false,ok:false};
-    return{attempted:true,available:true,ok:!!d.ok};
-  }catch(_){return{attempted:true,available:false,ok:false}}
+    if(!d)return{attempted:true,available:false,ok:false,reason:'empty'};
+    return{attempted:true,available:true,ok:!!d.ok,reason:d.ok?'ok':'rejected',data:d};
+  }catch(_){return{attempted:true,available:false,ok:false,reason:'network'}}
 }
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
   try{
+    const probe=await checkBiometricBackend();
+    if(!probe.ok){alert('⚠️ No hay conexión con el backend de Supabase. La biometría no se puede usar sin validación del servidor.');audit('BIOMETRIC_UNLOCK_FAIL','Backend biométrico no disponible');return false}
+    const sessionErr=biometricSessionError();
+    if(sessionErr){alert('⚠️ '+sessionErr);audit('BIOMETRIC_UNLOCK_FAIL','Sesión de servidor no válida');return false}
     const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric';
-    const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36)}; if(!authToken||String(authToken).startsWith('local-')) throw new Error('Sesión de servidor no válida. Cierra sesión y vuelve a entrar contra Supabase antes de configurar la biometría.'); authHeaders['X-Sintergia-Session']=String(authToken);
-    const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
-    if(!optRes.ok)throw new Error('El backend biométrico no está disponible para obtener el challenge (HTTP '+optRes.status+').');
+    const authToken=getBiometricAuthToken();
+    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36),'X-Sintergia-Session':authToken};
+    const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||''})});
+    if(optRes.status===401){alert('⚠️ El backend responde, pero la sesión de servidor ha caducado o no es válida. Vuelve a entrar con conexión.');audit('BIOMETRIC_UNLOCK_FAIL','HTTP 401 en opciones biométricas');return false}
+    if(!optRes.ok){alert('⚠️ El backend biométrico respondió con HTTP '+optRes.status+'.');return false}
     const opt=await optRes.json();
-    if(!opt||!opt.ok||!opt.challenge)throw new Error('El backend no devolvió un challenge biométrico válido.');
-    const publicKey={challenge:ub64u(opt.challenge),rpId:opt.rpId||location.hostname,allowCredentials:(opt.allowCredentials||[{type:'public-key',id:raw.id}]).map(function(x){return Object.assign({},x,{id:typeof x.id==='string'?ub64u(x.id):x.id})}),userVerification:'required'};
+    if(!opt?.ok||!opt.challenge){alert('⚠️ El backend no entregó un desafío biométrico válido.');return false}
+    const publicKey=Object.assign({},opt);publicKey.challenge=ub64u(opt.challenge);publicKey.rpId=opt.rpId||'sintergiase-lgtm.github.io';publicKey.allowCredentials=(opt.allowCredentials||[]).map(x=>Object.assign({},x,{id:ub64u(x.id)}));publicKey.userVerification='required';
     const cred=await navigator.credentials.get({publicKey:publicKey,mediation:'optional'});
     if(!cred)return false;
     const assertion={action:'verify-authentication',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),authenticatorData:b64u(cred.response.authenticatorData),signature:b64u(cred.response.signature),userHandle:cred.response.userHandle?b64u(cred.response.userHandle):null},credentialId:raw.credentialId||raw.id};
     const res=await verificarBiometriaBackend(assertion);
+    if(res.reason==='401'){alert('⚠️ El servidor no acepta la sesión actual (HTTP 401). Vuelve a entrar con conexión.');audit('BIOMETRIC_UNLOCK_FAIL','HTTP 401 en validación biométrica');return false}
     if(!res.attempted||!res.available){alert('⚠️ El backend biométrico no está disponible. Por seguridad no se desbloquea la sesión.');audit('BIOMETRIC_UNLOCK_FAIL','Backend biométrico no disponible');return false}
     if(!res.ok){alert('⚠️ El servidor ha rechazado la credencial biométrica.');audit('BIOMETRIC_UNLOCK_FAIL','Rechazado por backend');return false}
-    sessionStorage.setItem('sintergia_biometric_auth','1');
-    audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend');
-    return true;
+    sessionStorage.setItem('sintergia_biometric_auth','1');audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend');return true;
   }catch(e){alert('No se pudo validar la biometría: '+(e.message||e));return false}
 }
-function renderSecurityBio(){const el=document.getElementById('sintergia-bio-status');if(el){const x=load(BIO,null);el.textContent=x?'🟢 Biometría configurada en este dispositivo':'⚪ Biometría no configurada';el.className='sintergia-status '+(x?'ok':'warn')}}
-function addBioCard(){const tab=document.getElementById('tab-seguridad');if(!tab||document.getElementById('sintergia-bio-card'))return;const d=document.createElement('div');d.id='sintergia-bio-card';d.className='sintergia-sec-card';d.style.marginTop='12px';d.innerHTML=`<h3>🧬 Autenticación biométrica</h3><div id="sintergia-bio-status" class="sintergia-status warn">Comprobando…</div><p class="sintergia-mini">Usa Face ID, Touch ID, Windows Hello o el autenticador de plataforma compatible. La biometría requiere validación del backend para registrar y desbloquear la sesión; no se acepta un desbloqueo local como sustituto de la autenticación del servidor.</p><div class="horario-actions"><button class="btn-primary" onclick="HorarioSintergia.configurarBiometria()">🧬 Configurar biometría</button><button class="btn-secondary" onclick="HorarioSintergia.desbloquearBiometria()">🔓 Probar biometría</button></div>`;tab.appendChild(d);renderSecurityBio()}
+function renderSecurityBio(){
+  const el=document.getElementById('sintergia-bio-status');
+  const be=document.getElementById('sintergia-bio-backend');
+  if(el){const x=load(BIO,null);el.textContent=x?'🟢 Biometría configurada en este dispositivo':'⚪ Biometría no configurada';el.className='sintergia-status '+(x?'ok':'warn')}
+  if(be){const labels={online:'🟢 Backend biométrico conectado',offline:'🟠 Sin conexión con backend',down:'🔴 Backend no disponible',unknown:'⚪ Backend biométrico sin comprobar'};be.textContent=labels[SINTERGIA_BIOMETRIC_BACKEND_STATE]||labels.unknown}
+}
+async function refreshBiometricBackendStatus(){await checkBiometricBackend(5000);renderSecurityBio()}
+function addBioCard(){const tab=document.getElementById('tab-seguridad');if(!tab||document.getElementById('sintergia-bio-card'))return;const d=document.createElement('div');d.id='sintergia-bio-card';d.className='sintergia-sec-card';d.style.marginTop='12px';d.innerHTML=`<h3>🧬 Autenticación biométrica</h3><div id="sintergia-bio-status" class="sintergia-status warn">Comprobando…</div><div id="sintergia-bio-backend" class="sintergia-mini">⚪ Backend biométrico sin comprobar</div><p class="sintergia-mini">Usa Face ID, Touch ID, Windows Hello o el autenticador de plataforma compatible. La biometría requiere validación del backend para registrar y desbloquear la sesión; no se acepta un desbloqueo local como sustituto de la autenticación del servidor.</p><div class="horario-actions"><button class="btn-primary" onclick="HorarioSintergia.configurarBiometria()">🧬 Configurar biometría</button><button class="btn-secondary" onclick="HorarioSintergia.desbloquearBiometria()">🔓 Probar biometría</button></div>`;tab.appendChild(d);renderSecurityBio()}
 
 /* Integración con estado/sincronización/backup: horario y compras ya forman parte del estado canónico. */
 
 /* Enlace con trayecto/trabajo existentes */
 function wrapAction(name,tipo,label){const fn=window[name];if(typeof fn!=='function'||fn['__hc'])return;if(!window['__wrapped_'+name]){const w=async function(...args){const before=state.horario.eventos.find(e=>e.tipo===tipo&&!e.fin);const r=await fn.apply(this,args);if(state.horario.jornada?.inicio&&!state.horario.jornada.fin){if(before){before.fin=now().toISOString()}else{const ref=currentRef()||document.getElementById('parte-id')?.value||'';addEvent(tipo,label,ref,now().toISOString(),null)}}save(HKEY,state.horario);render();return r};w.__hc=true;window[name]=w;window['__wrapped_'+name]=true}}
 function init(){
- addBioCard();fillParts();renderCompras();render();
+ addBioCard();refreshBiometricBackendStatus();fillParts();renderCompras();render();
  document.querySelectorAll('.tab-link[data-tab="tab-horario"]').forEach(b=>b.addEventListener('click',()=>{setTimeout(()=>{if(!state.horario.jornada?.inicio||state.horario.jornada.fin)showGate();else{sessionStorage.setItem('sintergia_horario_auth','1');hideGate();render()}},30)}));
  wrapAction('iniciarTrayecto','trayecto','Trayecto');wrapAction('finalizarTrayecto','trayecto','Trayecto');wrapAction('iniciarTrabajo','trabajo','Trabajo técnico');wrapAction('finalizarTrabajoDirecto','trabajo','Trabajo técnico');
- setInterval(()=>{render();check8h()},1000);setInterval(()=>{fillParts();renderCompras()},15000);
+ setInterval(()=>{render();check8h()},1000);setInterval(()=>{fillParts();renderCompras()},15000);setInterval(()=>{refreshBiometricBackendStatus()},30000);
  if(!state.horario.jornada?.inicio||state.horario.jornada.fin)setTimeout(showGate,400);
 }
 window.HorarioSintergia={validarClaveInicio,iniciarJornada,accion,posponerAviso,finalizarJornada,cerrarAlerta8h:closeAlert,previsualizarReferencia,configurarBiometria:biometricEnroll,desbloquearBiometria:biometricUnlock};
