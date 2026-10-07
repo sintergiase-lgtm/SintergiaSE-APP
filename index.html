@@ -16759,7 +16759,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ['Gasolineras','POST','/functions/v1/gasolineras','safe'],
     ['Realtime snapshot','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot','safe'],
     ['Sync operations','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations','safe'],
-    ['Autenticación','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','auth'],
+    ['Autenticación','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','auth'],
     ['Email','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email','mutating'],
     ['Cita email','POST','/functions/v1/cita-email','mutating'],
     ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
@@ -16774,11 +16774,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
   async function check(item){
-    var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
+    var name=item[0],method=item[1],url=item[2],kind=item[3],h=(name==='Health'?{'Content-Type':'application/json'}:headers());if(name!=='Health')h['X-Sintergia-Request-ID']=op();
     var body=null;
     if(method==='POST'){
-      if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
-      else if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
+      if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
+      else if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
       else if(name==='Geocode') body={address:'Sevilla, España'};
       else if(name==='Reverse geocode') body={lat:37.3891,lon:-5.9845};
       else if(name==='Route Matrix') body={provider:'google-routes',fallbackProvider:'mapbox',locations:[{lat:37.3891,lon:-5.9845},{lat:37.3886,lon:-5.9953}],origins:[{lat:37.3891,lon:-5.9845}],destinations:[{lat:37.3886,lon:-5.9953}],traffic:false,travelMode:'DRIVE'};
@@ -16787,8 +16787,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       else if(name==='Realtime snapshot') body={};
       else if(name==='Sync operations') body={operations:[]};
       else if(name==='Gasolineras') body={};
-      else if(name==='Authenticate') body={};
-      else if(name==='Autenticación') body={};
       else if(name==='Receipt register') body={};
       else if(kind==='safe') body={};
     }
