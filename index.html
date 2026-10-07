@@ -14697,7 +14697,7 @@ async function biometricEnroll(){
   if(!t.nombre||!t.dni){alert('Inicia sesión con nombre completo y DNI antes de registrar la biometría.');return}
   const ep=window.SINTERGIA_BACKEND?.auth?.registerBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric';
   const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-  const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-REG-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders['X-Sintergia-Session']=authToken;
+  const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-REG-'+Date.now().toString(36)}; if(!authToken||String(authToken).startsWith('local-')) throw new Error('Sesión de servidor no válida. Cierra sesión y vuelve a entrar contra Supabase antes de configurar la biometría.'); authHeaders['X-Sintergia-Session']=String(authToken);
   const rr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
   if(!rr.ok)throw new Error('El backend de registro biométrico no está disponible (HTTP '+rr.status+').');
   const opt=await rr.json();
@@ -14726,7 +14726,7 @@ async function verificarBiometriaBackend(assertion){
   try{
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-VERIFY-'+Date.now().toString(36)};
-    if(authToken&&!String(authToken).startsWith('local-')) authHeaders['X-Sintergia-Session']=authToken;
+    if(!authToken||String(authToken).startsWith('local-')) throw new Error('Sesión de servidor no válida. Cierra sesión y vuelve a entrar contra Supabase antes de configurar la biometría.'); authHeaders['X-Sintergia-Session']=String(authToken);
     const r=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(assertion)});
     const ct=(r.headers.get('content-type')||'').toLowerCase();
     if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false};
@@ -14740,7 +14740,7 @@ async function biometricUnlock(){
   try{
     const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders['X-Sintergia-Session']=authToken;
+    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36)}; if(!authToken||String(authToken).startsWith('local-')) throw new Error('Sesión de servidor no válida. Cierra sesión y vuelve a entrar contra Supabase antes de configurar la biometría.'); authHeaders['X-Sintergia-Session']=String(authToken);
     const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
     if(!optRes.ok)throw new Error('El backend biométrico no está disponible para obtener el challenge (HTTP '+optRes.status+').');
     const opt=await optRes.json();
