@@ -9,9 +9,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<meta name="sintergia-release" content="2026-10-07-backend-biometric-bridge-01">
+
     <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
-<meta name="sintergia-release" content="2026-10-06-public-ready-01">
 <!-- V3.49: núcleo 3D mixto de protones/neutrones, distribución volumétrica Fibonacci/ángulo áureo y masa física base con amplificación visual áurea; acceso correcto acelerado. -->
 <!-- V3.51: sin tambaleo final; deformación S/E a 128 Hz internos con 129 puntos por rebote, fluida en 60/120 Hz. -->
 <!-- V3.25 (bloque 2): rebote de S y E con elasticidad (estirar al caer/subir, aplastar al contacto, volumen constante), la S un rebote mas que la E, alturas/deslizamiento/giro aleatorios por letra, ultimo contacto exacto en t=1 (01/10/2026) -->
@@ -512,11 +513,33 @@
   });
 })();
 </script>
+<!-- SINTERGIA / SUPABASE GITHUB PAGES BRIDGE v2 -->
+<script id="sintergia-supabase-github-bridge-v2">
+(function(){
+  'use strict';
+  var BASE='https://bgjicsowspppsjzigazb.supabase.co';
+  window.SUPABASE_URL=BASE;
+  window.SINTERGIA_API_BASE=BASE;
+  var nativeFetch=window.fetch.bind(window);
+  function rewrite(input){
+    try{
+      var raw=typeof input==='string'?input:(input&&input.url);
+      if(!raw)return input;
+      var u=new URL(raw,location.href);
+      if(u.origin===location.origin && /^\/functions\/v1\//.test(u.pathname)){
+        var target=BASE+u.pathname+u.search;
+        if(typeof input==='string')return target;
+        return new Request(target,input);
+      }
+    }catch(_){}
+    return input;
+  }
+  window.fetch=function(input,init){return nativeFetch(rewrite(input),init);};
+})();
+</script>
 <!-- SINTERGIA / LOVABLE CONFIG: secretos solo en backend/Edge Functions -->
 <script>
-window.SUPABASE_URL = window.SUPABASE_URL || 'https://bgjicsowspppsjzigazb.supabase.co';
-window.SINTERGIA_BACKEND_ORIGIN = window.SINTERGIA_BACKEND_ORIGIN || window.SUPABASE_URL;
-window.SINTERGIA_LOVABLE = Object.freeze({
+window.SINTERGIA_BACKEND = Object.freeze({
   auth: { endpoint: '/functions/v1/authenticate', registerBiometricEndpoint: '/functions/v1/register-biometric', authenticateBiometricEndpoint: '/functions/v1/authenticate-biometric', required: true },
   sync: { snapshotEndpoint: '/functions/v1/realtime-snapshot', operationsEndpoint: '/functions/v1/sync-operations', enabled: true, offlineFirst: true, idempotencyHeader: 'X-Sintergia-Request-ID', maxQueueItems: 1000 },
   references: { allocateEndpoint: '/functions/v1/allocate-reference', idempotencyHeader: 'X-Sintergia-Request-ID', enabled: true },
@@ -549,8 +572,9 @@ window.SINTERGIA_LOVABLE = Object.freeze({
     healthEndpoint: '/functions/v1/health',
     enabled: true
   },
-  supabase: { url: window.SUPABASE_URL || 'https://bgjicsowspppsjzigazb.supabase.co' }
+  supabase: { url: 'https://bgjicsowspppsjzigazb.supabase.co' }
 });
+window.SINTERGIA_LOVABLE = window.SINTERGIA_BACKEND;
 </script>
 <!-- =========================================================
   CHECKLIST PARA LOVABLE — esto es TODO lo que hay que dar de alta
@@ -607,9 +631,7 @@ window.SINTERGIA_LOVABLE = Object.freeze({
   siga siendo usable — pero para producción real hay que dar de alta las rutas de arriba.
 ========================================================= -->
 <script>
-window.__SINTERGIA_LOVABLE_NOOP = true;
-window.sgBioErrMsg=function(e){var m=String(e&&e.message||e||'');if(e&&e.name==='NotAllowedError')return 'Operación cancelada o no permitida por el dispositivo.';if(e&&e.name==='TypeError'&&/fetch|network|load failed/i.test(m))return 'No se pudo contactar con el servidor de biometría (red, CORS o función no desplegada). No es un fallo de la huella/rostro del dispositivo.';return m;};
-(function(global){'use strict';function base(){var raw=global.SINTERGIA_BACKEND_ORIGIN||global.SUPABASE_URL||'';try{return new URL(String(raw),global.location.href).toString().replace(/\/$/,'');}catch(_){return '';}}global.sintergiaResolveEndpoint=function(raw){var u=String(raw||'');if(!/^\/functions\/v1\//.test(u))return u;var b=base();return b?b+u:u;};})(window);
+window.__SINTERGIA_BACKEND_NOOP = true;
 
 /* =====================================================================
    PUENTE GLOBAL DE AUTENTICACIÓN / OPERACIONES
@@ -648,6 +670,7 @@ window.sgBioErrMsg=function(e){var m=String(e&&e.message||e||'');if(e&&e.name===
             } catch(_){window.__sgIgn&&window.__sgIgn(_);}
 
             var headers = {
+                'Content-Type': 'application/json',
                 'Content-Type': 'application/json'
             };
 
@@ -747,7 +770,7 @@ window.SintergiaSecurityConfig = Object.freeze({
     window.__mostrarErrorApp = banner;
     window.addEventListener('error', function (ev) {
         if (ev.target && ev.target !== window && ev.target.tagName) {
-            if (ev.target.tagName === 'SCRIPT') banner('No se pudo cargar: ' + ev.target.src);
+            if (ev.target.tagName === 'SCRIPT') { var _src=String(ev.target.src||''); if (/^https?:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.128\.0\/build\/three\.min\.js(?:\?.*)?$/i.test(_src)) { try{ev.target.remove()}catch(_){} return; } banner('No se pudo cargar: ' + _src); }
             return;
         }
         banner('Error: ' + ev.message + (ev.lineno ? ' (línea ' + ev.lineno + ')' : ''));
@@ -918,9 +941,9 @@ window.SintergiaSecurityConfig = Object.freeze({
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0F2B48">
-    <link rel="manifest" href="/sintergia/manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="192x192" href="/sintergia/icon-192.png">
-    <link rel="apple-touch-icon" href="/sintergia/apple-touch-icon.png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2657,8 +2680,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script id="sintergia-backend-health-v1">
 (function(){
  'use strict';
- var cfg=window.SINTERGIA_LOVABLE&&window.SINTERGIA_LOVABLE.observability||{};
- var endpoint=cfg.healthEndpoint||'/api/public/health', fallbackEndpoint='/functions/v1/health', timer=null, busy=false, last=null;
+ var cfg=window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.observability||{};
+ var endpoint=(window.SINTERGIA_API_BASE||'https://bgjicsowspppsjzigazb.supabase.co')+'/functions/v1/health', fallbackEndpoint='/functions/v1/health', timer=null, busy=false, last=null;
  function el(id){return document.getElementById(id)}
  function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Lovable operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
  async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'omit',signal:c.signal,headers:{'X-Sintergia-Health-Check':'1'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'omit',headers:{'X-Sintergia-Health-Check':'1'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
@@ -2723,7 +2746,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
    ===================================================================== */
 (function(){
   'use strict';
-  const CFG=window.SINTERGIA_LOVABLE||{};
+  const CFG=window.SINTERGIA_BACKEND||{};
   const CHANNEL=(CFG.realtime&&CFG.realtime.channel)||'sintergia-realtime';
   const LS={
     device:'sintergia_device_id_v3',
@@ -3352,16 +3375,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   /* Interceptor transparente: si una petición POST de backend falla por red,
      se conserva para ejecutar exactamente la misma petición al volver online. */
   window.fetch=async function(input,init){
-    const originalUrl=typeof input==='string'?input:(input&&input.url)||'';
-    const url=sintergiaResolveEndpoint(originalUrl);
+    const url=typeof input==='string'?input:(input&&input.url)||'';
     const opts=init||{};
     const method=String(opts.method||(input&&input.method)||'GET').toUpperCase();
-    var requestInput=input;
-    if(url!==originalUrl){if(typeof input==='string')requestInput=url;else{try{requestInput=new Request(url,input);}catch(_){requestInput=url;}}}
-    if(method!=='POST'||!sameOriginApi(url)||excluded(url))return rawFetch(requestInput,init);
+    if(method!=='POST'||!sameOriginApi(url)||excluded(url))return rawFetch(input,init);
     let requestId='';
     try{const h=new Headers(opts.headers||(input&&input.headers)||{});requestId=h.get('X-Sintergia-Request-ID')||uuid();h.set('X-Sintergia-Request-ID',requestId);const next=Object.assign({},opts,{headers:h});
-      try{return await rawFetch(requestInput,next);}catch(e){
+      try{return await rawFetch(input,next);}catch(e){
         if(isNetworkError(e)){
           enqueueApi(url,next,'fetch-network-fallback');
           toast('📴 Sin backend: operación guardada y pendiente de sincronización.');
@@ -3423,7 +3443,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   async function fetchRemoteForConflict(){
     const endpoint='/functions/v1/realtime-snapshot?channel='+encodeURIComponent(CHANNEL);
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Accept':'application/json'});
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{credentials:'omit',cache:'no-store',headers:hdr});
+    const r=await rawFetch(endpoint,{credentials:'omit',cache:'no-store',headers:hdr});
     if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);
     const d=await r.json();
     return d.snapshot||d.state||d;
@@ -3490,7 +3510,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       },
       deviceId:DEVICE
     };
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
+    const r=await rawFetch(endpoint,{method:'POST',headers,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
     if(r.status===404||r.status===405)return {unsupported:true};
     let data=null; try{data=await r.json();}catch(_){}
     if(r.status===401||r.status===403)throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true});
@@ -3505,13 +3525,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   async function postSnapshot(item){
     const endpoint='/functions/v1/realtime-snapshot';
     const payload={channel:CHANNEL,snapshot:item.snapshot,deviceId:DEVICE,clientChangeId:item.id,clientUpdatedAt:item.snapshot&&item.snapshot.clientUpdatedAt||item.createdAt};
-    const r=await rawFetch(sintergiaResolveEndpoint(endpoint),{method:'POST',headers:{'Content-Type':'application/json','X-Sintergia-Request-ID':item.id},credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
+    const r=await rawFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Sintergia-Request-ID':item.id},credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     return true;
   }
   async function postApi(item){
     const headers=Object.assign({},item.headers,{'X-Sintergia-Request-ID':item.requestId});
-    const r=await rawFetch(sintergiaResolveEndpoint(item.url),{method:'POST',headers:headers,credentials:'omit',cache:'no-store',body:item.body});
+    const r=await rawFetch(item.url,{method:'POST',headers:headers,credentials:'omit',cache:'no-store',body:item.body});
     if(!r.ok){if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429)throw Object.assign(new Error('HTTP '+r.status),{permanent:true});throw new Error('HTTP '+r.status);}
     return true;
   }
@@ -3822,6 +3842,49 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
 #sintergia-entry-transition::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at 50% 46%,rgba(1,6,18,0) 42%,rgba(1,6,18,.6) 100%)}
 </style>
 <style id="sg-ok-visible-fix">body.sintergia-locked > #sg-ok-overlay,body.sintergia-locked > .sg-fake-ok,body.sintergia-locked > #sg-fake-ok,body.sintergia-locked > #sintergia-entry-transition.sg-transition-active{visibility:visible !important;pointer-events:auto !important}</style>
+<script id="sintergia-backend-fetch-bridge">
+/* SINTERGIA · PUENTE DE BACKEND: cualquier /functions/v1/* relativo se envía al Supabase configurado. */
+(function(){
+  'use strict';
+  if (window.__SINTERGIA_BACKEND_FETCH_BRIDGE__) return;
+  window.__SINTERGIA_BACKEND_FETCH_BRIDGE__=true;
+  var nativeFetch=window.fetch.bind(window);
+  function base(){
+    var raw=window.SINTERGIA_BACKEND_ORIGIN||window.SUPABASE_URL||'';
+    try{return new URL(String(raw),window.location.href).toString().replace(/\/$/,'');}catch(_){return '';}
+  }
+  window.sintergiaResolveEndpoint=window.sintergiaResolveEndpoint||function(raw){
+    var u=String(raw||'');
+    if(!/^\/functions\/v1\//.test(u)) return u;
+    var b=base();
+    return b?b+u:u;
+  };
+  window.fetch=function(input,init){
+    try{
+      var raw=typeof input==='string' ? input : (input&&input.url) || '';
+      var u=new URL(raw,window.location.href);
+      if(u.origin===window.location.origin && /^\/functions\/v1\//.test(u.pathname)){
+        var target=window.sintergiaResolveEndpoint(u.pathname+u.search);
+        if(target && target!==u.href){
+          if(typeof input==='string') input=target;
+          else input=new Request(target,input);
+        }
+      }
+    }catch(_){ }
+    return nativeFetch(input,init);
+  };
+})();
+</script>
+<script id="sintergia-biometric-error-helper">
+window.sgBioErrMsg=window.sgBioErrMsg||function(e){
+  var m=String(e&&e.message||e||'');
+  if(e&&e.name==='NotAllowedError') return 'Operación cancelada o no permitida por el dispositivo.';
+  if(e&&e.name==='SecurityError') return 'Biometría bloqueada por el origen. La aplicación debe abrirse mediante HTTPS y el dominio debe estar autorizado en ALLOWED_ORIGINS.';
+  if(e&&e.name==='TypeError'&&/fetch|network|load failed/i.test(m)) return 'No se pudo contactar con el servidor biométrico. Comprueba la conexión con Supabase y ALLOWED_ORIGINS.';
+  return m||'No se pudo procesar la biometría.';
+};
+</script>
+<script id="sintergia-three-local-guard">window.__SINTERGIA_THREE_REMOTE_DISABLED=true;</script>
 </head>
 <body>
 <div id="sintergia-landing" role="document">
@@ -3905,7 +3968,7 @@ function sgxTO(f,ms){return setTimeout(f,sgxQ(ms))}
 function sgxJ(c){if(c&&!c.__sgx){var s=c.stroke;c.__sgx=1;c.stroke=function(){this.lineJoin='round';this.miterLimit=2;return s.apply(this,arguments)}}return c}
 /*END128*/
 /*SGX3D*/
-var SWT=0,PSI=0,TWT=null,PWT=null,TUMB=[0,0],NRK=[0,0],SRA=[0,0],SRL=[-1,-1];function srot(k,nr,t){var dt=t-SRL[k];if(SRL[k]<0||dt<0){SRA[k]=0;dt=0}SRL[k]=t;SRA[k]+=Math.min(dt,.05)*nr*nr*4.2}
+var SWT=0,SWI=0,SWP=0,PSI=0,TWT=null,PWT=null,TUMB=[0,0],NRK=[0,0],SRA=[0,0],SRL=[-1,-1];function srot(k,nr,t){var dt=t-SRL[k];if(SRL[k]<0||dt<0){SRA[k]=0;dt=0}SRL[k]=t;SRA[k]+=Math.min(dt,.05)*nr*nr*4.2}
 function swBump(s){return Math.min(1,gs(s,G1)+gs(s,G2))}function gs(s,c){var u=Math.abs(s-c)/(SMD/2);return u>=1?0:ss(0,.5,1-u)}
 function swTab(){TWT=[0];PWT=[0];var n=1500,i,w;for(i=1;i<=n;i++){w=1-.86*swBump((i-.5)/n*T0S);TWT[i]=TWT[i-1]+w*T0S/n;PWT[i]=PWT[i-1]+(.62+.38*w)*T0S/n}}
 function swAt(f,s){if(!TWT)swTab();var a=f?PWT:TWT,x=clamp(s/T0S,0,1)*1500,i=Math.min(1499,Math.floor(x));return a[i]+(a[i+1]-a[i])*(x-i)}
@@ -4024,28 +4087,33 @@ function sgxP(c,X,Y,a,b){c.beginPath();c.moveTo(X[a],Y[a]);for(var n=a+1;n<b;n++
 
  // V3.4 hyper-realistic atom: glossy red/blue nucleon spheres (no logo), oval 3D orbits with depth bins, energy-layer wake, fast nucleus self-rotation.
  var SPH=null;
- function sphereSprite(pal){
-  var S=96,c=document.createElement('canvas');c.width=c.height=S;
-  var x=sgxJ(c.getContext('2d')),m=S/2,r=S/2-1.5,g;
+ function sphereSprite(pal,L,c){
+  var S=c?64:96,lx=L?L.x:-.68,ly=L?L.y:-.73,li=L?L.i:1,x,m,r,g,sa=Math.min(1,.35+.65*li);
+  if(!c){c=document.createElement('canvas');c.width=c.height=S}
+  x=sgxJ(c.getContext('2d'));m=S/2;r=S/2-1.5;x.clearRect(0,0,S,S);
   x.save();x.beginPath();x.arc(m,m,r,0,TAU);x.clip();
-  g=x.createRadialGradient(m-r*.34,m-r*.4,r*.03,m,m,r*1.05);
+  g=x.createRadialGradient(m+lx*r*.5,m+ly*r*.55,r*.03,m,m,r*1.05);
   g.addColorStop(0,pal[0]);g.addColorStop(.28,pal[1]);g.addColorStop(.66,pal[2]);g.addColorStop(1,pal[3]);
   x.fillStyle=g;x.fillRect(0,0,S,S);
   x.globalCompositeOperation='lighter';
-  g=x.createRadialGradient(m+r*.42,m+r*.64,0,m+r*.42,m+r*.64,r*.9);
-  g.addColorStop(0,'rgba(255,165,85,.40)');g.addColorStop(1,'rgba(255,165,85,0)');x.fillStyle=g;x.fillRect(0,0,S,S);
+  g=x.createRadialGradient(m-lx*r*.62,m-ly*r*.88,0,m-lx*r*.62,m-ly*r*.88,r*.9);
+  g.addColorStop(0,'rgba(255,165,85,'+(.4*li).toFixed(3)+')');g.addColorStop(1,'rgba(255,165,85,0)');x.fillStyle=g;x.fillRect(0,0,S,S);
   g=x.createRadialGradient(m,m,r*.68,m,m,r);
-  g.addColorStop(0,'rgba(255,200,140,0)');g.addColorStop(1,'rgba(255,200,140,.30)');x.fillStyle=g;x.fillRect(0,0,S,S);
+  g.addColorStop(0,'rgba(255,200,140,0)');g.addColorStop(1,'rgba(255,200,140,'+(.3*(.7+.3*li)).toFixed(3)+')');x.fillStyle=g;x.fillRect(0,0,S,S);
   x.globalCompositeOperation='source-over';
-  x.save();x.translate(m-r*.36,m-r*.44);x.rotate(-.65);x.scale(1,.56);
+  x.save();x.translate(m+lx*r*.53,m+ly*r*.6);x.rotate(Math.atan2(ly,lx)+1.67);x.scale(1,.56);
   g=x.createRadialGradient(0,0,0,0,0,r*.4);
-  g.addColorStop(0,'rgba(255,255,255,.92)');g.addColorStop(.35,'rgba(255,255,255,.38)');g.addColorStop(1,'rgba(255,255,255,0)');
+  g.addColorStop(0,'rgba(255,255,255,'+(.92*sa).toFixed(3)+')');g.addColorStop(.35,'rgba(255,255,255,'+(.38*sa).toFixed(3)+')');g.addColorStop(1,'rgba(255,255,255,0)');
   x.fillStyle=g;x.beginPath();x.arc(0,0,r*.4,0,TAU);x.fill();x.restore();
-  g=x.createRadialGradient(m-r*.4,m-r*.5,0,m-r*.4,m-r*.5,r*.12);
-  g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.5,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
-  x.fillStyle=g;x.beginPath();x.arc(m-r*.4,m-r*.5,r*.12,0,TAU);x.fill();
+  g=x.createRadialGradient(m+lx*r*.59,m+ly*r*.685,0,m+lx*r*.59,m+ly*r*.685,r*.12);
+  g.addColorStop(0,'rgba(255,255,255,'+sa.toFixed(3)+')');g.addColorStop(.5,'rgba(255,255,255,'+(.55*sa).toFixed(3)+')');g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g;x.beginPath();x.arc(m+lx*r*.59,m+ly*r*.685,r*.12,0,TAU);x.fill();
   x.restore();return c;
  }
+ /* V3.61 textura viva: manchas de plasma que derivan por la superficie; se repinta con el tiempo y cada nucleón la gira distinto */
+ function textureSprite(c,rgb,t){var S=64,m=S/2,x=sgxJ(c.getContext('2d')),k,a,px,py,g;x.clearRect(0,0,S,S);x.save();x.beginPath();x.arc(m,m,m-1.5,0,TAU);x.clip();x.globalCompositeOperation='lighter';
+  for(k=0;k<5;k++){a=t*(.7+.31*k)+k*2.4;px=m+m*.55*Math.cos(a)*Math.cos(t*.4+k);py=m+m*.55*Math.sin(a*1.3+k);g=x.createRadialGradient(px,py,0,px,py,m*.5);g.addColorStop(0,'rgba('+rgb+','+(.2+.1*Math.sin(t*2+k*1.7)).toFixed(3)+')');g.addColorStop(1,'rgba('+rgb+',0)');x.fillStyle=g;x.fillRect(0,0,S,S)}
+  x.restore();return c}
  function shadowSprite(){
   var S=128,c=document.createElement('canvas');c.width=c.height=S;var x=sgxJ(c.getContext('2d')),g=x.createRadialGradient(S/2,S/2,S*.2,S/2,S/2,S/2);
   g.addColorStop(0,'rgba(4,8,22,.85)');g.addColorStop(.6,'rgba(4,8,22,.35)');g.addColorStop(1,'rgba(4,8,22,0)');x.fillStyle=g;x.fillRect(0,0,S,S);return c;
@@ -4055,12 +4123,12 @@ function sgxP(c,X,Y,a,b){c.beginPath();c.moveTo(X[a],Y[a]);for(var n=a+1;n<b;n++
   g.addColorStop(0,'rgba(255,255,248,1)');g.addColorStop(.08,'rgba(255,244,214,.74)');g.addColorStop(.24,'rgba('+s+',.30)');
   g.addColorStop(.5,'rgba('+s+',.09)');g.addColorStop(.78,'rgba('+s+',.018)');g.addColorStop(1,'rgba('+s+',0)');
   x.fillStyle=g;x.fillRect(0,0,S,S);
-  h=x.createLinearGradient(0,0,S,0);h.addColorStop(0,'rgba(255,240,205,0)');h.addColorStop(.5,'rgba(255,252,238,.9)');h.addColorStop(1,'rgba(255,240,205,0)');
+  h=x.createLinearGradient(0,0,S,0);h.addColorStop(0,'rgba(255,240,205,0)');h.addColorStop(.5,'rgba(255,252,238,.45)');h.addColorStop(1,'rgba(255,240,205,0)');
   x.fillStyle=h;x.fillRect(0,m-.9,S,1.8);
-  h=x.createLinearGradient(0,0,0,S);h.addColorStop(0,'rgba(255,240,205,0)');h.addColorStop(.5,'rgba(255,252,238,.75)');h.addColorStop(1,'rgba(255,240,205,0)');
+  h=x.createLinearGradient(0,0,0,S);h.addColorStop(0,'rgba(255,240,205,0)');h.addColorStop(.5,'rgba(255,252,238,.35)');h.addColorStop(1,'rgba(255,240,205,0)');
   x.fillStyle=h;x.fillRect(m-.8,0,1.6,S);
   x.save();x.translate(m,m);x.rotate(Math.PI/4);d=x.createLinearGradient(-m*.6,0,m*.6,0);
-  d.addColorStop(0,'rgba(255,225,170,0)');d.addColorStop(.5,'rgba(255,240,205,.42)');d.addColorStop(1,'rgba(255,225,170,0)');
+  d.addColorStop(0,'rgba(255,225,170,0)');d.addColorStop(.5,'rgba(255,240,205,.2)');d.addColorStop(1,'rgba(255,225,170,0)');
   x.fillStyle=d;x.fillRect(-m*.6,-.6,m*1.2,1.2);x.rotate(Math.PI/2);x.fillRect(-m*.6,-.6,m*1.2,1.2);x.restore();
   return c;
  }
@@ -4094,7 +4162,7 @@ function initSprites(){
    /* La escala de separación también conserva la jerarquía φ: el núcleo no se
       deforma al aumentar el tamaño visual del neutrón. */
    var NUCLEON_SEPARATION=PHI_INV, NUCLEON_DENSITY=1+PHI_INV*.08;
-  var protonRadius=gold?5.55:6.05,
+  var protonRadius=5.6,
        /*
         * La diferencia física de masa es pequeña (mn/mp ≈ 1,001378).
         * Para que pueda apreciarse en una animación se usa esa relación como
@@ -4103,44 +4171,16 @@ function initSprites(){
        NUCLEON_MASS_PHYSICAL=1.0013784187,
        NUCLEON_MASS_GOLDEN=1+(NUCLEON_MASS_PHYSICAL-1)*(1+PHI_INV*8),
        neutronRadius=protonRadius*NUCLEON_MASS_GOLDEN;
-  var NS=gold?1.0:.93,cl=[],n,i,j;
-  /*
-   * V3.49 — el núcleo se representa como un conjunto 3D mezclado.
-   * En un núcleo real los nucleones no ocupan posiciones orbitales fijas: la
-   * distribución es cuántica. Para la visualización se utiliza una
-   * distribución volumétrica tipo Fibonacci/ángulo áureo, sin separar
-   * protones y neutrones en dos grupos.
-   *
-   * El tipo de nucleón se reparte mediante acumulación proporcional, de modo
-   * que los protones y neutrones quedan intercalados en todo el volumen y se
-   * conservan exactamente los recuentos solicitados.
-   */
+  var NS=1,cl=[],n,i,j;
+  /* V3.42 nucleo real (modelo de gota liquida): radio R=r0*A^(1/3) con r0=1,2 fm y nucleon de 0,85 fm; densidad uniforme, nucleones casi en contacto y protones y neutrones mezclados al azar (sin capas ni grupos). Recuentos exactos. */
+  var NP=(function(){var A=nucleonCounts.total,rn=protonRadius,Rc=rn*(1.2/.85)*Math.pow(A,1/3)-rn,P=[],a,b,it,dx,dy,dz,d,m,rr,k,sx=0,sy=0,sz=0,sd=gold?1701:4093;
+   for(a=0;a<A;a++){var u=rnd(sd+a*7.31),v=rnd(sd+a*3.17+55),w=rnd(sd+a*5.77+99),r=Rc*Math.pow(u,1/3),c=2*v-1,sn=Math.sqrt(1-c*c),t=TAU*w;P.push([r*sn*Math.cos(t),r*c,r*sn*Math.sin(t)])}
+   for(it=0;it<300;it++){for(a=0;a<A;a++)for(b=a+1;b<A;b++){dx=P[b][0]-P[a][0];dy=P[b][1]-P[a][1];dz=P[b][2]-P[a][2];d=Math.sqrt(dx*dx+dy*dy+dz*dz)||1e-4;m=2*rn*.97-d;if(m>0){m=m*.3/d;P[a][0]-=dx*m;P[a][1]-=dy*m;P[a][2]-=dz*m;P[b][0]+=dx*m;P[b][1]+=dy*m;P[b][2]+=dz*m}}
+    for(a=0;a<A;a++){P[a][0]*=.997;P[a][1]*=.997;P[a][2]*=.997;rr=Math.sqrt(P[a][0]*P[a][0]+P[a][1]*P[a][1]+P[a][2]*P[a][2]);if(rr>Rc){k=Rc/rr;P[a][0]*=k;P[a][1]*=k;P[a][2]*=k}}}
+   for(a=0;a<A;a++){sx+=P[a][0];sy+=P[a][1];sz+=P[a][2]}sx/=A;sy/=A;sz/=A;for(a=0;a<A;a++){P[a][0]-=sx;P[a][1]-=sy;P[a][2]-=sz}return P})();
   for(n=0;n<nucleonCounts.total;n++){
-   var idx=n+(gold?17:43);
-   var protonHere=Math.floor((n+1)*nucleonCounts.p/nucleonCounts.total)>Math.floor(n*nucleonCounts.p/nucleonCounts.total);
-   var isNeutron=!protonHere;
-   var u=(n+.5)/nucleonCounts.total;
-   var yy=1-2*u,rr=Math.sqrt(Math.max(0,1-yy*yy));
-   var th=n*GOLDEN_ANGLE+(gold?.31:-.47);
-   var radial=(gold?22.5:20.5)*NUCLEON_DENSITY;
-   var jitter=1+(rnd(idx)-.5)*.10;
-   var radialFrac=Math.pow((n+.5)/nucleonCounts.total,1/3);
-   var R=radial*radialFrac*Math.pow(PHI_INV,.08)*Math.pow(PHI,.035*(n%5))*jitter;
-   cl.push({
-    x:Math.cos(th)*rr*R*NS,
-    y:yy*R*NS,
-    z:Math.sin(th)*rr*R*NS,
-    r:(isNeutron?neutronRadius:protonRadius)*(1+.045*rnd(idx+90))*NS,
-    /*
-     * 0/1 = protones rojizos; 2/3 = neutrones azulados.
-     * El índice alterno aporta dos niveles de brillo sin perder la
-     * identificación de cada tipo de nucleón.
-     */
-    s:isNeutron?(2+(n%2)):((n%2)?1:0),
-    d0:R,
-    nucleon:isNeutron?'neutron':'proton',
-    massVisual:isNeutron?NUCLEON_MASS_GOLDEN:1
-   });
+   var idx=n+(gold?17:43),protonHere=Math.floor((n+1)*nucleonCounts.p/nucleonCounts.total)>Math.floor(n*nucleonCounts.p/nucleonCounts.total),isNeutron=!protonHere,q0=NP[n];
+   cl.push({id:n,x:q0[0],y:q0[1],z:q0[2],r:(isNeutron?neutronRadius:protonRadius)*(1+.02*rnd(idx+90)),s:isNeutron?(2+(n%2)):((n%2)?1:0),d0:Math.sqrt(q0[0]*q0[0]+q0[1]*q0[1]+q0[2]*q0[2]),nucleon:isNeutron?'neutron':'proton',massVisual:isNeutron?NUCLEON_MASS_GOLDEN:1});
   }
   var proj=cl.map(function(p){return{p:p,X:0,Y:0,Z:0,f:1}});
   // Copper (left, gold-position atom): 29 electrons, shells 2-8-18-1. Aluminium (right, blue-position atom): 13, shells 2-8-3.
@@ -4153,6 +4193,7 @@ function initSprites(){
   var electrons=[];
   ORB.forEach(function(o,ri){for(var ei=0;ei<o.count;ei++)electrons.push({id:electrons.length+g0*97,ri:ri,phase:ei*GOLDEN_ANGLE+o.ph,rate:o.rate*(ei%2?1:-1),X:new Float32Array(NT+1),Y:new Float32Array(NT+1),Z:new Float32Array(NT+1),F:new Float32Array(NT+1)})});
   var cyw=1,syw=0,cpt=1,spt=0,TM=0,tmp={x:0,y:0,z:0,f:1};
+  var DLx=-.57,DLy=-.61,DLz=.55,DLi=1,DLt=-1,BKt=-9,OLF=1,VT=-1,VN=0,SPD=0,FV=0,RN0=cl.reduce(function(m,p){return Math.max(m,p.d0)},1),PAL=[['#ffb996','#e9593a','#a32a20','#3c0b12'],['#ffc9a0','#f06a40','#b43620','#45100f'],['#bfe3ff','#5a9de0','#2356a6','#0a1f4c'],['#c6f0ff','#46a6dc','#1d5f9c','#08224a']],AS=PAL.map(function(pl){var c=document.createElement('canvas');c.width=c.height=64;return sphereSprite(pl,{x:-.68,y:-.73,i:1,t:0},c)}),TXC=[0,1].map(function(){var c=document.createElement('canvas');c.width=c.height=64;return c});
    var HS=[2,3,5].map(function(h){var a=new Float32Array(ST+1),t;for(t=0;t<=ST;t++)a[t]=Math.sin(h*t*TAU/ST);return a}),HC=[2,3,5].map(function(h){var a=new Float32Array(ST+1),t;for(t=0;t<=ST;t++)a[t]=Math.cos(h*t*TAU/ST);return a}),HQ=ORB.map(function(){return[0,0,0]}),HM=ORB.map(function(){return[0,0,0]}),RF=ORB.map(function(){return new Float32Array(ST+1)}),CRl=[],CPh=[];
    /* V3.17 orbitas caoticas: cada capa deforma su trazado (armonicos 2,3,5 con fase caotica) y su plano deambula sin patron (ruido del atractor de Lorenz) */
    function chaosOrb(time,energy){var oi,h,t,q,am,cq,sq,r,k=.7+.5*energy+.3*SWT,e2=.8+.7*energy;for(oi=0;oi<ORB.length;oi++){r=RF[oi];for(t=0;t<=ST;t++)r[t]=1;for(h=0;h<3;h++){q=1.9*cnz(time*(.8+.25*h)+oi*3.3+h*5.7+g0*2.1,100+h+oi*3)+h*1.3+oi;am=[.08,.05,.035][h]*k*(.55+.9*(.5+.5*cnz(time*.6+oi*2+h*3+g0,110+h)));HQ[oi][h]=q;HM[oi][h]=am;cq=Math.cos(q)*am;sq=Math.sin(q)*am;for(t=0;t<=ST;t++)r[t]+=HS[h][t]*cq+HC[h][t]*sq}
@@ -4162,51 +4203,43 @@ function initSprites(){
    var y1=y0*cp,z1=y0*sp,x2=x0*cr-y1*sr,y2=x0*sr+y1*cr,x3=x2*cyw-z1*syw,z3=x2*syw+z1*cyw,y3=y2*cpt-z3*spt,z4=y2*spt+z3*cpt,f=CAM/(CAM-z4);
    out.x=C+x3*f;out.y=C+y3*f;out.z=z4;out.f=f;return out;
   }
-  function fillLine(L){
-   var o=L.o,a=o.A*L.sc,b=a,cp=Math.cos(L.phi),sp=Math.sin(L.phi),cr=Math.cos(L.roll),sr=Math.sin(L.roll),t,x0,y0,y1,z1,x2,y2,x3,z3,y3,z4,f;
-   for(t=0;t<=ST;t++){x0=a*RF[L.oi][t]*cT[t];y0=b*RF[L.oi][t]*sT[t];y1=y0*cp;z1=y0*sp;x2=x0*cr-y1*sr;y2=x0*sr+y1*cr;x3=x2*cyw-z1*syw;z3=x2*syw+z1*cyw;y3=y2*cpt-z3*spt;z4=y2*spt+z3*cpt;f=CAM/(CAM-z4);
-    L.X[t]=C+x3*f;L.Y[t]=C+y3*f;L.Z[t]=z4}
-  }
-  function bins(L,nb){
-   var ps=new Array(nb),last=-1,s,zm,b,P;
-   for(s=0;s<ST;s++){zm=(L.Z[s]+L.Z[s+1])*.5;b=Math.floor((zm/ZR*.5+.5)*nb);b=b<0?0:b>=nb?nb-1:b;
-    P=ps[b]||(ps[b]=new Path2D());if(b!==last){P.moveTo(L.X[s],L.Y[s]);last=b}P.lineTo(L.X[s+1],L.Y[s+1])}
-   return ps;
-  }
-  function drawBins(L,from,to){
-   var b,P,d;
-   for(b=from;b<to;b++){P=L.ps[b];if(!P)continue;d=(b+.5)/L.nb;
-    if(L.main){
-     ctx.lineWidth=(5+10*d)*L.favg;ctx.strokeStyle='rgba('+gs+','+(.012+.085*d*d).toFixed(3)+')';ctx.stroke(P);
-     ctx.lineWidth=(1.7+3*d)*L.favg;ctx.strokeStyle='rgba('+gs+','+(.045+.29*d*d).toFixed(3)+')';ctx.stroke(P);
-     ctx.lineWidth=(.44+1.16*d)*L.favg;ctx.strokeStyle='rgba('+cs+','+(.12+.82*d*d).toFixed(3)+')';ctx.stroke(P);
-    }else{ctx.lineWidth=(.22+.55*d)*L.favg;ctx.strokeStyle='rgba('+gs+','+(.035+.23*d*d).toFixed(3)+')';ctx.stroke(P)}
-   }
-  }
-  function flare(x,y,R,a){if(a<=.01)return;a*=1+.7*SWT;ctx.globalAlpha=a>1?1:a;ctx.drawImage(SPH.fl[g0],x-R,y-R,2*R,2*R);ctx.globalAlpha=1}
+  function flare(x,y,R,a){if(a<=.01)return;ctx.globalAlpha=a>1?1:a;ctx.save();ctx.translate(x,y);ctx.rotate(TM*.35+x*.021-y*.017);ctx.drawImage(SPH.fl[g0],-R,-R,2*R,2*R);ctx.restore();ctx.globalAlpha=1}
   function flare2(x,y,R,a){ctx.globalAlpha=a>1?1:a;ctx.drawImage(SPH.fo[g0],x-R,y-R,2*R,2*R);ctx.globalAlpha=1}
  function electron(e,front){
-   var zd=zdim(e.Z[0]),x=e.X[0],y=e.Y[0],f=e.F[0],r=(front?2.1:1.25)*f*(1+.6*SWT+.5*NRK[g0]),fk=0,fq=.45+1.25*Math.pow(.5+.5*cnz(TM*13+e.id*1.91,3),1.4),fa=.35+.95*(.5+.5*cnz(TM*11+e.id*2.7,4));
-    flare(x,y,(front?10:5)*f*fq,(front?.48:.18)*fa*1.3*zd);if(SWT>.02)flare2(x,y,(front?34:20)*f*(.7+.3*fq),(front?.6:.3)*SWT*zd);var tw=Math.pow(Math.max(0,Math.sin(TM*(2.3+(e.id%7)*.41)+e.id*1.73)),20)*(.2+.8*NRK[g0]);if(tw>.04)flare(x,y,(front?34:18)*f*(.5+.7*tw),tw*(front?1.15:.45)*zd);
+   var zd=zdim(e.Z[0]),x=e.X[0],y=e.Y[0],f=e.F[0],r=(front?2.1:1.25)*f*(1+.16*SWT+.1*NRK[g0]),gk=1/(1+2.6*SWT*NRK[g0]),fk=0,fq=.45+1.25*Math.pow(.5+.5*cnz(TM*13+e.id*1.91,3),1.4),fa=.35+.95*(.5+.5*cnz(TM*11+e.id*2.7,4));
+    flare(x,y,(front?10:5)*f*fq*gk,(front?.48:.18)*fa*1.3*zd*gk);if(SWT>.02)flare2(x,y,(front?15:9)*f*(.7+.3*fq)*gk,(front?.3:.15)*SWT*zd*gk);var tw=Math.pow(Math.max(0,Math.sin(TM*(2.3+(e.id%7)*.41)+e.id*1.73)),20)*(.2+.8*NRK[g0]);if(tw>.04)flare(x,y,(front?20:11)*f*(.5+.7*tw)*gk,Math.min(.55,tw*(front?1.15:.45))*zd*gk);
    ctx.globalCompositeOperation='source-over';ctx.globalAlpha=(front?1:.43)*zd;
-   ctx.fillStyle='rgba(9,25,48,.85)';ctx.beginPath();ctx.arc(x+.45*f,y+.6*f,r*1.17,0,TAU);ctx.fill();
-   var g=ctx.createRadialGradient(x-r*.38,y-r*.42,.08,x,y,r*1.3);
+   ctx.fillStyle='rgba(9,25,48,'+(.6+.25*DLi).toFixed(2)+')';ctx.beginPath();ctx.arc(x-DLx*.79*f,y-DLy*.98*f,r*1.17,0,TAU);ctx.fill();
+   var g=ctx.createRadialGradient(x+DLx*r*.67,y+DLy*r*.69,.08,x,y,r*1.3);
    g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.32,'rgba('+cs+',.98)');g.addColorStop(.76,'rgba('+gs+','+(front?.87:.65)+')');g.addColorStop(1,'rgba('+gs+',0)');
    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*1.3,0,TAU);ctx.fill();
    ctx.globalAlpha=1;ctx.globalCompositeOperation='lighter';
   }
   // Each electron has a short, depth-aware trail, drawn behind or in front of the nucleus.
-  function wake(e,half){
+  /* V3.60 — HALO DE LUZ A 128 Hz: un fotograma de halo por cada 1/128 s de recorrido (7,8125 ms).
+     Cada sello se aleja del electrón, pierde intensidad (e^-PHI²·s) y se difumina (radio ×(1+PHI²·s)),
+     dejando una estela difusa detrás. Sin saltos a 60 y 120 Hz: las posiciones salen de la órbita. */
+  function halo(e,half){
+   var X=e.X,Y=e.Y,Z=e.Z,F=e.F,mk,n,k,s,m,R,a,r0,a0,gk,spr=SPH.fo[g0];
+   if(!e.ws||!e.tl)return;
+   mk=e.ws/HZ/(e.tl/NT);n=Math.min(30,Math.floor(NT/Math.max(mk,.05)));
+   gk=1/(1+2.6*SWT*NRK[g0]);r0=(half?6.8:4.4)*gk;a0=(half?.092:.036)*(1+.9*SWT*NRK[g0])*OLF;
+   for(k=1;k<=n;k++){m=Math.min(NT,Math.round(k*mk));if((Z[m]>=0)!==!!half)continue;
+    s=k/n;a=a0*zdim(Z[m])*Math.exp(-PHI2*s)*(1-s);if(a<.003)continue;
+    R=r0*F[m]*(1+PHI2*s);ctx.globalAlpha=a>1?1:a;ctx.drawImage(spr,X[m]-R,Y[m]-R,2*R,2*R)}
+   ctx.globalAlpha=1}
+  function wake(e,half){if(OLF<.01)return;
    /* V3.23: efecto de movimiento rapido, no una linea: la intensidad cae de forma continua desde el electron hasta cero en el extremo */
-   var X=e.X,Y=e.Y,Z=e.Z,F=e.F,m,k,lo,op,any,mid,a0,a1,w,g,xa,ya,xb,yb,dim=(half?1:.42)*zdim(Z[0]),KW=30;
+   var X=e.X,Y=e.Y,Z=e.Z,F=e.F,m,k,lo,op,any,mid,a0,a1,w,g,xa,ya,xb,yb,dim=(half?1:.42)*zdim(Z[0])*OLF,KW=30,TKF=1+1.1*SWT*NRK[g0];
    ctx.lineCap='round';ctx.lineJoin='round';
    for(k=NT;k>=1;k-=KW){lo=Math.max(1,k-KW+1);op=0;any=0;ctx.beginPath();
     for(m=k;m>=lo;m--){if(((Z[m]+Z[m-1])>=0)!==!!half){op=0;continue}if(!op){ctx.moveTo(X[m],Y[m]);op=1}ctx.lineTo(X[m-1],Y[m-1]);any=1}
     if(!any)continue;
-    a0=WK*dim*Math.pow(1-(lo-1)/NT,2.2);a1=WK*dim*Math.pow(1-k/NT,2.2);xa=X[lo-1];ya=Y[lo-1];xb=X[k];yb=Y[k];
+    a0=WK*TKF*dim*Math.pow(1-(lo-1)/NT,2.2);a1=WK*TKF*dim*Math.pow(1-k/NT,2.2);xa=X[lo-1];ya=Y[lo-1];xb=X[k];yb=Y[k];
     if(Math.abs(xa-xb)+Math.abs(ya-yb)>.05){g=ctx.createLinearGradient(xa,ya,xb,yb);g.addColorStop(0,'rgba('+gs+','+a0.toFixed(3)+')');g.addColorStop(1,'rgba('+gs+','+a1.toFixed(3)+')');ctx.strokeStyle=g}
     else ctx.strokeStyle='rgba('+gs+','+((a0+a1)/2).toFixed(3)+')';
     mid=(k+lo)>>1;w=1-mid/NT;ctx.lineWidth=(.35+2*w)*F[mid-1];ctx.stroke()}
+   halo(e,half)
   }
   var LX2=new Float32Array(193),LY2=new Float32Array(193);
   function lumen(far,time,energy){var tk=Math.floor(time*HZ*.5),NL=far?3:2,l,i,h,a,r,R,f,al,ph,am,s=1+.9*SWT;
@@ -4219,13 +4252,22 @@ function initSprites(){
    ctx.imageSmoothingEnabled=true;if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';ctx.clearRect(0,0,D,D);
    TM=time;var yaw=(gold?-.25:.28)+TUMB[g0]+SRA[g0]+Math.sin(time*.31)*.22+SWT*.8*Math.sin(PSI*.6+g0*1.9),pitch=.12+Math.sin(time*.27)*.17+SWT*.3*Math.sin(PSI*.5+g0*1.3),spin=time*3.7,L,ri,m,q;
    cyw=Math.cos(yaw);syw=Math.sin(yaw);cpt=Math.cos(pitch);spt=Math.sin(pitch);chaosOrb(time,energy);
-   for(j=0;j<lines.length;j++){L=lines[j];L.roll=L.o.roll+(gold?.42:0)+PSI*L.o.pr+TUMB[g0]*(.7+.12*L.oi)+CRl[L.oi];L.phi=L.o.phi+L.dp+PSI*(L.oi%2?-.37:.41)+CPh[L.oi];L.nb=L.main?NB:2;L.favg=CAM/(CAM-L.o.A*.16);fillLine(L);L.ps=bins(L,L.nb)}
+   for(j=0;j<lines.length;j++){L=lines[j];L.roll=L.o.roll+(gold?.42:0)+PSI*L.o.pr+TUMB[g0]*(.7+.12*L.oi)+CRl[L.oi];L.phi=L.o.phi+L.dp+PSI*(L.oi%2?-.37:.41)+CPh[L.oi];}
    // Sample every electron independently at high spatial resolution, including its wake.
-   for(ri=0;ri<electrons.length;ri++){var e=electrons[ri];L=lines[e.ri*4];var e0=spin*e.rate+e.phase+(gold?1.1:0)+.8*cnz(time*1.1+e.id*1.7,83),tl=TRL*(1+.9*SWT)*clamp(.75+.55*cnz(time*3.1+e.id*.9,31)+.35*cz(Math.floor(time*30),e.id*.37),.3,1.7),wa=(1-.6*SWT)*(energy*5.5+1.3)*(.4+1.4*(.5+.5*cnz(time*5.3+e.id*1.1,33)));
-     var vx=VIB*(.62*Math.sin(time*97+ri*3.1)+.38*Math.sin(time*163+ri*1.7+1.3)),vy=VIB*(.62*Math.cos(time*89+ri*2.3)+.38*Math.cos(time*149+ri*2.9+.7));
+   for(ri=0;ri<electrons.length;ri++){var e=electrons[ri];L=lines[e.ri*4];var e0=(spin+SWI*2.2)*e.rate+e.phase+(gold?1.1:0)+.8*cnz(time*1.1+e.id*1.7,83),tl=TRL*(1+.9*SWT)*clamp(.75+.55*cnz(time*3.1+e.id*.9,31)+.35*cz(Math.floor(time*30),e.id*.37),.3,1.7),wa=(1-.6*SWT)*(energy*5.5+1.3)*(.4+1.4*(.5+.5*cnz(time*5.3+e.id*1.1,33)));
+     e.tl=tl;e.ws=Math.abs(e.rate)*(3.7+2.2*SWT);var vx=VIB*(.62*Math.sin(time*97+ri*3.1)+.38*Math.sin(time*163+ri*1.7+1.3)),vy=VIB*(.62*Math.cos(time*89+ri*2.3)+.38*Math.cos(time*149+ri*2.9+.7));
      for(m=0;m<=NT;m++){pt(L.o,1,L.roll,L.phi,e0-m*tl/NT*(e.rate<0?-1:1),tmp);e.X[m]=tmp.x+vx*(1-m/NT);e.Y[m]=tmp.y+vy*(1-m/NT);e.Z[m]=tmp.z;e.F[m]=tmp.f}}
+   /* V3.62 LUZ ORBITAL = efecto visual de los electrones en rápido movimiento. Ya no hay luz orbital fija: la dirección base es la del sprite original y solo se desvía con la luz de los electrones en proporción a su velocidad real en pantalla (SPD); en slow motion (SWT) se apaga por completo y vuelve la luz base. */
+   var lx=0,ly=0,lz=0,li=0,dd,w,Lpn=performance.now(),kk=(DLt<0||time<DLt)?1:1-Math.exp(-(time-DLt)*9),Lsm=clamp(SWT/.6,0,1),Ltx,Lty,Ltz;
+   SPD+=(((VT<0||time<VT||Lpn-VN>200||Lpn<=VN)?SPD:Math.abs(time-VT)/((Lpn-VN)/1000))-SPD)*.25;VT=time;VN=Lpn;DLt=time;
+   OLF=1-Lsm*Lsm*(3-2*Lsm);FV=OLF*clamp((SPD-1)/(4-1),0,1);
+   for(ri=0;ri<electrons.length;ri++){var e=electrons[ri],ex=e.X[0]-C,ey=e.Y[0]-C,ez=e.Z[0];dd=Math.sqrt(ex*ex+ey*ey+ez*ez)||1;w=(.5+.9*(.5+.5*cnz(time*11+e.id*2.7,4)))/(1+dd*dd/3600);lx+=ex/dd*w;ly+=ey/dd*w;lz+=ez/dd*w;li+=w}
+   dd=li||1;Ltx=-.57+FV*1.3*lx/dd;Lty=-.61+FV*1.3*ly/dd;Ltz=.55+FV*1.3*lz/dd;dd=Math.sqrt(Ltx*Ltx+Lty*Lty+Ltz*Ltz)||1;
+   DLx+=(Ltx/dd-DLx)*kk;DLy+=(Lty/dd-DLy)*kk;DLz+=(Ltz/dd-DLz)*kk;DLi+=(clamp(1+FV*(li/14-.35),.6,1.5)-DLi)*kk;/*DLEND*/
+   if(time-BKt>.033||time<BKt){BKt=time;for(j=0;j<4;j++)sphereSprite(PAL[j],{x:DLx*1.2,y:DLy*1.2,i:DLi,t:time},AS[j]);textureSprite(TXC[0],'255,196,140',time);textureSprite(TXC[1],'150,205,255',time*1.13+3)}
    ctx.globalCompositeOperation='lighter';
    /* V3.23: sin cascara de energia, sin halo, sin membranas ni railes de orbita: lo unico que rodea a cada atomo son sus electrones */
+   
    // BACK pass: far halves of the rails, far strands, far electrons
    for(ri=0;ri<electrons.length;ri++){var e=electrons[ri];wake(e,0);if(e.Z[0]<0)electron(e,false)}
    // Nucleus: rotate in 3D (fast self-rotation), sort by depth, contact shadow + baked glossy sprite + occlusion tint.
@@ -4242,12 +4284,13 @@ function initSprites(){
      * perceptible incluso durante la rotación rápida del núcleo.
      */
     var massGlow=pp.massVisual||1;
-    ctx.globalAlpha=(.4+.45*(1-d))*(pp.nucleon==='neutron'?1.035:1);
-    ctx.drawImage(SPH.sh,q.X-rad*1.4*massGlow,q.Y-rad*1.4*massGlow,rad*2.8*massGlow,rad*2.8*massGlow);
-    ctx.globalAlpha=1;ctx.drawImage(SPH.s[pp.s],q.X-rad*1.03*massGlow,q.Y-rad*1.03*massGlow,rad*2.06*massGlow,rad*2.06*massGlow);
-    if(oc>.02){ctx.fillStyle='rgba(6,12,32,'+oc.toFixed(3)+')';ctx.beginPath();ctx.arc(q.X,q.Y,rad*.99,0,TAU);ctx.fill()}}
+    var nl=clamp(.5+.5*(((q.X-C)*DLx+(q.Y-C)*DLy)/q.f+q.Z*DLz)/RN0,0,1),tg=pp.nucleon==='neutron'?1:0,mg=rad*1.03*massGlow;ctx.globalAlpha=(.4+.45*(1-d))*(tg?1.035:1)*(.7+.5*DLi*(1-.4*nl));
+    ctx.drawImage(SPH.sh,q.X-rad*1.4*massGlow-DLx*rad*.42,q.Y-rad*1.4*massGlow-DLy*rad*.42,rad*2.8*massGlow,rad*2.8*massGlow);
+    ctx.globalAlpha=1;ctx.drawImage(AS[pp.s],q.X-mg,q.Y-mg,2*mg,2*mg);ctx.save();ctx.translate(q.X,q.Y);ctx.rotate(time*(.5+.8*((pp.id*.618)%1))+pp.id*2.399);ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.55*(.35+.65*nl);ctx.drawImage(TXC[tg],-mg,-mg,2*mg,2*mg);ctx.restore();
+    oc=clamp(oc+(.5-nl)*.5*DLi,0,.85);if(oc>.02){ctx.fillStyle='rgba(6,12,32,'+oc.toFixed(3)+')';ctx.beginPath();ctx.arc(q.X,q.Y,rad*.99,0,TAU);ctx.fill()}}
    // FRONT pass: near halves of the rails, near strands, near electrons with comet trail + lens flares
    ctx.globalCompositeOperation='lighter';
+   
    for(ri=0;ri<electrons.length;ri++){var e=electrons[ri];wake(e,1);
     if(e.Z[0]>=0)electron(e,true)}
    ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
@@ -4289,212 +4332,95 @@ function collisionRadius(base,p){var pc=TACC/T0S;if(p<=pc)return base;var q=(p-p
        recupera progresivamente al despegar, manteniendo volumen aproximado.
      - La escala global cambia con la profundidad para reforzar el efecto 3D.
      - Las muestras densas (128 Hz) dejan que WAAPI interpole sin saltos. */
-  function sgxLetterFrames(key,dx,dy,scale,turn,bh,FN){
-      var PI=Math.PI,clamp=function(v,a,b){return v<a?a:v>b?b:v;};
-      var smooth=function(v){v=clamp(v,0,1);return v*v*(3-2*v);};
-
-      /*
-       * V3.30:
-       * IMPORTANTE: los frames son RELATIVOS a la posición absoluta
-       * que fly() asigna a la letra. dx/dy son el desplazamiento total
-       * hasta el destino. Nunca se sustituye esa posición por coordenadas
-       * de viewport dentro del transform.
-       */
-      var bounceCount=key==='s'?6:7;
-      var flightMs=2480;
-      var pre=.13;
-      var frames=Math.max(1200,FN||0);
-      var out=[];
-      var direction=key==='s'?-1:1;
-      var baseHeight=Math.max(70,Math.min(125,bh*.72));
-      var lateral=direction*Math.min(24,Math.max(8,bh*.018));
-
-      for(var i=0;i<=frames;i++){
-        var p=i/frames;
-        var x,y,r,sx,sy,z;
-
-        if(p<pre){
-          /* Primera caída: sale de la posición original. */
-          var q=smooth(p/pre);
-          x=lateral*.08*q;
-          y=-baseHeight*q;
-          r=turn*.08*q;
-          var st=1+.12*Math.sin(Math.PI*q);
-          sy=st;
-          sx=1/Math.sqrt(st);
-          z=1+.025*Math.sin(Math.PI*q);
-        }else{
-          var q=(p-pre)/(1-pre);
-
-          /*
-           * Último tramo: la letra debe terminar EXACTAMENTE en dx/dy.
-           * La curva se construye alrededor de una línea base que avanza
-           * continuamente hacia el objetivo.
-           */
-          var progress=q;
-          var baseX=dx*progress;
-          var baseY=dy*progress;
-
-          var seg=q*bounceCount;
-          var j=Math.min(bounceCount-1,Math.floor(seg));
-          var u=seg-j;
-
-          /* Energía decreciente. */
-          var energy=Math.pow(.53,j);
-          var arc=4*u*(1-u);
-
-          /* Rebote perpendicular a la trayectoria, decreciente. */
-          var bounce=-baseHeight*.52*energy*arc;
-          var side=lateral*(1-j/bounceCount)*Math.sin(Math.PI*u);
-
-          x=baseX+side;
-          y=baseY+bounce;
-
-          var airborne=Math.sin(Math.PI*u);
-          var impact=Math.exp(-Math.pow(u/.08,2));
-          var release=Math.exp(-Math.pow((1-u)/.09,2));
-
-          /* Squash/stretch moderado y siempre continuo. */
-          var stretch=(.10+.025*energy)*airborne;
-          var squash=(.085+.025*energy)*impact+
-                     (.035+.012*energy)*release;
-          sy=clamp(1+stretch-squash,.86,1.10);
-          sx=1/Math.sqrt(sy);
-
-          /* Rotación amortiguada. */
-          r=turn+direction*(8+8*energy)*airborne*(1-.08*j);
-
-          /* Profundidad muy leve. */
-          z=1+.035*energy*airborne-.008*energy*impact;
-        }
-
-        out.push({
-          offset:p*flightMs,
-          transform:
-            'translate3d('+x.toFixed(3)+'px,'+
-            y.toFixed(3)+'px,'+
-            ((z-1)*30).toFixed(3)+'px) '+
-            'rotateZ('+r.toFixed(3)+'deg) '+
-            'scale3d('+sx.toFixed(5)+','+
-            sy.toFixed(5)+','+z.toFixed(5)+')',
-          opacity:1
-        });
-      }
-
-      /* Forzar el último frame al destino exacto para evitar error acumulado. */
-      out[out.length-1].offset=flightMs;
-      out[out.length-1].transform=
-        'translate3d('+dx.toFixed(3)+'px,'+
-        dy.toFixed(3)+'px,0px) rotateZ('+turn.toFixed(3)+'deg) scale3d(1,1,1)';
-      return out;
+  /* V3.60 — FÍSICA REAL DE CAÍDA, REBOTE Y GIRO EN PROPORCIÓN ÁUREA.
+     Modelo balístico analítico (g constante) evaluado en el instante exacto de cada
+     fotograma del monitor: 60, 120 o 144 Hz reciben movimiento continuo, sin muestreo
+     intermedio ni interpolación lineal.
+     - Alturas de rebote: razón 1/PHI (restitución e = PHI^-1/2).
+     - Giro: velocidad angular constante en el aire y pérdida 1/PHI en cada impacto;
+       S invierte el sentido en los contactos 3.º y 5.º, E en el 4.º (como antes).
+     - Squash & stretch: estira según la velocidad, comprime en el contacto (89 ms,
+       Fibonacci, decreciente) con compresión máxima 1/PHI. */
+  function sgxLetterPhysics(key,dx,dy,ah,tsx,tsy,duration){
+   var N=key==='s'?5:4,E=Math.sqrt(PHI_INV),L=Math.max(dy,24),hp=L*Math.pow(PHI_INV,3),
+       v0=Math.sqrt(2*hp),vi=Math.sqrt(2*(hp+L)),tail=duration*Math.pow(PHI_INV,5),
+       dir0=key==='s'?-1:1,flip=key==='s'?{3:1,5:1}:{4:1},THETA=key==='s'?-1800:1800,
+       T=[v0+vi],C=[],sgn=[],om=[],seg=[],k,sumT=0,sumC=0,sigma,dsum=0,th,t,d=dir0,w0,unitTheta=0,cu,tot=0;
+   for(k=1;k<=N;k++)T[k]=2*vi*Math.pow(E,k);
+   for(k=0;k<=N;k++){C[k]=89*Math.pow(E,k);sumC+=C[k]}
+   for(k=0;k<=N;k++)sumT+=T[k];
+   sigma=Math.max(.2,duration-tail-sumC)/1000/sumT;               /* s por unidad de tiempo con g=1 */
+   for(k=0;k<=N;k++){if(flip[k])d=-d;sgn[k]=d;om[k]=d*Math.pow(PHI_INV,k)}
+   om[N+1]=0;
+   for(k=0;k<=N;k++){cu=C[k]/1000/sigma;unitTheta+=om[k]*T[k]+.5*(om[k]+om[k+1])*cu}
+   w0=THETA/unitTheta;
+   for(k=0;k<=N;k++){om[k]*=w0}om[N+1]=0;
+   for(k=0;k<=N;k++)dsum+=Math.pow(PHI_INV,k)*T[k];
+   /* línea de tiempo: vuelo k, contacto k */
+   t=0;th=0;var xk=0;
+   for(k=0;k<=N;k++){
+    var fl=T[k]*sigma*1000;
+    seg.push({a:t,b:t+fl,f:1,k:k,x0:xk,th0:th});
+    xk+=Math.pow(PHI_INV,k)*T[k];th+=om[k]*T[k];t+=fl;
+    cu=C[k]/1000/sigma;
+    seg.push({a:t,b:t+C[k],f:0,k:k,x0:xk,th0:th,cu:cu});
+    th+=om[k]*cu+.5*(om[k+1]-om[k])*cu;t+=C[k];
+   }
+   var tEnd=t,vmax=vi,KS=Math.pow(PHI_INV,3),S0=1-PHI_INV;
+   function smooth(v){v=v<0?0:v>1?1:v;return v*v*(3-2*v)}
+   function wid(h){return h>=1?Math.pow(h,-.85):1/Math.sqrt(h)}
+   function stretchOf(v){return KS*Math.min(1,Math.abs(v)/vmax)}
+   function squashOf(k){return S0*Math.pow(Math.pow(E,k),.8)}
+   function at(ms){
+    var i,s,u,k2,x,y,r,sy,sx,sp,lx,ly,sz,tt,w,Sq,so,sin,out;
+    if(ms>=duration)return{x:dx,y:dy,r:THETA,sx:1,sy:1,lx:tsx,ly:tsy,sh:0};
+    if(ms<=0)ms=0;
+    if(ms<tEnd){
+     for(i=0;i<seg.length-1&&ms>=seg[i].b;i++);
+     s=seg[i];k2=s.k;tt=(ms-s.a);
+     if(s.f){
+      u=tt/1000/sigma;
+      x=dx*(s.x0+Math.pow(PHI_INV,k2)*u)/dsum;
+      if(k2===0){y=-v0*u+.5*u*u+(dy-L);sp=u-v0}else{var vk=vi*Math.pow(E,k2);y=L-(vk*u-.5*u*u)+(dy-L);sp=u-vk}
+      r=s.th0+om[k2]*u;
+      sy=1+stretchOf(sp)*(k2===0?smooth(tt/(89*PHI_INV)):1);so=0;
+     }else{
+      w=tt/C[k2];u=w*s.cu;
+      x=dx*(s.x0)/dsum;y=dy;
+      r=s.th0+om[k2]*u+.5*(om[k2+1]-om[k2])*u*u/s.cu;
+      var sIn=stretchOf(vi*Math.pow(E,k2)),sOut=k2<N?stretchOf(vi*Math.pow(E,k2+1)):0;
+      sy=1+sIn+(sOut-sIn)*smooth(w)-(squashOf(k2)+.5*(sIn+sOut))*Math.sin(Math.PI*w);
+      sy=Math.max(sy,.5)}
+    }else{
+     w=(ms-tEnd)/(duration-tEnd);x=dx;y=dy;r=THETA;
+     sy=1-.5*squashOf(N)*Math.exp(-PHI*PHI*w)*Math.sin(TAU*PHI*w)
     }
+    sy=sy<.5?.5:sy>1.45?1.45:sy;sx=wid(sy);
+    sz=smooth(Math.min(1,ms/tEnd));lx=1+(tsx-1)*sz;ly=1+(tsy-1)*sz;
+    return{x:x,y:y,r:r,sx:sx,sy:sy,lx:lx,ly:ly,sh:.4*ah*ly*Math.max(0,1-sy)}
+   }
+   return{at:at,w0:w0,sigma:sigma,flightEnd:tEnd,N:N,L:L}
+  }
   function fly(key,delay,turn,timers,animations,onSettled){
    var source=document.getElementById('sgx-source-'+key),target=document.getElementById('sgx-target-'+key),letter=document.getElementById('sgx-fly-'+key);
    if(!source||!target||!letter){if(onSettled)onSettled(key);return}
    timers.push(sgxTO(function(){
     var a=center(source),b=center(target);if(!a.h||!b.h){if(onSettled)onSettled(key);return}
-    var dx=b.x-a.x,dy=b.y-a.y,targetScaleX=clamp(b.w/a.w,.35,2.4),targetScaleY=clamp(b.h/a.h,.35,2.4);
-    /* V3.37: caída inicial con gravedad y rebotes balísticos. La subida
-       pierde velocidad hasta el ápice; la bajada acelera y cada impacto
-       devuelve menos energía. S y E terminan juntas y S conserva un rebote. */
-    var duration=key==='s'?4200:4060,sampleHz=LETTER_HZ,sampleCount=Math.ceil(duration*sampleHz/1000)+1;
-    var heights=key==='s'?[1,.55,.27,.12,.045]:[1,.52,.24,.075],bounceCount=heights.length;
-    var dropEnd=.14,flightEnd=.93,dropShare=.115,riseRatio=key==='s'?.425:.41,direction=key==='s'?-1:1;
-    var phase=key==='s'?.37:1.11,baseHeight=clamp(Math.max(a.h,b.h)*PHI,72,138),lateral=direction*clamp(Math.abs(dx)*PHI_INV*.078,7,20);
-    var cumulative=[0],sum=0,acc=0,i;
-    /* Con gravedad constante, el tiempo de vuelo es proporcional a sqrt(altura).
-       Un mínimo corto mantiene legibles los últimos contactos sin alargarlos. */
-    for(i=0;i<bounceCount;i++)sum+=Math.max(.16,Math.sqrt(heights[i]));
-    for(i=0;i<bounceCount;i++){acc+=Math.max(.16,Math.sqrt(heights[i]))/sum;cumulative.push(acc)}
-
-    /* V3.41: giro tipo spinner provocado por el impacto. El ángulo se integra
-       por tramos para que nunca haya saltos. Cada contacto reduce la energía;
-       además, durante cada subida la velocidad angular cae progresivamente.
-       En S, los contactos que inician el antepenúltimo (j=2) y el último
-       rebote (j=4) invierten el sentido. E conserva siempre su sentido. */
-    var spinDirection=key==='s'?-1:1;
-    var dropSpin=key==='s'?1260:1180;
-    var spinTurns=key==='s'?[920,610,220,100,40]:[850,500,255,125];
-    var spinSigns=new Array(bounceCount),spinStarts=new Array(bounceCount),spinCursor=spinDirection*dropSpin;
-    for(i=0;i<bounceCount;i++){
-     if((key==='s'&&(i===2||i===4))||(key==='e'&&i===3))spinDirection*=-1;
-     spinSigns[i]=spinDirection;spinStarts[i]=spinCursor;
-     spinCursor+=spinSigns[i]*spinTurns[i];
-    }
-    /* El asentamiento busca la vuelta completa equivalente más cercana: así
-       acaba con la orientación exacta sin deshacer de golpe el giro acumulado. */
-    var finalSpin=turn+360*Math.round((spinCursor-turn)/360);
-    function smooth(v){v=clamp(v,0,1);return v*v*(3-2*v)}
-    function spinEase(v){
-     v=clamp(v,0,1);
-     /* Mucha velocidad al despegar; pérdida continua al subir y antes del golpe. */
-     return (1-Math.exp(-3.4*v))/(1-Math.exp(-3.4));
-    }
-    function stateAt(p){
-     var x=0,y=0,r=0,sx=1,sy=1,z=1,size,impact=0;
-     if(p<dropEnd){
-      /* La primera traslación vertical usa q²: parte sin golpe artificial y
-         gana velocidad de forma continua hasta el primer contacto. */
-      var q=clamp(p/dropEnd,0,1),fall=q*q;
-      x=dx*dropShare*smooth(q);y=dy*dropShare*fall;
-      /* El rayo entrega el impulso máximo al principio y el aire lo amortigua. */
-      r=spinDirection*dropSpin*spinEase(q);
-      var contact=smooth(clamp((q-.82)/.18,0,1));
-      sy=1+(.035+.105*fall)*(1-contact)-.16*contact;
-      sx=1/Math.sqrt(sy);z=1+.012*fall*(1-contact)-.007*contact;
-     }else if(p<flightEnd){
-      var q=clamp((p-dropEnd)/(flightEnd-dropEnd),0,1),j=0;
-      while(j<bounceCount-1&&q>=cumulative[j+1])j++;
-      var span=Math.max(.000001,cumulative[j+1]-cumulative[j]),u=clamp((q-cumulative[j])/span,0,1);
-      var local=(q-cumulative[j])/span,energy=heights[j],height=baseHeight*energy;
-      var baseProgress=dropShare+(1-dropShare)*q;
-      x=dx*baseProgress;y=dy*baseProgress;
-      r=spinStarts[j]+spinSigns[j]*spinTurns[j]*spinEase(u);
-      var arc,verticalSpeed;
-      if(u<riseRatio){
-       /* Impulso rápido y subida que se frena suavemente hasta velocidad cero. */
-       var up=u/riseRatio;
-       arc=2*up-up*up;verticalSpeed=1-up;
-      }else{
-       /* Bajada más larga: parte del reposo y acelera hasta el impacto. */
-       var down=(u-riseRatio)/(1-riseRatio);
-       arc=1-down*down;verticalSpeed=down;
-      }
-      y-=height*arc;
-      var air=Math.sin(Math.PI*u),impactIn=Math.exp(-Math.pow(u/.043,2)),impactOut=Math.exp(-Math.pow((1-u)/.043,2));
-      impact=Math.max(impactIn,impactOut);
-      var sideEnergy=Math.sqrt(energy),micro=Math.sin((2.15+phase)*Math.PI*u+phase)*air*energy;
-      x+=lateral*sideEnergy*air+direction*micro*1.5;
-      /* La rotación ya está integrada arriba: no sumar oscilaciones que
-         puedan falsear las inversiones de sentido en los impactos de S. */
-      /* Más estiramiento durante la caída rápida y compresión breve al tocar. */
-      var incomingEnergy=j>0?heights[j-1]:energy;
-      var stretch=(.035+.095*verticalSpeed)*sideEnergy*air;
-      var squash=(.105+.055*incomingEnergy)*impactIn+(.105+.055*energy)*impactOut;
-      sy=clamp(1+stretch-squash,.82,1.14);sx=1/Math.sqrt(sy);
-      z=1+.027*energy*air-.007*(incomingEnergy*impactIn+energy*impactOut);
-     }else{
-      /* El último impacto conserva su posición; la compresión se disipa sin saltar. */
-      var q=smooth((p-flightEnd)/(1-flightEnd)),lastEnergy=heights[bounceCount-1];
-      x=dx;y=dy;r=spinCursor+(finalSpin-spinCursor)*q;sy=1-(.105+.055*lastEnergy)*(1-q);
-      sx=1/Math.sqrt(sy);z=1-.007*lastEnergy*(1-q);
-     }
-     var sizeProgress=smooth(Math.min(1,p/flightEnd));
-     sx*=1+(targetScaleX-1)*sizeProgress;sy*=1+(targetScaleY-1)*sizeProgress;
-     return{x:x,y:y,r:r,sx:sx,sy:sy,z:z}
-    }
-    var samples=new Array(sampleCount);
-    for(i=0;i<sampleCount;i++){var p=i/(sampleCount-1),st=stateAt(p);samples[i]={t:p*duration,x:st.x,y:st.y,r:st.r,sx:st.sx,sy:st.sy,z:st.z}}
-    samples[sampleCount-1]={t:duration,x:dx,y:dy,r:finalSpin,sx:targetScaleX,sy:targetScaleY,z:1};
-    letter.style.left=(a.x-a.w/2)+'px';letter.style.top=(a.y-a.h/2)+'px';letter.style.width=a.w+'px';letter.style.height=a.h+'px';letter.style.lineHeight=a.h+'px';letter.style.fontSize=getComputedStyle(source).fontSize;letter.style.transformOrigin='50% 50%';letter.style.visibility='visible';letter.style.opacity='1';letter.style.transform='translate3d(0,0,0) rotateZ(0deg) scale3d(1,1,1)';source.style.visibility='hidden';
-    var startTime=null,stopped=false,rafHandle=0;
+    var dx=b.x-a.x,dy=b.y-a.y,tsx=clamp(b.w/a.w,.35,2.4),tsy=clamp(b.h/a.h,.35,2.4),
+        duration=key==='s'?4200:4060,phys=sgxLetterPhysics(key,dx,dy,a.h,tsx,tsy,duration);
+    letter.style.left=(a.x-a.w/2)+'px';letter.style.top=(a.y-a.h/2)+'px';letter.style.width=a.w+'px';letter.style.height=a.h+'px';letter.style.lineHeight=a.h+'px';letter.style.fontSize=getComputedStyle(source).fontSize;letter.style.transformOrigin='50% 50%';letter.style.textShadow='';letter.style.color='';letter.style.visibility='visible';letter.style.opacity='1';letter.style.transform='translate3d(0,0,0) rotate(0deg) scale(1,1)';source.style.visibility='hidden';
+    var startTime=null,stopped=false,rafHandle=0,lp={x:0,y:0,t:0};
     function render(now){
      if(stopped)return;if(startTime===null)startTime=now;
-     var elapsed=Math.max(0,now-startTime),p=Math.min(1,elapsed/duration),pos=p*(sampleCount-1),i0=Math.min(sampleCount-2,Math.floor(pos)),f=pos-i0,A=samples[i0],B=samples[i0+1];
-     var x=A.x+(B.x-A.x)*f,y=A.y+(B.y-A.y)*f,r=A.r+(B.r-A.r)*f,sx=A.sx+(B.sx-A.sx)*f,sy=A.sy+(B.sy-A.sy)*f,z=A.z+(B.z-A.z)*f;
-     letter.style.transform='translate3d('+x.toFixed(4)+'px,'+y.toFixed(4)+'px,'+((z-1)*30).toFixed(4)+'px) rotateZ('+r.toFixed(4)+'deg) scale3d('+sx.toFixed(5)+','+sy.toFixed(5)+','+z.toFixed(5)+')';
-     if(p<1){rafHandle=requestAnimationFrame(render);return}
-     letter.style.transform='translate3d('+dx.toFixed(4)+'px,'+dy.toFixed(4)+'px,0) rotateZ('+finalSpin.toFixed(4)+'deg) scale3d('+targetScaleX.toFixed(5)+','+targetScaleY.toFixed(5)+',1)';
+     var elapsed=Math.max(0,now-startTime),st=phys.at(elapsed);
+     /* evaluación analítica en el instante real del fotograma: fluida a 60/120/144 Hz */
+     letter.style.transform='translate3d('+st.x.toFixed(3)+'px,'+(st.y+st.sh).toFixed(3)+'px,0) scale('+st.sx.toFixed(5)+','+st.sy.toFixed(5)+') rotate('+st.r.toFixed(3)+'deg) scale('+st.lx.toFixed(5)+','+st.ly.toFixed(5)+')';
+     /* V3.61: luz y sombra dinámicas de la letra (la sombra se contragira con la letra para que la luz sea fija en pantalla) */
+     var dtp=lp.t?Math.max(1,now-lp.t):16,sp=Math.min(1,Math.hypot(st.x-lp.x,st.y-lp.y)/dtp/1.3),ra=st.r*Math.PI/180,ca=Math.cos(ra),sa=Math.sin(ra),la=elapsed*.0011+(key==='s'?0:1.7),lx=-.68+.25*Math.sin(la),ly=-.73+.2*Math.cos(la*1.3),ox=-lx*(3+9*sp),oy=-ly*(3+9*sp),gl=Math.pow(.5+.5*Math.cos(ra-Math.atan2(ly,lx)),3);lp.x=st.x;lp.y=st.y;lp.t=now;
+     letter.style.textShadow=(ox*ca+oy*sa).toFixed(2)+'px '+(oy*ca-ox*sa).toFixed(2)+'px '+(5+16*sp).toFixed(1)+'px rgba(0,0,0,'+(.3+.3*sp).toFixed(2)+'),0 0 '+(6+22*sp*gl).toFixed(1)+'px rgba(244,200,120,'+(.15+.5*gl).toFixed(2)+')';
+     letter.style.color='rgb('+Math.round(224+25*gl)+','+Math.round(155+70*gl)+','+Math.round(61+130*gl)+')';
+     if(elapsed<duration){rafHandle=requestAnimationFrame(render);return}
+     letter.style.transform='translate3d('+dx.toFixed(3)+'px,'+dy.toFixed(3)+'px,0) rotate('+st.r.toFixed(3)+'deg) scale('+tsx.toFixed(5)+','+tsy.toFixed(5)+')';
      target.style.visibility='visible';target.style.opacity='1';letter.style.visibility='hidden';letter.style.opacity='0';stopped=true;
      requestAnimationFrame(function(){requestAnimationFrame(function(){requestAnimationFrame(function(){if(onSettled)onSettled(key)})})});
     }
@@ -4567,6 +4493,12 @@ function play(){
          fill:'forwards'
        });
        animations.push(a);
+       /* V3.61: luz del impacto (resplandor + sombra) que sigue la energía de cada rebote */
+       var gl=[],gq,ga,gb,gp,ge,gf,gk=64,qq;
+       for(gq=0;gq<=gk;gq++){qq=gq/gk;ga=0;while(ga<impacts.length-2&&qq>impacts[ga+1])ga++;gb=ga+1;gp=(qq-impacts[ga])/(impacts[gb]-impacts[ga]);ge=energy[ga]+(energy[gb]-energy[ga])*gp;gf=ge*Math.pow(1-gp,2)*(.6+.4*Math.abs(Math.sin(qq*97)));
+        gl.push({offset:qq,textShadow:'0 '+(2*ge).toFixed(1)+'px '+(8*ge+30*gf).toFixed(1)+'px rgba(224,155,61,'+(.55*ge*(.4+gf)).toFixed(3)+'),0 0 '+(4+18*gf).toFixed(1)+'px rgba(244,247,251,'+(.8*gf).toFixed(3)+')'})}
+       gl[gk].textShadow='0 0px 0px rgba(224,155,61,0),0 0 0px rgba(244,247,251,0)';
+       animations.push(sgxA(target,gl,{duration:1180,easing:'linear',fill:'forwards'}));
        /* V3.50: eliminado el tambaleo final de la E. La deformación de escala
           queda integrada en cada rebote y desaparece progresivamente hasta el
           asentamiento, sin una segunda animación posterior. */
@@ -4590,7 +4522,7 @@ function play(){
     function jit(tq,e,k){var m=e*aw*.06;return[m*(1.3*nz(tq*17+k*2.1)+.8*nz(tq*21+k*4.3+3)+.45*nz(tq*11+k*1.1+6)+.7*nz(tq*24+k*3.3)),m*(1.3*nz(tq*19+k*1.3+9)+.8*nz(tq*15+k*3.7+5)+.45*nz(tq*9+k*2.9+2)+.7*nz(tq*23+k*5.9+11))]}
     var ZS=[1,1],SHD=[null,null],OFY=[0,0];function sph(a,tm){var g=1.02+.1*Math.sin(.9*tm+.7),w=.34*Math.sin(.8*tm+.6),k=.45*Math.sin(.6*tm+1.2),sa=Math.sin(a),px=Math.cos(a),py=sa*Math.cos(g),pz=sa*Math.sin(g),c=Math.cos(w),s=Math.sin(w),x=px*c+pz*s,z=pz*c-px*s,ck=Math.cos(k),sk=Math.sin(k);return[x*ck-py*sk,x*sk+py*ck,z]}
      /* V3.17 profundidad: oscilacion caotica acercar/alejar (tiempo propio dilatado) + en slow motion el atomo de cobre sube desde abajo, llega grande y se aleja */
-     function zsOf(z,k){OFY[k]=0;return .5+1.95*Math.pow((clamp(z,-1,1)+1)/2,1.4)}
+     function zsOf(z,k){var zn=(clamp(z,-1,1)+1)/2,b=.5+1.95*Math.pow(zn,1.4),e=SWT*Math.pow(zn,1+PHI_INV),zm=aw>0?Math.max(b,2*Math.min(W,H)/aw):b;OFY[k]=.8*e;return b+(zm-b)*e}
      function shadowDraw(sd,a0){var r=sd.s*.5,i,R,g,a,off=r*(.14+.5*sd.n),sx=sd.x+off*.75,sy=sd.y+off*1.05;for(i=0;i<2;i++){R=r*(i?.3:.95+.5*sd.n);a=a0*(.8-.32*sd.n)*(i?1.25:1);trX.save();trX.globalCompositeOperation='source-over';trX.translate(sx,sy);trX.scale(1,.8);g=trX.createRadialGradient(0,0,R*.08,0,0,R);g.addColorStop(0,'rgba(1,6,18,'+Math.min(.9,a).toFixed(3)+')');g.addColorStop(.6,'rgba(1,6,18,'+(a*.4).toFixed(3)+')');g.addColorStop(1,'rgba(1,6,18,0)');trX.fillStyle=g;trX.beginPath();trX.arc(0,0,R,0,TAU);trX.fill();trX.restore()}}
      /* V3.17 ondas del fondo final: anillos de la transicion oro/azul que vibran de forma caotica en cada tic */
      var RN=Math.max(200,Math.min(540,Math.round(Math.hypot(W,H)*.56*1.04*TAU/16))),RC=new Float32Array(RN),RS=new Float32Array(RN),RRW=new Float32Array(RN),RX=new Float32Array(RN),RY=new Float32Array(RN);(function(){for(var i=0;i<RN;i++){RC[i]=Math.cos(i*TAU/RN);RS[i]=Math.sin(i*TAU/RN)}})();
@@ -4642,9 +4574,9 @@ function play(){
      for(i=SP.length-1;i>=0;i--){q=SP[i];q.l+=dt;if(q.l>=q.f){SP.splice(i,1);continue}u=1-q.l/q.f;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=1-3*dt;q.vy=q.vy*(1-3*dt)+60*sc*dt;
       trX.beginPath();trX.moveTo(q.x-q.vx*.034,q.y-q.vy*.034);trX.lineTo(q.x,q.y);trX.lineWidth=(2.6+3*u)*sc;trX.strokeStyle='rgba('+(q.c?'255,170,70':'190,220,255')+','+(u*u*.16).toFixed(3)+')';trX.stroke();trX.lineWidth=(.7+1.1*u)*sc;trX.strokeStyle='rgba(255,248,230,'+(u*.95).toFixed(3)+')';trX.stroke()}
     }
-   function place(el,a,k){var jj=jit(tt,env*(1-.75*SWT),k),q3=sph(a,tt),f3=1/(1-.3*q3[2]),x=ax+q3[0]*radius*f3+jj[0],y=ay+q3[1]*radius*f3+jj[1],zs=ZS[k],nr=clamp((zs-.55)/1.6,0,1),s2=pulse*zs,tk2=Math.floor(tt*HZ*.5);if(OFY[k]){x+=(ax-x)*OFY[k];y+=(H/2+aw*.15-y)*OFY[k]}el.style.opacity=(alpha*(.55+.45*nr)).toFixed(3);el.style.zIndex=(k?zs>=ZS[0]:zs>ZS[1])?1:0;el.style.setProperty('--hf',(.55+.25*nz(tt*7+k*3.7)).toFixed(3));el.style.setProperty('--hs',(1+.1*nz(tt*5+k*5.1+1)+.1*SWT).toFixed(3));el.style.transform='translate(-50%,-50%) translate3d('+x.toFixed(2)+'px,'+y.toFixed(2)+'px,0) scale('+s2.toFixed(3)+')';SHD[k]={x:W/2+x,y:H/2+y,s:aw*s2,n:nr};NRK[k]=clamp((zs-1.05)/1,0,1);srot(k,NRK[k],tt);(k?drawGold:drawBlue)(tIn,env)}
-   var lastTick=-1,pcL=0,pcE=0,pcD=1000/60,FRN=0,pcC=0,QL=1;function frame(now){var d,elapsed,kq,tc0=performance.now();if(!start){start=now;pcL=now;pcE=0}else{d=now-pcL;pcL=now;if(d>0){if(d>pcD*.4&&d<pcD*1.6)pcD+=(d-pcD)*(FRN<15?.3:.06);pcE+=d<pcD*1.6?pcD+((now-start)-pcE-pcD)*.06:d}}FRN++;elapsed=Math.min(pcE,DURATION);kq=Math.floor(elapsed*HZ/1000+1e-9);lastTick=kq;
-    if(elapsed<T0){var p=elapsed/T0,turns=orbitTurns(p);radius=collisionRadius(base,p);env=shakeEnv(p);tt=elapsed/1000;SWT=swBump(tt);tIn=PRE+swAt(0,tt)*SPIN+.28*turns;PSI=PRE+swAt(1,tt)*SPIN+.28*turns;pulse=1+(p>.84?easeInCubic((p-.84)/.16)*.13:0)+env*.03*Math.sin(tt*37)+SWT*.045*Math.sin(tt*2.3);alpha=(p<.985?1:(1-p)/.015);ZS[0]=zsOf(sph(-TAU*turns,tt)[2],0);ZS[1]=zsOf(sph(-TAU*turns+Math.PI,tt)[2],1);TUMB[1]=3.2*(1-ss(TA0-.4,TA1+.3,tt));place(blue,-TAU*turns,0);place(gold,-TAU*turns+Math.PI,1);drawTrail(p,velS(tt),alpha)}
+   function place(el,a,k){var jj=jit(tt,env*(1-.75*SWT),k),q3=sph(a,tt),f3=1/(1-.3*q3[2]),x=ax+q3[0]*radius*f3+jj[0],y=ay+q3[1]*radius*f3+jj[1],zs=ZS[k],nr=clamp((zs-.55)/1.6,0,1),s2=pulse*zs,tk2=Math.floor(tt*HZ*.5);if(OFY[k]){x+=(ax-x)*OFY[k];y+=(ay-y)*OFY[k]}el.style.opacity=(alpha*(.55+.45*nr)).toFixed(3);el.style.zIndex=(k?zs>=ZS[0]:zs>ZS[1])?1:0;el.style.setProperty('--hf',(.55+.25*nz(tt*7+k*3.7)).toFixed(3));el.style.setProperty('--hs',(1+.1*nz(tt*5+k*5.1+1)+.1*SWT).toFixed(3));el.style.transform='translate(-50%,-50%) translate3d('+x.toFixed(2)+'px,'+y.toFixed(2)+'px,0) scale('+s2.toFixed(3)+')';SHD[k]={x:W/2+x,y:H/2+y,s:aw*Math.min(s2,3.4),n:nr};NRK[k]=clamp((zs-1.05)/1,0,1);srot(k,NRK[k],tt);(k?drawGold:drawBlue)(tIn,env)}
+   var lastTick=-1,pcL=0,pcE=0,pcD=1000/60,FRN=0,pcC=0,QL=1;function frame(now){var d,elapsed,kq,tc0=performance.now();if(!start){start=now;pcL=now;pcE=0;SWI=0;SWP=0}else{d=now-pcL;pcL=now;if(d>0){if(d>pcD*.4&&d<pcD*1.6)pcD+=(d-pcD)*(FRN<15?.3:.06);pcE+=d<pcD*1.6?pcD+((now-start)-pcE-pcD)*.06:d}}FRN++;elapsed=Math.min(pcE,DURATION);kq=Math.floor(elapsed*HZ/1000+1e-9);lastTick=kq;
+    if(elapsed<T0){var p=elapsed/T0,turns=orbitTurns(p);radius=collisionRadius(base,p);env=shakeEnv(p);tt=elapsed/1000;SWT=swBump(tt);SWI+=SWT*Math.max(0,tt-SWP);SWP=tt;tIn=PRE+swAt(0,tt)*SPIN+.28*turns;PSI=PRE+swAt(1,tt)*SPIN+.28*turns;pulse=1+(p>.84?easeInCubic((p-.84)/.16)*.13:0)+env*.03*Math.sin(tt*37)+SWT*.045*Math.sin(tt*2.3);alpha=(p<.985?1:(1-p)/.015);ZS[0]=zsOf(sph(-TAU*turns,tt)[2],0);ZS[1]=zsOf(sph(-TAU*turns+Math.PI,tt)[2],1);TUMB[1]=3.2*(1-ss(TA0-.4,TA1+.3,tt));place(blue,-TAU*turns,0);place(gold,-TAU*turns+Math.PI,1);drawTrail(p,velS(tt),alpha)}
     else{if(!hid){blue.style.opacity='0';gold.style.opacity='0';if(trX){trX.setTransform(1,0,0,1,0,0);trX.clearRect(0,0,trCv.width,trCv.height)}hid=true}draw((elapsed-T0)/1000);ripple(elapsed-T0)}drawRay(elapsed,rayEvents);if(fb)fb.draw(elapsed);
     pcC+=(performance.now()-tc0-pcC)*.12;QL=pcC>pcD*.7?Math.max(.3,QL*.95):pcC<pcD*.4?Math.min(1,QL*1.015):QL;if(elapsed<DURATION)raf=requestAnimationFrame(frame)}
    timers.push(sgxTO(function(){animations.push(sgxA(nm,[{opacity:0,transform:'scale(.86)'},{opacity:1,transform:'scale(1)'}],{duration:900,easing:'cubic-bezier(.16,1,.3,1)',fill:'forwards'}))},T0+120));
@@ -4708,7 +4640,7 @@ function play(){
  * La verificación ya NO ocurre en el cliente: este fichero no
  * contiene ni contraseñas ni derivaciones de contraseñas.
  * Toda credencial se envía al backend
- * (window.SINTERGIA_LOVABLE.auth.endpoint), que deriva PBKDF2
+ * (window.SINTERGIA_BACKEND.auth.endpoint), que deriva PBKDF2
  * con sal secreta, compara en tiempo constante, aplica límite
  * de intentos y emite un token de sesión firmado (HMAC).
  * ========================================================= */
@@ -4735,7 +4667,7 @@ function play(){
   }
 
   function endpoint() {
-    var cfg = window.SINTERGIA_LOVABLE || {};
+    var cfg = window.SINTERGIA_BACKEND || {};
     return (cfg.auth && cfg.auth.endpoint) || '/functions/v1/authenticate';
   }
 
@@ -4881,10 +4813,10 @@ function play(){
     if (confirm('¿Borrar las contraseñas locales de este dispositivo? Se pedirán de nuevo en el próximo acceso.')) { localStorage.removeItem(LOCAL_KEY); alert('Contraseñas locales borradas.'); }
   };
 
-  /* Producción: la autenticación nunca degrada a una contraseña solo local. */
+  /* Verificación: servidor si existe; si no responde correctamente, verificación local. */
   function verificar(scope, value) {
+    if (location.protocol === 'file:') return verificarLocal(scope, value);
     return verificarServidor(scope, value).catch(function (e) {
-      if (window.SintergiaSecurityConfig && window.SintergiaSecurityConfig.requireBackendInProduction) throw e;
       if (e && e.fallback) return verificarLocal(scope, value);
       throw e;
     });
@@ -4892,7 +4824,7 @@ function play(){
   function verificarServidor(scope, value) {
     return fetch(endpoint(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: Object.assign({ 'Content-Type': 'application/json', 'Content-Type': 'application/json' }, (window.authHeadersSintergia ? window.authHeadersSintergia() : {})),
       cache: 'no-store',
       credentials: 'same-origin',
       body: JSON.stringify({ scope: scope, password: String(value == null ? '' : value) })
@@ -8434,7 +8366,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function urlSeguraVisual(v,opts){ const allowData=opts&&opts.allowData; const raw=String(v==null?'':v).trim(); if(!raw)return ''; try{ const u=new URL(raw,location.href); const p=u.protocol.toLowerCase(); if(p==='https:'||p==='http:')return u.toString(); if(allowData&&p==='data:'&&/^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);/i.test(raw))return raw; return ''; }catch(_){ return ''; } }
     function construirUrlApertura(id,token){
         const base=String(appState.emailApi?.portalUrl||location.origin).trim();
-        try{ const u=new URL(window.SINTERGIA_LOVABLE.mail.webhookOpenEndpoint,base); u.searchParams.set('documentId',id); u.searchParams.set('token',token); return u.toString(); }catch(_){ return ''; }
+        try{ const u=new URL(window.SINTERGIA_BACKEND.mail.webhookOpenEndpoint,base); u.searchParams.set('documentId',id); u.searchParams.set('token',token); return u.toString(); }catch(_){ return ''; }
     }
     function construirHtmlCorreoCliente({clienteNombre,parte,factura,reciboUrl,devolverUrl,openUrl}){
         const n=escaparAtributo(clienteNombre||'cliente');
@@ -8478,7 +8410,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         if(!isFinite(importe)||importe<0){marcarReciboToken(token,'FAILED_PERMANENT',{err:'importe inválido'});return;}
         const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
         try{
-            const r=await fetch(sintergiaResolveEndpoint('/functions/v1/receipt-register'),{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'omit',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:importe,cliente:factura.clienteNombre||''})});
+            const r=await fetch('/functions/v1/receipt-register',{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'omit',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:importe,cliente:factura.clienteNombre||''})});
             clearTimeout(timer);
             if(r.ok||r.status===409)marcarReciboToken(token,'REGISTERED',{err:''});
             else if(r.status===400)marcarReciboToken(token,'FAILED_PERMANENT',{err:'HTTP 400'});
@@ -8497,7 +8429,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{
                 const idx=(appState.facturas||[]).findIndex(x=>String(x.idDoc)===String(res.factura_id)); if(idx<0) return;
-                const f=appState.facturas[idx]; if(f.estado==='Cobrado'||String(f.estado||'').toLowerCase()==='devuelta'||!sgFacturaAdmiteRecibo(f)) return; /* P64-D5 */
+                const f=appState.facturas[idx]; if(f.estado==='Cobrado'||String(f.estado||'').toLowerCase()==='devuelta'||!sgFacturaAdmiteRecibo(f)) return;
                 if(f.reciboVerificadoAt&&res.verified_at&&new Date(f.reciboVerificadoAt)>=new Date(res.verified_at)) return;
                 if(res.file_base64){ f.reciboDataUrl='data:'+(res.content_type||'application/octet-stream')+';base64,'+res.file_base64; f.reciboFileType=res.content_type||''; f.reciboNombreArchivo=res.filename||'recibo'; f.reciboRecibidoAt=res.verified_at; }
                 f.reciboVerificacionMotivo=res.motivo||''; f.reciboVerificadoAt=res.verified_at||new Date().toISOString();
@@ -8676,7 +8608,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         let cambios=false;
         for(const obj of docs){
             try{
-                const u=new URL(normalizarEndpointBackendSintergia(cfg.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint), window.location.origin);
+                const u=new URL(normalizarEndpointBackendSintergia(cfg.syncUrl, window.SINTERGIA_BACKEND.mail.endpoint), window.location.origin);
                 u.searchParams.set('documentId',obj.idDoc);
                 if(obj.emailMessageId) u.searchParams.set('emailId',obj.emailMessageId);
                 const r=await fetch(u.toString(),{cache:'no-store'});
@@ -8713,7 +8645,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const aviso=appState.pendientes[pendienteIdx]; const parte=aviso?appState.partes.find(p=>String(p.idDoc)===String(aviso.parteId)):null; const f=facturaIdx>=0?appState.facturas[facturaIdx]:null; const obj=f||parte;
         if(!obj){alert('No hay documento asociado.');return;}
         const id=obj.emailMessageId||parte?.emailMessageId||''; let opened=obj.emailOpenedAt||parte?.emailOpenedAt||'';
-        if(appState.emailApi?.syncUrl&&id){try{const u=new URL(normalizarEndpointBackendSintergia(appState.emailApi.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint),window.location.origin);u.searchParams.set('emailId',id);u.searchParams.set('documentId',obj.idDoc);const r=await fetch(u.toString(),{cache:'no-store',credentials:'omit'});if(r.ok){const d=await r.json();opened=d.openedAt||d.emailOpenedAt||d.opened_at||opened; if(opened){obj.emailOpenedAt=opened;if(parte)parte.emailOpenedAt=opened;if(f)obj.emailOpenedAt=opened;guardarEstadoStorage();}}}catch(e){console.warn('No se pudo sincronizar lectura',e);}}
+        if(appState.emailApi?.syncUrl&&id){try{const u=new URL(normalizarEndpointBackendSintergia(appState.emailApi.syncUrl, window.SINTERGIA_BACKEND.mail.endpoint),window.location.origin);u.searchParams.set('emailId',id);u.searchParams.set('documentId',obj.idDoc);const r=await fetch(u.toString(),{cache:'no-store',credentials:'omit'});if(r.ok){const d=await r.json();opened=d.openedAt||d.emailOpenedAt||d.opened_at||opened; if(opened){obj.emailOpenedAt=opened;if(parte)parte.emailOpenedAt=opened;if(f)obj.emailOpenedAt=opened;guardarEstadoStorage();}}}catch(e){console.warn('No se pudo sincronizar lectura',e);}}
         if(opened){const d=new Date(opened);alert(`👁️ El correo fue registrado como abierto el ${d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES')}.`);}else alert('👁️ Aún no hay una hora de lectura registrada. Configure el webhook de Resend y el endpoint de sincronización.');
     }
 
@@ -9809,7 +9741,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         return {
             provider: document.getElementById('email-api-provider')?.value || 'gmail',
             domain: (document.getElementById('email-api-domain')?.value || 'gmail.com').trim().toLowerCase(),
-            endpoint: normalizarEndpointBackendSintergia(document.getElementById('email-api-endpoint')?.value, window.SINTERGIA_LOVABLE.mail.endpoint),
+            endpoint: normalizarEndpointBackendSintergia(document.getElementById('email-api-endpoint')?.value, window.SINTERGIA_BACKEND.mail.endpoint),
             apiKey: '',
             from: (document.getElementById('email-api-from')?.value || '').trim(),
             fromName: (document.getElementById('email-api-from-name')?.value || 'SintergiaSE').trim(),
@@ -9826,7 +9758,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v ?? ''; };
         set('email-api-provider', c.provider || 'gmail');
         set('email-api-domain', c.domain || 'gmail.com');
-        set('email-api-endpoint', normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_LOVABLE.mail.endpoint));
+        set('email-api-endpoint', normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_BACKEND.mail.endpoint));
         set('email-api-from', c.from || 'sintergiase@gmail.com');
         set('email-api-from-name', c.fromName || 'SintergiaSE');
         set('email-api-key', '');
@@ -9868,7 +9800,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const c=obtenerConfigEmailApiDesdeFormulario();
         if(c.from.toLowerCase() !== 'sintergiase@gmail.com') { alert('⚠️ El remitente debe ser sintergiase@gmail.com.'); return false; }
         if(c.domain !== 'gmail.com') { alert('⚠️ El dominio debe ser gmail.com.'); return false; }
-        c.endpoint=c.endpoint||window.SINTERGIA_LOVABLE.mail.endpoint;
+        c.endpoint=c.endpoint||window.SINTERGIA_BACKEND.mail.endpoint;
         // Nunca persistimos una API key en el navegador.
         delete c.apiKey; c.backendOnly=true;
         appState.emailApi=c; guardarEstadoStorage(); actualizarEstadoVisualEmailApi(true,'✅ Gmail configurado: sintergiase@gmail.com. La API Key/credenciales permanecen en el backend.'); actualizarVisibilidadEmailApiTab();
@@ -9879,7 +9811,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const c=appState.emailApi||{};
         if((!ignorarActivacion&&!c.enabled)||!c.endpoint||!c.from) throw new Error('Configure el remitente y active el backend de correo.');
         if(!to||!String(to).includes('@')) throw new Error('El cliente no tiene un email válido.');
-        const endpoint=normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_LOVABLE.mail.endpoint);
+        const endpoint=normalizarEndpointBackendSintergia(c.endpoint, window.SINTERGIA_BACKEND.mail.endpoint);
         const fixedFrom='sintergiase@gmail.com'; const payload={provider:'gmail',domain:'gmail.com',from:c.fromName?`${c.fromName} <${fixedFrom}>`:fixedFrom,replyTo:fixedFrom,to:[to],subject,html:html||String(text||'').replace(/\n/g,'<br>'),text:String(text||''),attachments:(attachments||[]).map(a=>({filename:a.filename,content:a.content})),tags:tags||[]};
         const emailHeaders = (typeof authHeadersSintergia === 'function') ? authHeadersSintergia() : {'Content-Type':'application/json'};
         emailHeaders['X-Sintergia-Request-ID'] = idOperacion();
@@ -11241,7 +11173,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     }
 
     async function sincronizarReciboFactura(idx){
-        const f=appState.facturas[idx],urlBase=normalizarEndpointBackendSintergia(appState.emailApi?.syncUrl, window.SINTERGIA_LOVABLE.mail.endpoint);if(!f||!appState.emailApi?.syncUrl)return false;
+        const f=appState.facturas[idx],urlBase=normalizarEndpointBackendSintergia(appState.emailApi?.syncUrl, window.SINTERGIA_BACKEND.mail.endpoint);if(!f||!appState.emailApi?.syncUrl)return false;
         try{const u=new URL(urlBase);u.searchParams.set('facturaId',f.idDoc);const r=await fetch(u.toString(),{cache:'no-store'});if(!r.ok)return false;const d=await r.json();const rec=d.receipt||d.recibo||d; if(rec&& (rec.url||rec.dataUrl||rec.base64)){f.reciboRemotoUrl=rec.url||f.reciboRemotoUrl||'';f.reciboDataUrl=rec.dataUrl||((rec.base64&&rec.contentType)?`data:${rec.contentType};base64,${rec.base64}`:f.reciboDataUrl);f.reciboFileType=rec.contentType||f.reciboFileType||'';f.reciboNombreArchivo=rec.filename||f.reciboNombreArchivo||'recibo';f.reciboRecibidoAt=rec.receivedAt||f.reciboRecibidoAt;f.estado=rec.validado?'Cobrado':'Cobrado pendiente validacion';guardarEstadoStorage();renderizarHistorialFacturas();if(rec.validado===undefined){await verificarYAplicarRecibo(idx);}else if(rec.validado){marcarFacturaCobradaEnCascada(idx,true);guardarEstadoStorage();renderizarHistorialFacturas();}return true;}return false;}catch(e){console.warn('Sincronización de recibo:',e);return false;}
     }
     async function abrirModalReciboPreview(idx){
@@ -13721,7 +13653,7 @@ VERIFICACIONES FINALES
 
     /* ===== SINCRONIZACIÓN MULTIDISPOSITIVO: backend + Supabase Realtime ===== */
     (function instalarRealtimeSintergia(){
-        const cfg=window.SINTERGIA_LOVABLE||{};
+        const cfg=window.SINTERGIA_BACKEND||{};
         window.SintergiaRealtime={
             publish:async function(snapshot){
                 try{
@@ -14176,7 +14108,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <script id="sintergia-correcciones-2026-09">
 (function(){
 'use strict';
-const SYNC_CHANNEL=(window.SINTERGIA_LOVABLE&&window.SINTERGIA_LOVABLE.realtime&&window.SINTERGIA_LOVABLE.realtime.channel)||'sintergia-realtime';
+const SYNC_CHANNEL=(window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.realtime&&window.SINTERGIA_BACKEND.realtime.channel)||'sintergia-realtime';
 const SYNC_API='/functions/v1/realtime-snapshot';
 const MAX_SYNC_BYTES=5*1024*1024;
 function backendFetch(url,options){const u=new URL(url,window.location.origin);if(u.origin!==window.location.origin)throw new Error('Endpoint de backend no permitido.');return fetch(u.toString(),options);}
@@ -14455,7 +14387,7 @@ window.sgKmTrayecto=async function(ini,fin){
  var ruta=0;
  if(ok&&recta>0.05&&navigator.onLine!==false){
   try{
-   var cfg=(window.SINTERGIA_LOVABLE&&window.SINTERGIA_LOVABLE.routing)||{};
+   var cfg=(window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.routing)||{};
    if(cfg.enabled!==false&&cfg.matrixEndpoint){
     var locs=[{lat:ini.lat,lon:ini.lon},{lat:fin.lat,lon:fin.lon}];
     var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},8000);
@@ -14795,9 +14727,9 @@ async function biometricEnroll(){
   const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
   const t=window.SintergiaTechnician||{};
   if(!t.nombre||!t.dni){alert('Inicia sesión con nombre completo y DNI antes de registrar la biometría.');return}
-  const ep=window.SINTERGIA_LOVABLE?.auth?.registerBiometricEndpoint||'/functions/v1/register-biometric';
+  const ep=window.SINTERGIA_BACKEND?.auth?.registerBiometricEndpoint||'/functions/v1/register-biometric';
   const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-  const authHeaders={'Content-Type':'application/json'}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
+  const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-REG-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
   const rr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
   if(!rr.ok)throw new Error('El backend de registro biométrico no está disponible (HTTP '+rr.status+').');
   const opt=await rr.json();
@@ -14809,6 +14741,7 @@ async function biometricEnroll(){
   const cred=await navigator.credentials.create({publicKey:publicKey});
   if(!cred)throw new Error('No se creó la credencial.');
   const registration={action:'verify-registration',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),attestationObject:b64u(cred.response.attestationObject)},technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}};
+  authHeaders['X-Sintergia-Request-ID']='BIO-REG-VERIFY-'+Date.now().toString(36);
   const vr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(registration)});
   if(!vr.ok)throw new Error('El backend rechazó el registro biométrico (HTTP '+vr.status+').');
   const vd=await vr.json().catch(()=>null);if(!vd||!vd.ok)throw new Error(vd&&vd.message||'El backend no confirmó el registro biométrico.');
@@ -14820,26 +14753,38 @@ async function biometricEnroll(){
 }
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
-  const ep=window.SINTERGIA_LOVABLE?.auth?.authenticateBiometricEndpoint;
+  const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint;
   if(!ep)return{attempted:false,available:false,ok:false};
   try{
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-    const authHeaders={'Content-Type':'application/json'};
+    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-VERIFY-'+Date.now().toString(36)};
     if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
     const r=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(assertion)});
     const ct=(r.headers.get('content-type')||'').toLowerCase();
     if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false};
     const d=await r.json().catch(()=>null);
     if(!d)return{attempted:true,available:false,ok:false};
-    return{attempted:true,available:true,ok:!!d.ok};
+    if(d.ok && d.session && d.session.token){
+      try{
+        window.SintergiaAuthToken=String(d.session.token);
+        sessionStorage.setItem('sintergia_auth_token',JSON.stringify({
+          token:String(d.session.token),
+          scope:d.session.scope||null,
+          id:d.session.id||null,
+          expiresAt:d.session.expiresAt||null,
+          biometric:true
+        }));
+      }catch(e){ if(window.__sgIgn) window.__sgIgn(e); }
+    }
+    return{attempted:true,available:true,ok:!!d.ok,session:d.session||null};
   }catch(_){return{attempted:true,available:false,ok:false}}
 }
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
   try{
-    const ep=window.SINTERGIA_LOVABLE?.auth?.authenticateBiometricEndpoint||'/functions/v1/authenticate-biometric';
+    const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
-    const authHeaders={'Content-Type':'application/json'}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
+    const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
     const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
     if(!optRes.ok)throw new Error('El backend biométrico no está disponible para obtener el challenge (HTTP '+optRes.status+').');
     const opt=await optRes.json();
@@ -14852,6 +14797,10 @@ async function biometricUnlock(){
     if(!res.attempted||!res.available){alert('⚠️ El backend biométrico no está disponible. Por seguridad no se desbloquea la sesión.');audit('BIOMETRIC_UNLOCK_FAIL','Backend biométrico no disponible');return false}
     if(!res.ok){alert('⚠️ El servidor ha rechazado la credencial biométrica.');audit('BIOMETRIC_UNLOCK_FAIL','Rechazado por backend');return false}
     sessionStorage.setItem('sintergia_biometric_auth','1');
+    if(res.session?.token){
+      window.SintergiaAuthToken=String(res.session.token);
+      try{sessionStorage.setItem('sintergia_auth_token',JSON.stringify({token:String(res.session.token),scope:res.session.scope||null,id:res.session.id||null,expiresAt:res.session.expiresAt||null,biometric:true}));}catch(e){if(window.__sgIgn)window.__sgIgn(e);}
+    }
     audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend');
     return true;
   }catch(e){alert('No se pudo validar la biometría: '+(e.message||e));return false}
@@ -15839,7 +15788,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     function authHeadersSintergia() {
         var token = window.SintergiaAuthToken || '';
         try { if (!token) token = JSON.parse(sessionStorage.getItem('sintergia_auth_token') || 'null')?.token || ''; } catch(_){window.__sgIgn&&window.__sgIgn(_);}
-        var h = { 'Content-Type': 'application/json' };
+        var h = { 'Content-Type': 'application/json', 'Content-Type': 'application/json' };
         if (token && !String(token).startsWith('local-')) h.Authorization = 'Bearer ' + token;
         return h;
     }
@@ -15851,7 +15800,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             var headers = authHeadersSintergia();
             headers['X-Sintergia-Request-ID'] = opId;
             var r = await fetch(url, {
-                method: 'POST', signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
+                method: 'POST', signal: ctrl.signal, cache: 'no-store', credentials: 'include',
                 headers: headers,
                 body: JSON.stringify(body || {})
             });
@@ -15860,7 +15809,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         } finally { clearTimeout(t); }
     }
     async function ia(prompt, timeout) {
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.ai || {};
+        var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.ai || {};
         if (cfg.enabled === false) throw new Error('IA desactivada');
         var endpoint = cfg.endpoint || '/functions/v1/ai-gateway';
         var d = await post(endpoint, {
@@ -15883,7 +15832,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     }
 
     async function iaJson(task, data, timeout) {
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.ai || {};
+        var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.ai || {};
         if (cfg.enabled === false) throw new Error('IA desactivada');
         var endpoint = cfg.endpoint || '/functions/v1/ai-gateway';
         var d = await post(endpoint, {
@@ -16015,7 +15964,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         if (!dir) return null;
         var key = dir.toLowerCase().trim();
         if (state.geo[key]) return state.geo[key];
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.routing || {};
+        var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.routing || {};
         var res = null;
         try {
             var d = await post(cfg.geocodeEndpoint || '/functions/v1/geocode', { q: dir, country: 'es', language: 'es' }, 12000);
@@ -16024,7 +15973,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* backend no disponible */ }
         /* Solo como respaldo explícito de desarrollo. En producción se recomienda que
            Lovable/Edge Function haga toda la geocodificación para controlar cuota y CORS. */
-        if (!res && window.SINTERGIA_LOVABLE.routing.allowBrowserGeocodeFallback !== false) {
+        if (!res && window.SINTERGIA_BACKEND.routing.allowBrowserGeocodeFallback !== false) {
             try {
                 var r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=es&q=' + encodeURIComponent(dir), { headers: { 'Accept': 'application/json' } });
                 var j = await r.json();
@@ -16058,7 +16007,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
      * También se aceptan variantes duration/distance, seconds/meters.
      */
     async function obtenerMatrizRutas(nodes, departureISO) {
-        var cfg = window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.routing;
+        var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.routing;
         if (!cfg || cfg.enabled === false || !cfg.matrixEndpoint || !nodes || nodes.length < 2) return null;
         try {
             var locations = nodes.map(function (n) {
@@ -16863,15 +16812,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ['Cita email','POST','/functions/v1/cita-email','mutating'],
     ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
     ['Cita estado','POST','/functions/v1/cita-estado','safe'],
-    ['Receipt verify','POST','/functions/v1/verify-receipt','safe'],
-    ['Receipt register','POST','/functions/v1/receipt-register','safe'],
-    ['Receipt status','POST','/functions/v1/receipt-status','safe']
+    /* Recibos: no se ejecutan en el diagnóstico. Ambos endpoints requieren un recibo/factura real;
+       mandar {} produce 400 por diseño y no demuestra que el endpoint esté roto. */
+    ['Receipt verify','POST','/functions/v1/verify-receipt','real-data'],
+    ['Receipt register','POST','/functions/v1/receipt-register','real-data'],
+    ['Receipt status','POST','/functions/v1/receipt-status','real-data']
   ];
   function headers(){return (typeof global.authHeadersSintergia==='function')?global.authHeadersSintergia():{'Content-Type':'application/json'};}
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
-  async function check(item,rows){
-    var name=item[0],method=item[1],url=sintergiaResolveEndpoint(item[2]),kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
+  async function check(item){
+    var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
     var body=null;
     if(method==='POST'){
       if(kind==='ai') body={api:'responses',provider:'openai',model:'auto',input:'Responde exactamente: OK',prompt:'Responde exactamente: OK',responseFormat:'text'};
@@ -16886,18 +16837,18 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       else if(name==='Gasolineras') body={};
       else if(name==='Authenticate') body={};
       else if(name==='Autenticación') body={};
-      else if(name==='Receipt register') body=null;
+      else if(name==='Receipt register') body={};
       else if(kind==='safe') body={};
     }
-    if(name==='Receipt verify'||name==='Receipt register'){var hr=(rows||[]).filter(function(x){return x.name==='Health';})[0];return {name:name,status:'⚪ NO PROBADA',cls:'sdiag-na',detail:(hr&&hr.cls==='sdiag-ok'?'Health OK (no prueba esta operación). ':'')+'No se ejecuta en el diagnóstico: requiere factura y recibo reales.'};}
-    if(kind==='mutating') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente: requiere una operación real y sus datos de negocio.'};
+    if(kind==='mutating') return {name:name,status:'⚪ OMITIDA',cls:'sdiag-na',detail:'No se ejecuta automáticamente porque podría enviar un correo o mensaje real.'};
+    if(name==='Receipt verify'||name==='Receipt register') return {name:name,status:'⚪ NO PROBADA',cls:'sdiag-na',detail:'Requiere factura y recibo reales. No se envía una petición vacía desde el diagnóstico.'};
+    if(kind==='real-data') return {name:name,status:'⚪ NO PROBADA',cls:'sdiag-na',detail:'Requiere datos reales de una operación (recibo/factura). El diagnóstico no envía una petición vacía que provoque un 400 falso.'};
     var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},15000);
     try{
       var r=await fetch(url,{method:method,headers:h,credentials:'omit',cache:'no-store',signal:ctrl.signal,body:method==='POST'?JSON.stringify(body):undefined});
       clearTimeout(timer);
       var txt=await r.text();
       if(r.ok) return {name:name,status:'🟢 '+r.status,cls:'sdiag-ok',detail:'Respuesta HTTP correcta'+(txt?' · '+txt.slice(0,180):'')};
-      if(r.status===400) return {name:name,status:'🟡 400',cls:'sdiag-warn',detail:'Endpoint accesible; el diagnóstico no contiene todos los datos de una operación real.'};
       if(r.status===401||r.status===403) return {name:name,status:'🟡 '+r.status,cls:'sdiag-warn',detail:'Endpoint accesible, pero requiere autenticación/permisos.'};
       if(r.status===404) return {name:name,status:'🔴 404',cls:'sdiag-bad',detail:'Endpoint no encontrado.'};
       return {name:name,status:'🔴 '+r.status,cls:'sdiag-bad',detail:txt.slice(0,240)||'El backend respondió con error.'};
@@ -16910,7 +16861,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var sum=document.getElementById('sdiag-summary');
       if(sum)sum.textContent='Ejecutando comprobaciones seguras…';
       render(endpoints.map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};}));
-      var rows=[];for(var i=0;i<endpoints.length;i++){rows.push(await check(endpoints[i],rows));render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
+      var rows=[];for(var i=0;i<endpoints.length;i++){rows.push(await check(endpoints[i]));render(rows.concat(endpoints.slice(i+1).map(function(x){return {name:x[0],status:'…',cls:'sdiag-na',detail:'Pendiente'};})));}
       var ok=rows.filter(function(x){return x.cls==='sdiag-ok';}).length,bad=rows.filter(function(x){return x.cls==='sdiag-bad';}).length,warn=rows.filter(function(x){return x.cls==='sdiag-warn';}).length;
       if(sum)sum.textContent='Resultado: '+ok+' OK · '+bad+' con error · '+warn+' requieren atención. Los envíos reales se omiten por seguridad.';
       try{sessionStorage.setItem('sintergia_last_api_diag',JSON.stringify({at:new Date().toISOString(),rows:rows}));}catch(_){window.__sgIgn&&window.__sgIgn(_);}
@@ -17291,7 +17242,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var origFetch = global.fetch ? global.fetch.bind(global) : null;
     if (!origFetch) return;
     function esMatriz(url) {
-      var cfg = (global.SINTERGIA_LOVABLE && global.SINTERGIA_LOVABLE.routing) || {};
+      var cfg = (global.SINTERGIA_BACKEND && global.SINTERGIA_BACKEND.routing) || {};
       var ep = cfg.matrixEndpoint || '/functions/v1/route-matrix';
       return String(url).indexOf(ep) !== -1;
     }
@@ -17826,7 +17777,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       var endpoint = '/functions/v1/descargar-html';
       var headers = (typeof window.authHeadersSintergia === 'function')
         ? window.authHeadersSintergia()
-        : {  };
+        : { 'Content-Type': 'application/json' };
 
       var controller = window.AbortController ? new AbortController() : null;
       var timer = setTimeout(function () {
@@ -17836,7 +17787,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       try {
         var response = await fetch(endpoint, {
           method: 'GET',
-          credentials: 'omit',
+          credentials: 'include',
           cache: 'no-store',
           headers: headers,
           signal: controller ? controller.signal : undefined
@@ -17954,18 +17905,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
       },
       {
         id: 'backend-contract',
-        ok: !!(window.SINTERGIA_LOVABLE &&
-               window.SINTERGIA_LOVABLE.auth &&
-               window.SINTERGIA_LOVABLE.sync &&
-               window.SINTERGIA_LOVABLE.observability),
+        ok: !!(window.SINTERGIA_BACKEND &&
+               window.SINTERGIA_BACKEND.auth &&
+               window.SINTERGIA_BACKEND.sync &&
+               window.SINTERGIA_BACKEND.observability),
         detail: 'Contrato de backend presente'
       },
       {
         id: 'idempotency',
         ok: typeof window.idOperacion === 'function' &&
-            !!(window.SINTERGIA_LOVABLE &&
-               window.SINTERGIA_LOVABLE.sync &&
-               window.SINTERGIA_LOVABLE.sync.idempotencyHeader),
+            !!(window.SINTERGIA_BACKEND &&
+               window.SINTERGIA_BACKEND.sync &&
+               window.SINTERGIA_BACKEND.sync.idempotencyHeader),
         detail: 'IDs de operación / idempotencia presentes'
       },
       {
@@ -18296,8 +18247,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     function ign(e) { if (window.__sgIgn) window.__sgIgn(e); }
 
     function cfg() {
-        var c = window.SG_CONFIG || window.SINTERGIA_CONFIG || window.SINTERGIA_LOVABLE || {};
-        return (c && c.references) || (window.SINTERGIA_LOVABLE && window.SINTERGIA_LOVABLE.references) || {};
+        var c = window.SG_CONFIG || window.SINTERGIA_CONFIG || window.SINTERGIA_BACKEND || {};
+        return (c && c.references) || (window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.references) || {};
     }
 
     function leer() {
