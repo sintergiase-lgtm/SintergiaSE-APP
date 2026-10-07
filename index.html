@@ -511,7 +511,7 @@
   });
 })();
 </script>
-<!-- SINTERGIA / SUPABASE GITHUB PAGES BRIDGE v2 -->
+<!-- SINTERGIA / SUPABASE DIRECT BACKEND BRIDGE v3 -->
 <script id="sintergia-supabase-github-bridge-v2">
 (function(){
   'use strict';
@@ -537,7 +537,7 @@
   window.fetch=function(input,init){return nativeFetch(rewrite(input),init);};
 })();
 </script>
-<!-- SINTERGIA / SUPABASE CONFIG: secretos solo en backend/Edge Functions -->
+<!-- SINTERGIA / SUPABASE CONFIG: backend directo en Supabase; secretos solo en Edge Functions -->
 <script>
 window.SINTERGIA_BACKEND = Object.freeze({
   auth: { endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate', registerBiometricEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric', authenticateBiometricEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric', required: true },
@@ -4675,14 +4675,14 @@ function play(){
               operacion: [['reset','Resetear contadores/historial'],['demo','Cargar demostración'],['realtime','Activar modo tiempo real']] };
   function leerLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}') || {}; } catch (_) { return {}; } }
   function hashLocal(salt, pw) { return sha256Hex(salt + '|' + String(pw)); }
-  var CLAVE_ADMIN_INICIAL = 'SintergiaSE1';
-  var SUGERIDAS = { admin: 'SintergiaSE1', tecnico: 'TecSE1', demo: 'Demo' };
+  var CLAVE_ADMIN_INICIAL = 'SSE1';
+  var SUGERIDAS = { admin: '1111', tecnico: '2222', demo: '3333' };
   async function configurarLocal(scope, soloIds, sinIntro) {
     return true;
     var cfg = leerLocal();
     if (!cfg.salt) cfg.salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     cfg[scope] = cfg[scope] || {};
-    if (!sinIntro) alert('🔐 Primera configuración de contraseñas en este dispositivo (' + (scope === 'modo' ? 'acceso' : 'operaciones de administración') + ').\nDefine una contraseña para cada opción (mínimo 4 caracteres).' + (scope === 'modo' ? '\nCredenciales del servidor: Administrador SintergiaSE1 · Técnico TecSE1 · Demo Demo.' : '') + '\nDeja en blanco para no habilitarla.');
+    if (!sinIntro) alert('🔐 Primera configuración de contraseñas en este dispositivo (' + (scope === 'modo' ? 'acceso' : 'operaciones de administración') + ').\nDefine una contraseña para cada opción (mínimo 4 caracteres).' + (scope === 'modo' ? '\nSe aconseja: Administrador 1111 · Técnico 2222 · Demo 3333.' : '') + '\nDeja en blanco para no habilitarla.');
     var usadas = {};
     var hechos = {};
     Object.keys(cfg[scope]).forEach(function (k) { hechos[cfg[scope][k]] = 1; });
@@ -4713,7 +4713,7 @@ function play(){
     localStorage.setItem(LOCAL_KEY, JSON.stringify(cfg));
     return Object.keys(cfg[scope]).length > 0;
   }
-  /* Compatibilidad histórica para configuración local; no se utiliza para el acceso principal. */
+  /* Falso mensaje de aceptación (animación ✅) cuando SSE1 falla: no revela que la clave se ha rechazado. */
   function mostrarAceptacionFalsa() {
     return new Promise(function (resolve) {
       try {
@@ -4744,8 +4744,7 @@ function play(){
   async function verificarLocal(scope, value) {
     var cfg = leerLocal();
     var esSSE1 = String(value).trim().toUpperCase() === CLAVE_ADMIN_INICIAL;
-    /* Compatibilidad histórica de configuración local. El acceso principal ya no depende de esta ruta.
-       SSE1 se ofrece UNA sola vez. Se "quema" (sse1Cerrada) en cuanto:
+    /* SSE1 se ofrece UNA sola vez. Se "quema" (sse1Cerrada) en cuanto:
        - falla (se escribe otra cosa sin ser una contraseña válida y no hay Administrador), o
        - el Administrador queda creado, o no se llega a crear.
        Una vez cerrada, SSE1 es una contraseña cualquiera (incorrecta) y nunca se vuelve a pedir. */
@@ -4802,43 +4801,64 @@ function play(){
     if (confirm('¿Borrar las contraseñas locales de este dispositivo? Se pedirán de nuevo en el próximo acceso.')) { localStorage.removeItem(LOCAL_KEY); alert('Contraseñas locales borradas.'); }
   };
 
-  /* Acceso principal: SIEMPRE contra Supabase. No se acepta una contraseña local
-     como sustituto del backend para los modos Administrador/Técnico/Demo. */
+  /*
+   * Verificación de acceso:
+   * - El modo (admin/técnico/demo) SIEMPRE se valida contra Supabase cuando la app está publicada.
+   * - No se permite fallback local para 'modo': ocultarlo aquí convertiría un fallo de backend/CORS
+   *   en un falso acceso local y además impediría diagnosticar el problema real.
+   * - El fallback local queda reservado a otros ámbitos y solo cuando la política lo permite.
+   */
   function verificar(scope, value) {
-    if (scope === 'modo') return verificarServidor(scope, value);
-    if (location.protocol === 'file:') return verificarLocal(scope, value);
+    var cfg = window.SintergiaSecurityConfig || {};
+    var allowLocalFallback = scope !== 'modo' && cfg.clientFallbackAllowed !== false;
+    if (location.protocol === 'file:') {
+      if (allowLocalFallback) return verificarLocal(scope, value);
+      return Promise.reject(new Error('El acceso por modo requiere conexión con Supabase. Abre la aplicación desde su URL publicada.'));
+    }
     return verificarServidor(scope, value).catch(function (e) {
-      if (e && e.fallback) return verificarLocal(scope, value);
+      if (allowLocalFallback && e && e.fallback) return verificarLocal(scope, value);
       throw e;
     });
   }
   function verificarServidor(scope, value) {
     return fetch(endpoint(), {
       method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json', 'Content-Type': 'application/json' }, (window.authHeadersSintergia ? window.authHeadersSintergia() : {})),
+      headers: Object.assign({ 'Content-Type': 'application/json' }, (window.authHeadersSintergia ? window.authHeadersSintergia() : {})),
       cache: 'no-store',
       credentials: 'omit',
       body: JSON.stringify({ scope: scope, password: String(value == null ? '' : value) })
     }).then(function (r) {
       var ct = (r.headers.get('content-type') || '').toLowerCase();
-      if (ct.indexOf('json') === -1 || r.status === 404 || r.status === 405 || r.status >= 500) {
-        var fe = new Error('fallback'); fe.fallback = true; throw fe;
+      if (ct.indexOf('json') === -1) {
+        var fe = new Error('Supabase devolvió una respuesta no JSON (HTTP ' + r.status + ').'); fe.fallback = true; throw fe;
       }
-      return r.json().catch(function () { var fe = new Error('fallback'); fe.fallback = true; throw fe; }).then(function (d) {
-        if (d && typeof d.ok === 'undefined' && r.ok) { var fe = new Error('fallback'); fe.fallback = true; throw fe; }
+      if (r.status === 404 || r.status === 405 || r.status >= 500) {
+        var fe2 = new Error('Supabase no pudo procesar la autenticación (HTTP ' + r.status + ').'); fe2.fallback = true; throw fe2;
+      }
+      return r.json().catch(function () {
+        var fe = new Error('No se pudo leer la respuesta JSON de Supabase.'); fe.fallback = true; throw fe;
+      }).then(function (d) {
+        if (d && typeof d.ok === 'undefined' && r.ok) {
+          var fe = new Error('Supabase respondió sin un resultado de autenticación válido.'); fe.fallback = true; throw fe;
+        }
         if (r.status === 429) {
           throw new Error(d.error || 'Demasiados intentos. Inténtalo de nuevo en unos segundos.');
         }
         if (!r.ok && r.status !== 401) {
-          throw new Error(d.error || 'No se pudo verificar el acceso en el servidor.');
+          throw new Error(d.error || 'No se pudo verificar el acceso en Supabase (HTTP ' + r.status + ').');
         }
         if (!d || !d.ok) return null;
         guardarSesion(d);
         return d.id || null;
       });
     }, function (e) {
+      /* Para 'modo' NO convertir un fallo de red/CORS en fallback local. */
+      if (scope === 'modo') {
+        var msg = e && e.message ? String(e.message) : 'fallo de red o CORS';
+        throw new Error('No se pudo comunicar con Supabase para autenticar el modo: ' + msg);
+      }
       if (e && e.fallback) throw e;
-      var fe = new Error('fallback'); fe.fallback = true; throw fe;
+      var fe = new Error('No se pudo comunicar con el servidor de autenticación.'); fe.fallback = true; throw fe;
     });
   }
 
@@ -4950,8 +4970,8 @@ function play(){
         error.textContent = 'Comprobando…';
         try {
             /* Autenticación real contra Supabase.
-               Las credenciales del acceso principal se validan exclusivamente en Supabase,
-               en sintergia.credentials con scope=modo: admin, tecnico y demo. */
+               La credencial esperada para el acceso principal es la configurada
+               en sintergia.credentials con scope=modo (actualmente SintergiaSE1). */
             var idServidor = await verificarModo(value);
             if (!idServidor) {
                 error.textContent = 'Contraseña no válida o acceso no autorizado por Supabase.';
