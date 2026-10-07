@@ -9,8 +9,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="sintergia-release" content="2026-10-07-backend-biometric-bridge-01">
-
     <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
 <!-- V3.49: núcleo 3D mixto de protones/neutrones, distribución volumétrica Fibonacci/ángulo áureo y masa física base con amplificación visual áurea; acceso correcto acelerado. -->
@@ -69,7 +67,7 @@
    - Valida URLs configuradas y añade una sonda OPTIONS explícita para comprobar capacidad del endpoint.
      El resultado queda cacheado y nunca se inventa una ruta de backend.
    - La confirmación usa únicamente operationStatusUrl proporcionado por configuración explícita del backend
-     o por la operación. No se generan rutas Supabase/Lovable por inferencia.
+     o por la operación. No se generan rutas Supabase/Supabase por inferencia.
    - Se añade soporte opcional para consultar un endpoint de estado explícitamente configurado por el backend.
      No se inventa ninguna ruta. Si no existe, la operación permanece incierta y conserva su operationId.
    - Una caída de red tras enviar una operación la marca como resultado incierto. Se conserva el operationId
@@ -188,7 +186,7 @@
    Los unicos 404 que quedan al arrancar son /functions/v1/health y /functions/v1/realtime-snapshot: backend aun
       no desplegado (P1).
 
-  PASADA Nº 10 · 28/09/2026 (proyecto Lovable nuevo, verificada en Chromium headless 390x844)
+  PASADA Nº 10 · 28/09/2026 (proyecto Supabase nuevo, verificada en Chromium headless 390x844)
    Analisis: 40 scripts inline sin errores de sintaxis (acorn) · arranque sin excepciones ·
       13 funciones renderizar* presentes · 18 pestañas · localStorage sin datos personales en claro
       (SintergiaLocalCrypto activo).
@@ -519,6 +517,8 @@
   'use strict';
   var BASE='https://bgjicsowspppsjzigazb.supabase.co';
   window.SUPABASE_URL=BASE;
+  window.SINTERGIA_SUPABASE_URL=BASE;
+  window.SINTERGIA_BACKEND_ORIGIN=BASE;
   window.SINTERGIA_API_BASE=BASE;
   var nativeFetch=window.fetch.bind(window);
   function rewrite(input){
@@ -537,21 +537,21 @@
   window.fetch=function(input,init){return nativeFetch(rewrite(input),init);};
 })();
 </script>
-<!-- SINTERGIA / LOVABLE CONFIG: secretos solo en backend/Edge Functions -->
+<!-- SINTERGIA / SUPABASE CONFIG: secretos solo en backend/Edge Functions -->
 <script>
 window.SINTERGIA_BACKEND = Object.freeze({
-  auth: { endpoint: '/functions/v1/authenticate', registerBiometricEndpoint: '/functions/v1/register-biometric', authenticateBiometricEndpoint: '/functions/v1/authenticate-biometric', required: true },
-  sync: { snapshotEndpoint: '/functions/v1/realtime-snapshot', operationsEndpoint: '/functions/v1/sync-operations', enabled: true, offlineFirst: true, idempotencyHeader: 'X-Sintergia-Request-ID', maxQueueItems: 1000 },
-  references: { allocateEndpoint: '/functions/v1/allocate-reference', idempotencyHeader: 'X-Sintergia-Request-ID', enabled: true },
-  mail: { provider: 'gmail', domain: 'gmail.com', from: 'sintergiase@gmail.com', replyTo: 'sintergiase@gmail.com', endpoint: '/functions/v1/send-email', webhookOpenEndpoint: '/functions/v1/email-open', uploadEndpoint: '/functions/v1/upload-receipt', reminderEndpoint: '/functions/v1/cita-recordatorio' },
+  auth: { endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate', registerBiometricEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric', authenticateBiometricEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric', required: true },
+  sync: { snapshotEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot', operationsEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations', enabled: true, offlineFirst: true, idempotencyHeader: 'X-Sintergia-Request-ID', maxQueueItems: 1000 },
+  references: { allocateEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/allocate-reference', idempotencyHeader: 'X-Sintergia-Request-ID', enabled: true },
+  mail: { provider: 'gmail', domain: 'gmail.com', from: 'sintergiase@gmail.com', replyTo: 'sintergiase@gmail.com', endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email', webhookOpenEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/email-open', uploadEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/upload-receipt', reminderEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-recordatorio' },
   realtime: { table: 'app_state', channel: 'sintergia-realtime' },
-  /* Integraciones: TODAS las claves viven SOLO en Lovable/Edge Functions. */
+  /* Integraciones: TODAS las claves viven SOLO en Supabase Edge Functions. */
   routing: {
     provider: 'google-routes',
     fallbackProvider: 'mapbox',
-    matrixEndpoint: '/functions/v1/route-matrix',
-    routeEndpoint: '/functions/v1/route',
-    geocodeEndpoint: '/functions/v1/geocode',
+    matrixEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix',
+    routeEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route',
+    geocodeEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode',
     enabled: true,
     traffic: true,
     trafficPreference: 'TRAFFIC_AWARE',
@@ -562,22 +562,21 @@ window.SINTERGIA_BACKEND = Object.freeze({
   },
   ai: {
     provider: 'openai',
-    endpoint: '/functions/v1/ai-gateway',
+    endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',
     api: 'responses',
     model: 'auto',
     enabled: true,
     timeoutMs: 30000
   },
   observability: {
-    healthEndpoint: '/functions/v1/health',
+    healthEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health',
     enabled: true
   },
   supabase: { url: 'https://bgjicsowspppsjzigazb.supabase.co' }
 });
-window.SINTERGIA_LOVABLE = window.SINTERGIA_BACKEND;
 </script>
 <!-- =========================================================
-  CHECKLIST PARA LOVABLE — esto es TODO lo que hay que dar de alta
+  CHECKLIST PARA SUPABASE — esto es TODO lo que hay que dar de alta
   en el backend/Edge Functions para que la app funcione al 100%.
   El HTML nunca contiene claves; solo llama a estas rutas relativas.
 
@@ -631,7 +630,7 @@ window.SINTERGIA_LOVABLE = window.SINTERGIA_BACKEND;
   siga siendo usable — pero para producción real hay que dar de alta las rutas de arriba.
 ========================================================= -->
 <script>
-window.__SINTERGIA_BACKEND_NOOP = true;
+window.__SINTERGIA_BACKEND_COMPAT_NOOP = true;
 
 /* =====================================================================
    PUENTE GLOBAL DE AUTENTICACIÓN / OPERACIONES
@@ -691,10 +690,10 @@ window.__SINTERGIA_BACKEND_NOOP = true;
 </script>
 <script>
 
-/* Contrato de seguridad para Lovable: no contiene secretos. */
+/* Contrato de seguridad para Supabase: no contiene secretos. */
 window.SintergiaSecurityConfig = Object.freeze({
   version: 2,
-  authBackendEndpoint: '/functions/v1/authenticate',
+  authBackendEndpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate',
   requireBackendInProduction: true,
   clientFallbackAllowed: false,
   neverStorePasswords: true,
@@ -941,9 +940,9 @@ window.SintergiaSecurityConfig = Object.freeze({
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0F2B48">
-    <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <link rel="manifest" href="/sintergia/manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="/sintergia/icon-192.png">
+    <link rel="apple-touch-icon" href="/sintergia/apple-touch-icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2681,9 +2680,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 (function(){
  'use strict';
  var cfg=window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.observability||{};
- var endpoint=(window.SINTERGIA_API_BASE||'https://bgjicsowspppsjzigazb.supabase.co')+'/functions/v1/health', fallbackEndpoint='/functions/v1/health', timer=null, busy=false, last=null;
+ var endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health', fallbackEndpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health', timer=null, busy=false, last=null;
  function el(id){return document.getElementById(id)}
- function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Lovable operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
+ function render(ok,detail){var b=el('sintergia-backend-health'),t=el('sintergia-backend-health-text');if(!b||!t)return;last={ok:ok,at:new Date().toISOString(),detail:detail||''};if(ok){b.classList.remove('err');b.classList.add('ok');b.style.display='none';t.textContent='🟢 Backend Supabase operativo';}else{b.classList.remove('ok');b.classList.add('err');b.style.display='flex';t.innerHTML='⚠️ <strong>Backend no disponible.</strong> Las operaciones locales siguen guardadas y se sincronizarán al recuperar conexión. <small>'+String(detail||'Sin respuesta').replace(/[<>]/g,'')+'</small>';}}
  async function ping(manual){if(busy)return false;busy=true;try{if(!navigator.onLine){render(false,'Sin conexión a Internet');return false;}var c=new AbortController(),to=setTimeout(function(){c.abort()},7000);var r=await fetch(endpoint,{method:'GET',cache:'no-store',credentials:'omit',signal:c.signal,headers:{'X-Sintergia-Health-Check':'1'}});clearTimeout(to);if(!r.ok && endpoint!==fallbackEndpoint){r=await fetch(fallbackEndpoint,{method:'GET',cache:'no-store',credentials:'omit',headers:{'X-Sintergia-Health-Check':'1'}});}if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json().catch(function(){return null});if(!d||d.ok!==true)throw new Error((d&&d.message)||'health=false o respuesta inválida');render(true,'OK');return true;}catch(e){render(false,e&&e.name==='AbortError'?'Timeout':(e&&e.message||'Sin respuesta'));return false;}finally{busy=false;}}
  function start(){ping(false);if(timer)clearInterval(timer);timer=setInterval(function(){if(!document.hidden)ping(false)},30000);window.addEventListener('online',function(){ping(true);try{window.SintergiaOffline&&window.SintergiaOffline.flush&&window.SintergiaOffline.flush()}catch(_){window.__sgIgn&&window.__sgIgn(_);} });window.addEventListener('offline',function(){render(false,'Sin conexión de red')});}
  window.SintergiaBackendHealth={ping:ping,last:function(){return last},start:start,endpoint:endpoint};
@@ -2692,9 +2691,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </script>
 <script id="sintergia-backend-contracts">
 /*
- CONTRATO JSON MÍNIMO PARA LOVABLE — RUTAS IA / BIOMETRÍA / HEALTH
+ CONTRATO JSON MÍNIMO PARA SUPABASE — RUTAS IA / BIOMETRÍA / HEALTH
 
- GET /api/public/health (o GET /functions/v1/health)
+ GET https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health
    -> 200 {"ok":true,"service":"sintergia","version":"...","timestamp":"ISO-8601"}
    -> cualquier 4xx/5xx o timeout = backend no disponible.
 
@@ -2734,12 +2733,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
 <script id="sintergia-offline-first-v3">
 /* =====================================================================
-   SINTERGIASE APP · OFFLINE-FIRST / LOVABLE BACKEND BRIDGE v3
+   SINTERGIASE APP · OFFLINE-FIRST / SUPABASE BACKEND BRIDGE v3
    - LocalStorage es la fuente de trabajo cuando no hay backend/internet.
    - Cada cambio guarda un snapshot y se añade a una cola durable.
    - Las llamadas POST a API/Edge Functions que fallen por red quedan en
      una cola durable y se reintentan al recuperar conexión.
-   - Los reintentos llevan X-Sintergia-Request-ID para que Lovable pueda
+   - Los reintentos llevan X-Sintergia-Request-ID para que Supabase pueda
      aplicar idempotencia y no duplicar avisos, partes, facturas, emails,
      citas o trabajos de IA/rutas.
    - El backend debe exponer /functions/v1/realtime-snapshot y, opcionalmente, /functions/v1/sync-operations.
@@ -2827,8 +2826,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function uuid(){try{if(crypto.randomUUID)return crypto.randomUUID();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return 'sint-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}
   function deviceId(){let id='';try{id=sessionStorage.getItem(LS.device)||localStorage.getItem(LS.device)||'';}catch(_){window.__sgIgn&&window.__sgIgn(_);}if(!id){id=uuid();try{sessionStorage.setItem(LS.device,id);localStorage.setItem(LS.device,id);}catch(_){window.__sgIgn&&window.__sgIgn(_);}}return id;}
   const DEVICE=deviceId();
-  function sameOriginApi(url){try{const u=new URL(url,location.href);return u.origin===location.origin && (/^\/functions\//.test(u.pathname)||u.pathname==='/functions/v1/realtime-snapshot');}catch(_){return false;}}
-  function excluded(url){try{const p=new URL(url,location.href).pathname;return /\/authenticate(?:$|\/)/.test(p)||/\/health(?:$|\/)/.test(p)||p==='/functions/v1/realtime-snapshot';}catch(_){return true;}}
+  function sameOriginApi(url){try{const u=new URL(url,location.href);return u.origin===location.origin && (/^\/functions\//.test(u.pathname)||u.pathname==='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot');}catch(_){return false;}}
+  function excluded(url){try{const p=new URL(url,location.href).pathname;return /\/authenticate(?:$|\/)/.test(p)||/\/health(?:$|\/)/.test(p)||p==='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';}catch(_){return true;}}
   function toast(msg){try{if(window.mostrarToast)window.mostrarToast(msg);}catch(_){window.__sgIgn&&window.__sgIgn(_);} }
   function getQ(k){const q=read(k,[]);return Array.isArray(q)?q:[];}
   function putQ(k,q){
@@ -3488,7 +3487,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(!operationValid(item)){
       throw Object.assign(new Error('Operación de sincronización inválida'),{permanent:true,validation:true});
     }
-    const endpoint=(CFG.sync&&CFG.sync.operationsEndpoint)||'/functions/v1/sync-operations';
+    const endpoint=(CFG.sync&&CFG.sync.operationsEndpoint)||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations';
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'});
     const headers=new Headers(hdr);
     headers.set('Content-Type','application/json');
@@ -3523,7 +3522,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return {ok:true,data:data||null};
   }
   async function postSnapshot(item){
-    const endpoint='/functions/v1/realtime-snapshot';
+    const endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
     const payload={channel:CHANNEL,snapshot:item.snapshot,deviceId:DEVICE,clientChangeId:item.id,clientUpdatedAt:item.snapshot&&item.snapshot.clientUpdatedAt||item.createdAt};
     const r=await rawFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Sintergia-Request-ID':item.id},credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -3564,7 +3563,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       }
       putQ(LS.api,remain);
       /* P41: operaciones idempotentes. Si el endpoint aún no existe, el snapshot
-         completo actúa como fallback y conserva la compatibilidad con Lovable. */
+         completo actúa como fallback y conserva la compatibilidad con Supabase. */
       let oq=getQ(LS.operations), opKeep=[], operationEndpointUnsupported=false;
       for(const item of oq){
         try{
@@ -3665,7 +3664,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 })();
 </script>
 
-<!-- LOVABLE DEPLOY CONTRACT (offline-first): la URL de producción es la del proyecto Lovable.
+<!-- SUPABASE DEPLOY CONTRACT (offline-first): la URL de producción es la del proyecto Supabase.
      El frontend usa rutas relativas para que el mismo HTML funcione en preview y producción.
      Backend recomendado: POST /functions/v1/realtime-snapshot (snapshot fusionado por deviceId/revision) y
      POST /functions/v1/sync-operations (opcional, para auditoría/operaciones). Todas las operaciones
@@ -3850,7 +3849,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
   window.__SINTERGIA_BACKEND_FETCH_BRIDGE__=true;
   var nativeFetch=window.fetch.bind(window);
   function base(){
-    var raw=window.SINTERGIA_BACKEND_ORIGIN||window.SUPABASE_URL||'';
+    var raw='https://bgjicsowspppsjzigazb.supabase.co';
     try{return new URL(String(raw),window.location.href).toString().replace(/\/$/,'');}catch(_){return '';}
   }
   window.sintergiaResolveEndpoint=window.sintergiaResolveEndpoint||function(raw){
@@ -3875,16 +3874,6 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
   };
 })();
 </script>
-<script id="sintergia-biometric-error-helper">
-window.sgBioErrMsg=window.sgBioErrMsg||function(e){
-  var m=String(e&&e.message||e||'');
-  if(e&&e.name==='NotAllowedError') return 'Operación cancelada o no permitida por el dispositivo.';
-  if(e&&e.name==='SecurityError') return 'Biometría bloqueada por el origen. La aplicación debe abrirse mediante HTTPS y el dominio debe estar autorizado en ALLOWED_ORIGINS.';
-  if(e&&e.name==='TypeError'&&/fetch|network|load failed/i.test(m)) return 'No se pudo contactar con el servidor biométrico. Comprueba la conexión con Supabase y ALLOWED_ORIGINS.';
-  return m||'No se pudo procesar la biometría.';
-};
-</script>
-<script id="sintergia-three-local-guard">window.__SINTERGIA_THREE_REMOTE_DISABLED=true;</script>
 </head>
 <body>
 <div id="sintergia-landing" role="document">
@@ -4630,7 +4619,7 @@ function play(){
         </form>
 
         <div class="access-security-note">
-            El acceso local no sustituye a una autenticación de servidor. En Lovable Cloud, valida la identidad en el backend y devuelve una sesión con caducidad.
+            El acceso local no sustituye a una autenticación de servidor. En backend Supabase, valida la identidad en el backend y devuelve una sesión con caducidad.
         </div>
     </div>
 </div>
@@ -4668,7 +4657,7 @@ function play(){
 
   function endpoint() {
     var cfg = window.SINTERGIA_BACKEND || {};
-    return (cfg.auth && cfg.auth.endpoint) || '/functions/v1/authenticate';
+    return (cfg.auth && cfg.auth.endpoint) || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate';
   }
 
   function guardarSesion(data) {
@@ -5838,7 +5827,7 @@ function play(){
         </div>
         <div class="email-api-grid">
             <div><label>Proveedor</label><select id="email-api-provider"><option value="gmail">Gmail API</option><option value="custom">Endpoint propio compatible</option></select></div>
-            <div><label>Endpoint de envío (backend Lovable/Supabase)</label><input id="email-api-endpoint" type="url" placeholder="/functions/v1/send-email"></div>
+            <div><label>Endpoint de envío (backend Supabase/Supabase)</label><input id="email-api-endpoint" type="url" placeholder="/functions/v1/send-email"></div>
             <div><label>Email remitente verificado</label><input id="email-api-from" type="email" value="sintergiase@gmail.com" placeholder="sintergiase@gmail.com"></div><div><label>Dominio</label><input id="email-api-domain" type="text" value="gmail.com" readonly></div>
             <div><label>Nombre remitente</label><input id="email-api-from-name" type="text" placeholder="SintergiaSE"></div>
             <div><label>API Key</label><input id="email-api-key" type="password" autocomplete="off" placeholder="Se guarda SOLO como secreto del backend" disabled></div>
@@ -6076,7 +6065,7 @@ function play(){
         emailApi: __safeParse(localStorage.getItem('sintergia_email_api_v1')) || {
             provider: 'gmail',
             domain: 'gmail.com',
-            endpoint: '/functions/v1/send-email',
+            endpoint: 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email',
             apiKey: '',
             backendOnly: true,
             from: 'sintergiase@gmail.com',
@@ -8396,32 +8385,19 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         return `<div style="font-family:Arial,sans-serif;color:#222;line-height:1.5"><h2 style="color:#0F2B48">SintergiaSE</h2><p>Estimado/a ${n},</p><p>Adjuntamos la documentación correspondiente al ${doc}.</p>${bloqueFactura}<p style="font-size:12px;color:#666">La confirmación de lectura es automática: no es necesario que responda ni pulse ningún botón de confirmación.</p><p>Atentamente,<br>SintergiaSE</p>${pixel}</div>`;
     }
 
-    /* ==== Recibos subidos por el cliente (Lovable Cloud) ==== */
+    /* ==== Recibos subidos por el cliente (backend Supabase) ==== */
     const RECIBO_TOKENS_KEY='sintergia_recibo_tokens_v1';
     function leerReciboTokens(){ try{ return JSON.parse(localStorage.getItem(RECIBO_TOKENS_KEY)||'{}')||{}; }catch(_){ return {}; } }
-    function guardarReciboTokens(m){try{localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));}catch(_){window.__sgIgn&&window.__sgIgn(_);}}
-    function marcarReciboToken(token,estado,extra){const m=leerReciboTokens();if(!m[token])return;m[token]=Object.assign(m[token],{estado:estado,upd:Date.now()},extra||{});guardarReciboTokens(m);}
-    /* Estados: PENDING -> REGISTERED | FAILED_RETRYABLE | FAILED_PERMANENT. REGISTERED solo tras 2xx/409 del servidor. */
-    async function registrarReciboToken(token,factura){
-        if(!token||!factura)return;
-        const importe=Math.round(Number(factura.total)*100)/100;
-        const m=leerReciboTokens(); if(m[token]&&m[token].estado==='REGISTERED')return;
-        m[token]=Object.assign(m[token]||{},{idDoc:factura.idDoc,at:(m[token]&&m[token].at)||Date.now(),estado:'PENDING'}); guardarReciboTokens(m);
-        if(!isFinite(importe)||importe<0){marcarReciboToken(token,'FAILED_PERMANENT',{err:'importe inválido'});return;}
-        const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
+    function registrarReciboToken(token,factura){
         try{
-            const r=await fetch('/functions/v1/receipt-register',{method:'POST',signal:ctrl.signal,cache:'no-store',credentials:'omit',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:importe,cliente:factura.clienteNombre||''})});
-            clearTimeout(timer);
-            if(r.ok||r.status===409)marcarReciboToken(token,'REGISTERED',{err:''});
-            else if(r.status===400)marcarReciboToken(token,'FAILED_PERMANENT',{err:'HTTP 400'});
-            else marcarReciboToken(token,'FAILED_RETRYABLE',{err:'HTTP '+r.status});
-        }catch(e){clearTimeout(timer);marcarReciboToken(token,'FAILED_RETRYABLE',{err:String(e&&e.message||e)});window.__sgIgn&&window.__sgIgn(e);}
+            const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
+            fetch('/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
+        }catch(_){window.__sgIgn&&window.__sgIgn(_);}
     }
     async function sincronizarRecibosClientes(){
         if(location.protocol==='file:') return;
-        { const pend=leerReciboTokens(); for(const t of Object.keys(pend)){ const e=pend[t]; if(e.estado==='REGISTERED'||e.estado==='FAILED_PERMANENT') continue; if((e.n||0)>=5){marcarReciboToken(t,'FAILED_PERMANENT',{});continue;} const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(e.idDoc)); if(!f) continue; marcarReciboToken(t,e.estado||'PENDING',{n:(e.n||0)+1}); await registrarReciboToken(t,f); } }
         const m=leerReciboTokens(); const tokens=[];
-        Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(!f||f.estado==='Cobrado'||!sgFacturaAdmiteRecibo(f)){ if(!f||Date.now()-m[t].at>90*864e5) delete m[t]; return; } if(m[t].estado==='REGISTERED') tokens.push(t); });
+        Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(!f||f.estado==='Cobrado'||!sgFacturaAdmiteRecibo(f)){ if(!f||Date.now()-m[t].at>90*864e5) delete m[t]; return; } tokens.push(t); });
         localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
         if(!tokens.length) return;
         try{
@@ -8429,7 +8405,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{
                 const idx=(appState.facturas||[]).findIndex(x=>String(x.idDoc)===String(res.factura_id)); if(idx<0) return;
-                const f=appState.facturas[idx]; if(f.estado==='Cobrado'||String(f.estado||'').toLowerCase()==='devuelta'||!sgFacturaAdmiteRecibo(f)) return;
+                const f=appState.facturas[idx]; if(f.estado==='Cobrado'||String(f.estado||'').toLowerCase()==='devuelta'||!sgFacturaAdmiteRecibo(f)) return; /* P64-D5 */
                 if(f.reciboVerificadoAt&&res.verified_at&&new Date(f.reciboVerificadoAt)>=new Date(res.verified_at)) return;
                 if(res.file_base64){ f.reciboDataUrl='data:'+(res.content_type||'application/octet-stream')+';base64,'+res.file_base64; f.reciboFileType=res.content_type||''; f.reciboNombreArchivo=res.filename||'recibo'; f.reciboRecibidoAt=res.verified_at; }
                 f.reciboVerificacionMotivo=res.motivo||''; f.reciboVerificadoAt=res.verified_at||new Date().toISOString();
@@ -9725,7 +9701,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
 
     function normalizarEndpointBackendSintergia(valor, fallback) {
         const raw = String(valor || '').trim();
-        const def = String(fallback || '/functions/v1/send-email');
+        const def = String(fallback || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email');
         if (!raw) return def;
         try {
             const u = new URL(raw, window.location.origin);
@@ -13657,7 +13633,7 @@ VERIFICACIONES FINALES
         window.SintergiaRealtime={
             publish:async function(snapshot){
                 try{
-                    const r=await fetch('/functions/v1/realtime-snapshot',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({channel:cfg.realtime?.channel||'sintergia-realtime',snapshot})});
+                    const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({channel:cfg.realtime?.channel||'sintergia-realtime',snapshot})});
                     return r.ok;
                 }catch(_){return false;}
             },
@@ -13811,7 +13787,7 @@ var originalSync=RutasIA.sincronizarRespuestas;
 // Recordatorio automático de cita: reintenta un único envío (por el mismo
 // canal con el que se propuso la cita) cuando el cliente lleva REMINDER_MS
 // sin contestar. Si el backend/Edge Function aún no está configurado en
-// Lovable, se marca "recordatorioFallido" para que la interfaz ofrezca un
+// Supabase, se marca "recordatorioFallido" para que la interfaz ofrezca un
 // botón de envío manual en su lugar (ver RutasIA.enviarRecordatorioManual).
 async function enviarRecordatorioAutomatico(id){
     var c=cita(id), fp=findParada(id);
@@ -13825,7 +13801,7 @@ async function enviarRecordatorioAutomatico(id){
     var destino=canal==='whatsapp'?tel:email;
     if(!destino) return false;
     try{
-        await post('/functions/v1/cita-recordatorio',{
+        await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-recordatorio',{
             token:c.token||'', avisoId:id, canal:canal, to:destino, from:(canal==='email'?'sintergiase@gmail.com':''), provider:(canal==='email'?'gmail':''), cliente:p.cliente,
             fecha:p.fecha, hora:p.hora, horaFin:p.horaFin, duracionMin:p.duracionMin,
             direccion:p.dir, descripcion:p.desc,
@@ -14109,7 +14085,7 @@ document.addEventListener('DOMContentLoaded',function(){
 (function(){
 'use strict';
 const SYNC_CHANNEL=(window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.realtime&&window.SINTERGIA_BACKEND.realtime.channel)||'sintergia-realtime';
-const SYNC_API='/functions/v1/realtime-snapshot';
+const SYNC_API='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
 const MAX_SYNC_BYTES=5*1024*1024;
 function backendFetch(url,options){const u=new URL(url,window.location.origin);if(u.origin!==window.location.origin)throw new Error('Endpoint de backend no permitido.');return fetch(u.toString(),options);}
 function syncToast(msg){if(typeof window.mostrarToast==='function')window.mostrarToast(msg);else if(window.__mostrarErrorApp)window.__mostrarErrorApp(msg);}
@@ -14211,7 +14187,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
   var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},30000);
   try{
    var prompt='Eres el jefe técnico de SintergiaSE, empresa instaladora eléctrica autorizada. Reescribe las notas del técnico como descripción profesional para un parte de trabajo, en español de España, tono formal y técnico, frases breves, voz impersonal en pasado (por ejemplo: "Se sustituye...", "Se verifica..."). Reglas estrictas: no inventes trabajos, materiales, medidas, referencias ni cifras que no aparezcan en las notas; conserva todas las cantidades y referencias tal cual; no añadas saludos, títulos ni comentarios; no uses emojis; no incluyas direcciones ni horas. Devuelve SOLO el texto reescrito.\n\nNOTAS DEL TÉCNICO:\n'+base;
-   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
+   var r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
    if(!r.ok)throw new Error('IA no disponible (HTTP '+r.status+')');
    var nuevo=extraer(await r.json());
    if(nuevo.length<8)throw new Error('respuesta vacía');
@@ -14308,7 +14284,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
   var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(_){window.__sgIgn&&window.__sgIgn(_);}},30000);
   try{
    var prompt='Eres el responsable de atención al cliente de SintergiaSE, empresa instaladora eléctrica. Redacta UN párrafo breve (60 a 110 palabras) para explicar al cliente, en español de España, con lenguaje claro y cercano pero profesional, qué trabajo se ha realizado. Reglas estrictas: usa solo la información facilitada; no inventes trabajos, materiales, garantías ni plazos; no menciones precios ni importes; no incluyas saludo, despedida, firma ni nombre del cliente; sin emojis; sin listas. Devuelve SOLO el párrafo.\n\nTRABAJO REALIZADO (notas del técnico):\n'+d+'\n\nDATOS:'+(datos()||' sin datos adicionales.');
-   var r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
+   var r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',signal:c.signal,body:JSON.stringify({model:'auto',prompt:prompt})});
    if(!r.ok)throw new Error('HTTP '+r.status);
    var p=extraer(await r.json()).replace(/\s*\n+\s*/g,' ');
    if(p.length<30||p.length>1200)throw new Error('respuesta no válida');
@@ -14415,7 +14391,7 @@ window.sgKmTrayecto=async function(ini,fin){
 };
 
 window.obtenerSnapshotSincronizacion=function(){try{const st=window.appState||{};const now=new Date().toISOString();let rev=parseInt(localStorage.getItem('sintergia_sync_revision')||'0',10);if(!Number.isFinite(rev)||rev<0)rev=0;rev+=1;localStorage.setItem('sintergia_sync_revision',String(rev));let sourceId=sessionStorage.getItem('sintergia_device_id');if(!sourceId){sourceId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();sessionStorage.setItem('sintergia_device_id',sourceId);}const snapshot={version:7,updatedAt:now,clientUpdatedAt:now,revision:rev,sourceId,deviceId:sourceId,clientes:st.clientes||[],partes:st.partes||[],facturas:st.facturas||[],pendientes:st.pendientes||[],stock:st.stock||[],stockListas:st.stockListas||[],partCounter:st.partCounter,facCounter:st.facCounter,horario:st.horario||null,compras:st.compras||[],tombstones:getTombstones(),entityVersioning:true};const raw=JSON.stringify(snapshot);if(raw.length>MAX_SYNC_BYTES)throw new Error('El estado supera el límite de sincronización de 5 MB.');return JSON.parse(raw);}catch(e){if(window.__mostrarErrorApp)window.__mostrarErrorApp('Sincronización: '+(e.message||e));return null;}};
-/* P13: healthcheck runtime no invasivo para Lovable/PWA. */
+/* P13: healthcheck runtime no invasivo para Supabase/PWA. */
 window.SintergiaRuntimeHealth=function(){
   const checks={};
   try{checks.appState=!!window.appState;checks.storage=typeof window.guardarEstadoStorage==='function';checks.snapshot=typeof window.obtenerSnapshotSincronizacion==='function';checks.applySnapshot=typeof window.aplicarSnapshotSincronizacion==='function';checks.realtime=!!window.SintergiaRealtime&&typeof window.SintergiaRealtime.publish==='function';checks.gps=typeof window.obtenerTelemetriaGPSPro==='function';checks.firma=typeof window.abrirModalFirma==='function';checks.online=navigator.onLine!==false;}catch(_){return {ok:false,checks:{},error:'healthcheck'};}
@@ -14437,8 +14413,8 @@ window.probarSincronizacionMultidispositivo=async function(){const st=document.g
 let ultimoHash='';function hashSimple(o){try{return JSON.stringify(o);}catch(_){return'';}}setInterval(async function(){if(document.hidden||localStorage.getItem('sintergia_modo_flujo_real')!=='1')return;try{const remote=await obtenerRemoto();if(!remote)return;const h=hashSimple(remote);if(!h||h===ultimoHash)return;ultimoHash=h;const local=window.obtenerSnapshotSincronizacion();if(hashSimple(local)!==h&&confirm('🌐 Hay cambios nuevos en otro dispositivo. ¿Actualizar este dispositivo?')){window.aplicarSnapshotSincronizacion(remote);syncToast('🔄 Estado actualizado desde otro dispositivo.');}}catch(_){window.__sgIgn&&window.__sgIgn(_);}},10000);
 function contextoDiagnostico(){const senal=window.SenalApp&&window.SenalApp.estado?window.SenalApp.estado():{};const snap=window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion();return{online:navigator.onLine,secureContext:window.isSecureContext,gps:senal.gps||null,network:senal.net||null,localStorageVolatil:!!window.__almacenamientoVolatil,modoFlujoReal:localStorage.getItem('sintergia_modo_flujo_real')==='1',snapshotSummary:snap?{clientes:snap.clientes.length,partes:snap.partes.length,facturas:snap.facturas.length,pendientes:snap.pendientes.length}:null,userAgent:navigator.userAgent};}
 function renderAI(cycle,result){const log=document.getElementById('sync-ai-log');if(!log)return;log.style.display='block';const causes=Array.isArray(result.causes)?result.causes.map(x=>'• '+(typeof x==='string'?x:(x.cause||x.description||JSON.stringify(x)))).join('\n'):'• '+(result.causes||'No especificadas');const steps=Array.isArray(result.steps)?result.steps.map(x=>'• '+(typeof x==='string'?x:(x.step||x.description||JSON.stringify(x)))).join('\n'):'• '+(result.steps||'No especificados');const repair=result.repair?'\nREPARACIÓN SUGERIDA:\n'+(typeof result.repair==='string'?result.repair:JSON.stringify(result.repair,null,2)):'';log.textContent+='\n===== CICLO '+cycle+' =====\nDIAGNÓSTICO:\n'+(result.diagnosis||result.message||'Sin diagnóstico')+'\nCAUSAS:\n'+causes+'\nPASOS:\n'+steps+repair+'\n';}
-async function llamarAIGateway(problem,context,cycle,previous){const payload={model:'auto',prompt:'Diagnostica un problema de sincronización multidispositivo de una app web. Devuelve diagnóstico factual, causas probables, pasos concretos y una reparación segura. No inventes acceso al servidor. Si falta backend, indícalo. Ciclo '+cycle+'. Problema del usuario: '+problem,context:{...context,previous}};if(problem.length>4000)throw new Error('La descripción es demasiado larga (máximo 4.000 caracteres).');const r=await backendFetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);const d=await r.json();return d.result||d;}
-window.diagnosticarSincronizacionAI=async function(){const problem=(document.getElementById('sync-ai-problema')?.value||'').trim();const cycles=Math.min(3,Math.max(1,parseInt(document.getElementById('sync-ai-ciclos')?.value||'3',10)));const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(!problem){alert('Describe primero el problema de sincronización.');return;}if(st){st.className='sync-ai-status';st.textContent='Analizando…';}if(log){log.style.display='block';log.textContent='';}let previous=null,stable=false;for(let i=1;i<=cycles;i++){try{if(i>1){const snap=window.obtenerSnapshotSincronizacion();if(snap)await window.SintergiaRealtime.publish(snap);try{await obtenerRemoto();}catch(_){window.__sgIgn&&window.__sgIgn(_);}}const result=await llamarAIGateway(problem,contextoDiagnostico(),i,previous);renderAI(i,result);previous=result;stable=!!(result.stable||result.resolved||result.status==='resolved'||result.ok===true);if(stable)break;}catch(e){if(log)log.textContent+='\n===== CICLO '+i+' =====\n❌ '+(e.message||e)+'\n';if(st){st.className='sync-ai-status error';st.textContent='El AI Gateway no respondió. Revisa que exista /functions/v1/ai-gateway en el backend de Lovable.';}return;}}if(st){st.className=stable?'sync-ai-status ok':'sync-ai-status';st.textContent=stable?'Diagnóstico terminado: el modelo ha indicado resolución/estabilidad.':'Diagnóstico terminado: revisa las causas y pasos del último ciclo.';}};
+async function llamarAIGateway(problem,context,cycle,previous){const payload={model:'auto',prompt:'Diagnostica un problema de sincronización multidispositivo de una app web. Devuelve diagnóstico factual, causas probables, pasos concretos y una reparación segura. No inventes acceso al servidor. Si falta backend, indícalo. Ciclo '+cycle+'. Problema del usuario: '+problem,context:{...context,previous}};if(problem.length>4000)throw new Error('La descripción es demasiado larga (máximo 4.000 caracteres).');const r=await backendFetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);const d=await r.json();return d.result||d;}
+window.diagnosticarSincronizacionAI=async function(){const problem=(document.getElementById('sync-ai-problema')?.value||'').trim();const cycles=Math.min(3,Math.max(1,parseInt(document.getElementById('sync-ai-ciclos')?.value||'3',10)));const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(!problem){alert('Describe primero el problema de sincronización.');return;}if(st){st.className='sync-ai-status';st.textContent='Analizando…';}if(log){log.style.display='block';log.textContent='';}let previous=null,stable=false;for(let i=1;i<=cycles;i++){try{if(i>1){const snap=window.obtenerSnapshotSincronizacion();if(snap)await window.SintergiaRealtime.publish(snap);try{await obtenerRemoto();}catch(_){window.__sgIgn&&window.__sgIgn(_);}}const result=await llamarAIGateway(problem,contextoDiagnostico(),i,previous);renderAI(i,result);previous=result;stable=!!(result.stable||result.resolved||result.status==='resolved'||result.ok===true);if(stable)break;}catch(e){if(log)log.textContent+='\n===== CICLO '+i+' =====\n❌ '+(e.message||e)+'\n';if(st){st.className='sync-ai-status error';st.textContent='El AI Gateway no respondió. Revisa que exista /functions/v1/ai-gateway en el backend de Supabase.';}return;}}if(st){st.className=stable?'sync-ai-status ok':'sync-ai-status';st.textContent=stable?'Diagnóstico terminado: el modelo ha indicado resolución/estabilidad.':'Diagnóstico terminado: revisa las causas y pasos del último ciclo.';}};
 window.SintergiaDiagnostico={contexto:contextoDiagnostico,reverseGeocode:reverseGeocodeDireccion,probarSync:window.probarSincronizacionMultidispositivo};
 })();
 </script>
@@ -14664,7 +14640,7 @@ async function escanear(){
   if(receiptFile.size>15*1024*1024)throw new Error('El archivo supera 15 MB.');
   const b64=await fileBase64(receiptFile);
   const prompt='Analiza esta factura o recibo de COMPRA DE MATERIAL para una empresa instaladora eléctrica. Extrae SOLO datos visibles, sin inventar. Detecta especialmente si aparece una referencia de PARTE de trabajo con formato PT26-xxxxxx o equivalente. Devuelve JSON estricto: {proveedor:"",fecha:"",numero:"",parteReferencia:"",confianzaParte:0,items:[{descripcion:"",marca:"",referencia:"",codigoBarras:"",categoria:"",unidades:0,costeUnitario:0}]}. Si no aparece un dato, usa cadena vacía o 0. En unidades usa la cantidad comprada. Prioriza referencias de fabricante visibles. Si hay varios posibles números de parte, usa parteReferencia solo si uno está claramente asociado a la compra.';
-  async function callAI(provider,model){const payload={api:'responses',provider,model,prompt,input:prompt,responseFormat:'json',task:'purchase_invoice_material_extraction',document:{name:receiptFile.name,type:receiptFile.type,dataBase64:b64}};const r=await fetch('/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);return await r.json()}
+  async function callAI(provider,model){const payload={api:'responses',provider,model,prompt,input:prompt,responseFormat:'json',task:'purchase_invoice_material_extraction',document:{name:receiptFile.name,type:receiptFile.type,dataBase64:b64}};const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});if(!r.ok)throw new Error('AI Gateway HTTP '+r.status);return await r.json()}
   let d;try{d=await callAI('google','gemini-3.7-flash')}catch(_){d=await callAI('openai','auto')}
   let out=d&&(d.result??d.output??d.response??d);if(typeof out==='string'){const clean=out.replace(/^```json\s*|^```\s*|\s*```$/g,'').trim();const mm=clean.match(/\{[\s\S]*\}/);out=JSON.parse(mm?mm[0]:clean)}
   out=out||{};
@@ -14718,7 +14694,7 @@ function renderCompras(){fillParts();instalarEventosComprasDelegados();const w=d
 async function preview(i){const c=state.compras[i];if(!c)return;const b=document.getElementById('compra-preview-body'),m=document.getElementById('compra-preview-modal');let img='';try{const r=await getReceipt(c.receiptKey);if(r&&r.file.type.startsWith('image/'))img=URL.createObjectURL(r.file)}catch(_){window.__sgIgn&&window.__sgIgn(_);}b.innerHTML=`<div class="doc-note"><b>SintergiaSE · Compra ${escH(c.id)}</b></div><p><b>Parte:</b> ${refHtml(c.parteId)} · <b>Aviso:</b> ${refHtml(c.avisoId)} · <b>Estado material:</b> ${escH(c.estadoMaterial||'—')}</p><p><b>Proveedor:</b> ${escH(c.proveedor)} · <b>Factura:</b> ${escH(c.numeroFactura)}</p><table class="data-table"><thead><tr><th>Material</th><th>Ud.</th><th>Coste ud.</th><th>PVP ud.</th><th>Total PVP</th></tr></thead><tbody>${c.items.map(x=>`<tr><td>${escH(x.descripcion)}</td><td>${escH(String(x.unidades))}</td><td>${Number(x.costeUnitario).toFixed(2)} €</td><td>${Number(x.pvpUnitario).toFixed(2)} €</td><td>${(x.unidades*x.pvpUnitario).toFixed(2)} €</td></tr>`).join('')}</tbody></table><p><b>Coste:</b> ${Number(c.costeTotal).toFixed(2)} € · <b>PVP:</b> ${Number(c.pvpTotal).toFixed(2)} € · <b>Margen aplicado:</b> 25%</p>${img?`<img class="compra-thumb" src="${escH(img)}" alt="Recibo">`:c.receiptName?'<p>📎 Recibo adjunto. La previsualización directa de PDF se gestiona desde el visor del navegador.</p>':''}`;m.style.display='flex'}
 function cerrarPreview(){document.getElementById('compra-preview-modal').style.display='none'}
 
-/* Biometría: WebAuthn/Passkey. Se registra y se verifica contra el backend (registerBiometricEndpoint / authenticateBiometricEndpoint) cuando existe; si no responde, funciona igualmente como desbloqueo local basado en el autenticador de la plataforma. */
+/* Biometría: WebAuthn/Passkey. Se registra y se verifica obligatoriamente contra Supabase mediante registerBiometricEndpoint / authenticateBiometricEndpoint; si el backend no responde, no se acepta un desbloqueo local como sustituto. */
 function b64u(buf){const a=new Uint8Array(buf);let s='';for(const b of a)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function ub64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);return Uint8Array.from(b,c=>c.charCodeAt(0))}
 async function biometricEnroll(){
@@ -14727,7 +14703,7 @@ async function biometricEnroll(){
   const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
   const t=window.SintergiaTechnician||{};
   if(!t.nombre||!t.dni){alert('Inicia sesión con nombre completo y DNI antes de registrar la biometría.');return}
-  const ep=window.SINTERGIA_BACKEND?.auth?.registerBiometricEndpoint||'/functions/v1/register-biometric';
+  const ep=window.SINTERGIA_BACKEND?.auth?.registerBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/register-biometric';
   const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
   const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-REG-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
   const rr=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',technician:{id:t.id||'',nombre:t.nombre,dni:t.dni}})});
@@ -14749,7 +14725,7 @@ async function biometricEnroll(){
   audit('BIOMETRIC_ENROLL','Biometría registrada y verificada en backend');
   alert('Biometría configurada y registrada en el servidor.');
   renderSecurityBio();
- }catch(e){alert('No se pudo configurar la biometría: '+window.sgBioErrMsg(e))}
+ }catch(e){alert('No se pudo configurar la biometría: '+(e.message||e))}
 }
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
@@ -14764,25 +14740,13 @@ async function verificarBiometriaBackend(assertion){
     if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false};
     const d=await r.json().catch(()=>null);
     if(!d)return{attempted:true,available:false,ok:false};
-    if(d.ok && d.session && d.session.token){
-      try{
-        window.SintergiaAuthToken=String(d.session.token);
-        sessionStorage.setItem('sintergia_auth_token',JSON.stringify({
-          token:String(d.session.token),
-          scope:d.session.scope||null,
-          id:d.session.id||null,
-          expiresAt:d.session.expiresAt||null,
-          biometric:true
-        }));
-      }catch(e){ if(window.__sgIgn) window.__sgIgn(e); }
-    }
-    return{attempted:true,available:true,ok:!!d.ok,session:d.session||null};
+    return{attempted:true,available:true,ok:!!d.ok};
   }catch(_){return{attempted:true,available:false,ok:false}}
 }
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
   try{
-    const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'/functions/v1/authenticate-biometric';
+    const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
     const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
@@ -14797,10 +14761,6 @@ async function biometricUnlock(){
     if(!res.attempted||!res.available){alert('⚠️ El backend biométrico no está disponible. Por seguridad no se desbloquea la sesión.');audit('BIOMETRIC_UNLOCK_FAIL','Backend biométrico no disponible');return false}
     if(!res.ok){alert('⚠️ El servidor ha rechazado la credencial biométrica.');audit('BIOMETRIC_UNLOCK_FAIL','Rechazado por backend');return false}
     sessionStorage.setItem('sintergia_biometric_auth','1');
-    if(res.session?.token){
-      window.SintergiaAuthToken=String(res.session.token);
-      try{sessionStorage.setItem('sintergia_auth_token',JSON.stringify({token:String(res.session.token),scope:res.session.scope||null,id:res.session.id||null,expiresAt:res.session.expiresAt||null,biometric:true}));}catch(e){if(window.__sgIgn)window.__sgIgn(e);}
-    }
     audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend');
     return true;
   }catch(e){alert('No se pudo validar la biometría: '+(e.message||e));return false}
@@ -15602,7 +15562,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div id="tab-rutas-ia" class="tab-content">
     <div class="card">
         <h2 style="color:var(--primary-blue); margin-top:0;">🗺️ Rutas IA y concertación de citas</h2>
-        <div class="ria-engine-note"><b>Motor híbrido preparado para Lovable:</b> IA operativa mediante <code>/functions/v1/ai-gateway</code> + rutas reales mediante <code>/functions/v1/route-matrix</code> (Google Routes con Mapbox como respaldo de proveedor). Las claves nunca se guardan en este HTML; si el backend de rutas no responde, se usa cálculo local y se informa.</div>
+        <div class="ria-engine-note"><b>Motor híbrido preparado para Supabase:</b> IA operativa mediante <code>/functions/v1/ai-gateway</code> + rutas reales mediante <code>/functions/v1/route-matrix</code> (Google Routes con Mapbox como respaldo de proveedor). Las claves nunca se guardan en este HTML; si el backend de rutas no responde, se usa cálculo local y se informa.</div>
         <div class="ia-row">
             <div class="ria-location-field">
                 <label>Punto de partida de la jornada</label>
@@ -15699,7 +15659,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div id="tab-sync-ai" class="tab-content">
     <div class="card">
         <h2 style="color:var(--primary-blue); margin-top:0;">🔄 Diagnóstico de sincronización multidispositivo (IA)</h2>
-        <p class="ia-note">Comprueba que este dispositivo publica y lee correctamente el estado compartido, y usa el asistente de IA para diagnosticar problemas de sincronización cuando el backend de Lovable esté activo.</p>
+        <p class="ia-note">Comprueba que este dispositivo publica y lee correctamente el estado compartido, y usa el asistente de IA para diagnosticar problemas de sincronización cuando el backend de Supabase esté activo.</p>
         <div class="ia-row">
             <div style="flex:0 0 auto;"><button onclick="window.probarSincronizacionMultidispositivo()">🧪 Probar sincronización ahora</button></div>
             <div style="flex:0 0 auto;"><button class="btn-secondary" onclick="window.activarModoFlujoRealMultidispositivo()">🌐 Activar flujo real</button></div>
@@ -15811,7 +15771,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     async function ia(prompt, timeout) {
         var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.ai || {};
         if (cfg.enabled === false) throw new Error('IA desactivada');
-        var endpoint = cfg.endpoint || '/functions/v1/ai-gateway';
+        var endpoint = cfg.endpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway';
         var d = await post(endpoint, {
             api: cfg.api || 'responses',
             provider: cfg.provider || 'openai',
@@ -15834,7 +15794,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     async function iaJson(task, data, timeout) {
         var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.ai || {};
         if (cfg.enabled === false) throw new Error('IA desactivada');
-        var endpoint = cfg.endpoint || '/functions/v1/ai-gateway';
+        var endpoint = cfg.endpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway';
         var d = await post(endpoint, {
             api: cfg.api || 'responses', provider: cfg.provider || 'openai', model: cfg.model || 'auto',
             task: task, input: data, responseFormat: 'json'
@@ -15967,12 +15927,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         var cfg = window.SINTERGIA_BACKEND && window.SINTERGIA_BACKEND.routing || {};
         var res = null;
         try {
-            var d = await post(cfg.geocodeEndpoint || '/functions/v1/geocode', { q: dir, country: 'es', language: 'es' }, 12000);
+            var d = await post(cfg.geocodeEndpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode', { q: dir, country: 'es', language: 'es' }, 12000);
             var candidate = d && (d.result || d.location || d);
             if (candidate && candidate.lat != null) res = { lat: num(candidate.lat), lon: num(candidate.lon != null ? candidate.lon : candidate.lng) };
         } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* backend no disponible */ }
         /* Solo como respaldo explícito de desarrollo. En producción se recomienda que
-           Lovable/Edge Function haga toda la geocodificación para controlar cuota y CORS. */
+           Supabase/Edge Function haga toda la geocodificación para controlar cuota y CORS. */
         if (!res && window.SINTERGIA_BACKEND.routing.allowBrowserGeocodeFallback !== false) {
             try {
                 var r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=es&q=' + encodeURIComponent(dir), { headers: { 'Accept': 'application/json' } });
@@ -16001,7 +15961,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
     /*
      * Matriz de carretera opcional.
-     * La API key/proveedor nunca se expone en este HTML: Lovable/backend debe
+     * La API key/proveedor nunca se expone en este HTML: Supabase/backend debe
      * implementar /functions/v1/route-matrix y devolver:
      * { matrix: [[{durationSec, distanceMeters}, ...], ...] }
      * También se aceptan variantes duration/distance, seconds/meters.
@@ -16797,18 +16757,18 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(global){
   'use strict';
   var endpoints=[
-    ['Health','GET','/functions/v1/health','safe'],
+    ['Health','GET','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/health','safe'],
     ['Buscar normativa','GET','/functions/v1/buscar-normativa?q=REBT&tipo=todo','safe'],
-    ['Geocode','POST','/functions/v1/geocode','safe'],
+    ['Geocode','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/geocode','safe'],
     ['Reverse geocode','POST','/functions/v1/reverse-geocode','safe'],
-    ['AI Gateway','POST','/functions/v1/ai-gateway','ai'],
+    ['AI Gateway','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/ai-gateway','ai'],
     ['Consulta normativa IA','POST','/functions/v1/consulta-normativa','ai'],
-    ['Route Matrix','POST','/functions/v1/route-matrix','routing'],
+    ['Route Matrix','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix','routing'],
     ['Gasolineras','POST','/functions/v1/gasolineras','safe'],
-    ['Realtime snapshot','POST','/functions/v1/realtime-snapshot','safe'],
-    ['Sync operations','POST','/functions/v1/sync-operations','safe'],
-    ['Autenticación','POST','/functions/v1/authenticate','auth'],
-    ['Email','POST','/functions/v1/send-email','mutating'],
+    ['Realtime snapshot','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot','safe'],
+    ['Sync operations','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/sync-operations','safe'],
+    ['Autenticación','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate','auth'],
+    ['Email','POST','https://bgjicsowspppsjzigazb.supabase.co/functions/v1/send-email','mutating'],
     ['Cita email','POST','/functions/v1/cita-email','mutating'],
     ['Cita WhatsApp','POST','/functions/v1/cita-whatsapp','mutating'],
     ['Cita estado','POST','/functions/v1/cita-estado','safe'],
@@ -17243,7 +17203,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if (!origFetch) return;
     function esMatriz(url) {
       var cfg = (global.SINTERGIA_BACKEND && global.SINTERGIA_BACKEND.routing) || {};
-      var ep = cfg.matrixEndpoint || '/functions/v1/route-matrix';
+      var ep = cfg.matrixEndpoint || 'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/route-matrix';
       return String(url).indexOf(ep) !== -1;
     }
     async function matrizLocal(body) {
@@ -17704,13 +17664,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   'use strict';
   if (!('serviceWorker' in navigator)) return;
   if (!window.isSecureContext) return;
-  // No registrar en vistas previas de Lovable ni dentro de un iframe: evita servir HTML caducado.
+  // No registrar en vistas previas de Supabase ni dentro de un iframe: evita servir HTML caducado.
   var h = location.hostname;
   var previa = (window.top !== window.self)
     || /^(id-)?preview--/.test(h)
-    || /(^|\.)lovableproject\.com$/.test(h)
-    || /(^|\.)lovableproject-dev\.com$/.test(h)
-    || /(^|\.)beta\.lovable\.dev$/.test(h)
+    || /(^|\.)supabaseproject\.com$/.test(h)
+    || /(^|\.)supabaseproject-dev\.com$/.test(h)
+    || /(^|\.)beta\.supabase\.dev$/.test(h)
     || h === 'localhost' || h === '127.0.0.1'
     || /[?&]sw=off(&|$)/.test(location.search);
   if (previa) {
@@ -17800,7 +17760,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         var blob = await response.blob();
 
         /* Aceptamos HTML explícito o respuesta sin content-type cuando el
-           endpoint de Lovable devuelve directamente el documento. */
+           endpoint de Supabase devuelve directamente el documento. */
         if (type.indexOf('text/html') < 0 && blob.size < 1000) {
           throw new Error('Respuesta de descarga no válida');
         }
@@ -17832,7 +17792,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           online: navigator.onLine !== false,
           secureContext: !!window.isSecureContext,
           runtime: (typeof window.SintergiaSelfTest === 'function') ? window.SintergiaSelfTest() : null,
-          note: 'Copia diagnóstica sin datos operativos. Para recuperar el HTML de la aplicación use el endpoint backend o el repositorio de Lovable.'
+          note: 'Copia diagnóstica sin datos operativos. Para recuperar el HTML de la aplicación use el endpoint backend o el repositorio de Supabase.'
         };
         var localBlob = new Blob([JSON.stringify(safeBackup, null, 2)], { type: 'application/json;charset=utf-8' });
         var localUrl = URL.createObjectURL(localBlob);
