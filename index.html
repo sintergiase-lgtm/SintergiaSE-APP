@@ -4588,9 +4588,8 @@ function play(){
         <form id="sintergia-step-pass" autocomplete="off" novalidate>
             <p>Introduce tu contraseña de acceso.</p>
             <div class="access-first-note" role="note">
-                <span class="afn-badge">✨ Primer acceso</span>
-                Si es la primera vez que entras, <b>inventa tu propia contraseña</b> y escríbela aquí:
-                quedará registrada como tu clave personal de técnico en este dispositivo. Guárdala bien, la necesitarás en cada acceso.
+                <span class="afn-badge">🔐 Acceso seguro</span>
+                Introduce la contraseña de acceso configurada en el servidor Supabase. La contraseña se valida siempre contra el backend.
             </div>
             <label for="sintergia-access-password">Contraseña</label>
             <input id="sintergia-access-password" type="password" autocomplete="current-password"
@@ -4609,7 +4608,7 @@ function play(){
             <label for="sintergia-access-dni">DNI / NIE</label>
             <input id="sintergia-access-dni" type="text" autocomplete="off" maxlength="20" required
                    placeholder="12345678A" autocapitalize="characters">
-            <label for="sintergia-access-sse">Contraseña SSE</label>
+            <label for="sintergia-access-sse">Confirmar contraseña SSE</label>
             <input id="sintergia-access-sse" type="password" autocomplete="off" maxlength="128" required
                    placeholder="••••••••">
             <div class="access-identity-note">El nombre completo y el DNI/NIE se comprueban (formato oficial y letra de control) para asegurar que corresponden a una persona real. Quedan asociados a tus partes y avisos.</div>
@@ -4676,14 +4675,14 @@ function play(){
               operacion: [['reset','Resetear contadores/historial'],['demo','Cargar demostración'],['realtime','Activar modo tiempo real']] };
   function leerLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}') || {}; } catch (_) { return {}; } }
   function hashLocal(salt, pw) { return sha256Hex(salt + '|' + String(pw)); }
-  var CLAVE_ADMIN_INICIAL = 'SSE1';
-  var SUGERIDAS = { admin: '1111', tecnico: '2222', demo: '3333' };
+  var CLAVE_ADMIN_INICIAL = 'SintergiaSE1';
+  var SUGERIDAS = { admin: 'SintergiaSE1', tecnico: 'TecSE1', demo: 'Demo' };
   async function configurarLocal(scope, soloIds, sinIntro) {
     return true;
     var cfg = leerLocal();
     if (!cfg.salt) cfg.salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     cfg[scope] = cfg[scope] || {};
-    if (!sinIntro) alert('🔐 Primera configuración de contraseñas en este dispositivo (' + (scope === 'modo' ? 'acceso' : 'operaciones de administración') + ').\nDefine una contraseña para cada opción (mínimo 4 caracteres).' + (scope === 'modo' ? '\nSe aconseja: Administrador 1111 · Técnico 2222 · Demo 3333.' : '') + '\nDeja en blanco para no habilitarla.');
+    if (!sinIntro) alert('🔐 Primera configuración de contraseñas en este dispositivo (' + (scope === 'modo' ? 'acceso' : 'operaciones de administración') + ').\nDefine una contraseña para cada opción (mínimo 4 caracteres).' + (scope === 'modo' ? '\nCredenciales del servidor: Administrador SintergiaSE1 · Técnico TecSE1 · Demo Demo.' : '') + '\nDeja en blanco para no habilitarla.');
     var usadas = {};
     var hechos = {};
     Object.keys(cfg[scope]).forEach(function (k) { hechos[cfg[scope][k]] = 1; });
@@ -4714,7 +4713,7 @@ function play(){
     localStorage.setItem(LOCAL_KEY, JSON.stringify(cfg));
     return Object.keys(cfg[scope]).length > 0;
   }
-  /* Falso mensaje de aceptación (animación ✅) cuando SSE1 falla: no revela que la clave se ha rechazado. */
+  /* Compatibilidad histórica para configuración local; no se utiliza para el acceso principal. */
   function mostrarAceptacionFalsa() {
     return new Promise(function (resolve) {
       try {
@@ -4745,7 +4744,8 @@ function play(){
   async function verificarLocal(scope, value) {
     var cfg = leerLocal();
     var esSSE1 = String(value).trim().toUpperCase() === CLAVE_ADMIN_INICIAL;
-    /* SSE1 se ofrece UNA sola vez. Se "quema" (sse1Cerrada) en cuanto:
+    /* Compatibilidad histórica de configuración local. El acceso principal ya no depende de esta ruta.
+       SSE1 se ofrece UNA sola vez. Se "quema" (sse1Cerrada) en cuanto:
        - falla (se escribe otra cosa sin ser una contraseña válida y no hay Administrador), o
        - el Administrador queda creado, o no se llega a crear.
        Una vez cerrada, SSE1 es una contraseña cualquiera (incorrecta) y nunca se vuelve a pedir. */
@@ -4802,8 +4802,10 @@ function play(){
     if (confirm('¿Borrar las contraseñas locales de este dispositivo? Se pedirán de nuevo en el próximo acceso.')) { localStorage.removeItem(LOCAL_KEY); alert('Contraseñas locales borradas.'); }
   };
 
-  /* Verificación: servidor si existe; si no responde correctamente, verificación local. */
+  /* Acceso principal: SIEMPRE contra Supabase. No se acepta una contraseña local
+     como sustituto del backend para los modos Administrador/Técnico/Demo. */
   function verificar(scope, value) {
+    if (scope === 'modo') return verificarServidor(scope, value);
     if (location.protocol === 'file:') return verificarLocal(scope, value);
     return verificarServidor(scope, value).catch(function (e) {
       if (e && e.fallback) return verificarLocal(scope, value);
@@ -4815,7 +4817,7 @@ function play(){
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json', 'Content-Type': 'application/json' }, (window.authHeadersSintergia ? window.authHeadersSintergia() : {})),
       cache: 'no-store',
-      credentials: 'same-origin',
+      credentials: 'omit',
       body: JSON.stringify({ scope: scope, password: String(value == null ? '' : value) })
     }).then(function (r) {
       var ct = (r.headers.get('content-type') || '').toLowerCase();
@@ -4947,22 +4949,16 @@ function play(){
         if (!value) { error.textContent = 'Introduce la contraseña.'; return; }
         error.textContent = 'Comprobando…';
         try {
-            /* Regla de acceso:
-               · SSE1      -> Modo Administrador
-               · Demofull  -> Modo Demo
-               · cualquier otra contraseña válida -> Modo Técnico
-               (las contraseñas configuradas localmente siguen abriendo su modo) */
-            var vNorm = value.trim();
-            var modo = null;
-            if (vNorm.toUpperCase() === 'SSE1') modo = 'admin';
-            else if (vNorm.toLowerCase() === 'demofull') modo = 'demo';
-            else {
-                /* Si hay contraseñas de modo configuradas en este dispositivo, se respetan;
-                   si no (o si no coincide ninguna), se entra en Modo Técnico sin asistentes. */
-                var cfgLocal = {};
-                try { cfgLocal = JSON.parse(localStorage.getItem('sintergia_local_auth_v1') || '{}') || {}; } catch (_) {}
-                modo = 'tecnico';
+            /* Autenticación real contra Supabase.
+               Las credenciales del acceso principal se validan exclusivamente en Supabase,
+               en sintergia.credentials con scope=modo: admin, tecnico y demo. */
+            var idServidor = await verificarModo(value);
+            if (!idServidor) {
+                error.textContent = 'Contraseña no válida o acceso no autorizado por Supabase.';
+                return;
             }
+            var modo = ({ admin: 'admin', tecnico: 'tecnico', demo: 'demo' })[String(idServidor)] || 'tecnico';
+            passPendiente = value;
             intentos = 0;
             error.textContent = '';
             await mostrarAnimacionCorrecto(modo);
@@ -4977,7 +4973,10 @@ function play(){
                 error.textContent = '';
             }
             modoPendiente = modo;
-            passPendiente = '';
+            /* La segunda casilla queda pre-rellenada con la misma contraseña
+               que ya validó Supabase; el usuario puede comprobarla o corregirla. */
+            var sseConfirm = document.getElementById('sintergia-access-sse');
+            if (sseConfirm) sseConfirm.value = passPendiente;
             inputPass.value = '';
             formPass.style.display = 'none';
             formId.style.display = 'block';
@@ -4996,15 +4995,15 @@ function play(){
         var sse = String(document.getElementById('sintergia-access-sse').value || '');
         if (!nombreValido(nombre)) { errorId.textContent = 'Introduce un nombre y apellidos reales (mínimo dos palabras, solo letras).'; return; }
         if (!dniValido(dni)) { errorId.textContent = 'El DNI/NIE no es válido: la letra de control no corresponde.'; return; }
-        if (!sse) { errorId.textContent = 'Introduce la contraseña SSE.'; return; }
-        var sseN = sse.trim();
-        var modoSSE = sseN.toUpperCase() === 'SSE1' ? 'admin' : (sseN.toLowerCase() === 'demofull' ? 'demo' : 'tecnico');
-        if (modoSSE !== modoPendiente) {
-            errorId.textContent = 'La contraseña SSE no corresponde al modo solicitado.';
+        /* La segunda casilla confirma exactamente la contraseña que ya validó Supabase. */
+        if (!sse) { errorId.textContent = 'Confirma la contraseña SSE.'; return; }
+        if (!passPendiente || sse !== passPendiente) {
+            errorId.textContent = 'La contraseña SSE no coincide con la contraseña de acceso validada.';
             return;
         }
         errorId.textContent = '';
         document.getElementById('sintergia-access-sse').value = '';
+        passPendiente = '';
         window.SintergiaTechnician = Object.freeze({
             id: dni, nombre: nombre, dni: dni, verified: true, modo: modoPendiente, authenticatedAt: Date.now()
         });
