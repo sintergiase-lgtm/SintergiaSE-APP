@@ -16774,7 +16774,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   function op(){return (typeof global.idOperacion==='function')?global.idOperacion():'SINT-'+Date.now().toString(36);}
   function render(rows){var box=document.getElementById('sdiag-results');if(!box)return;function e(v){return typeof window.escapeHTML==='function'?window.escapeHTML(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}box.innerHTML=rows.map(function(x){return '<div class="sdiag-row"><div><div class="sdiag-name">'+e(x.name)+'</div><div class="sdiag-detail">'+e(x.detail||'')+'</div></div><div class="sdiag-status '+e(x.cls)+'">'+e(x.status)+'</div></div>';}).join('');}
   async function check(item){
-    var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();h['X-Sintergia-Request-ID']=op();
+    var name=item[0],method=item[1],url=item[2],kind=item[3],h=headers();if(name!=='Health') h['X-Sintergia-Request-ID']=op();
     var body=null;
     if(method==='POST'){
       if(name==='Consulta normativa IA') body={pregunta:'¿Qué es el REBT? Responde de forma breve.'};
