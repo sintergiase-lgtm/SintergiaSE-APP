@@ -4801,64 +4801,34 @@ function play(){
     if (confirm('¿Borrar las contraseñas locales de este dispositivo? Se pedirán de nuevo en el próximo acceso.')) { localStorage.removeItem(LOCAL_KEY); alert('Contraseñas locales borradas.'); }
   };
 
-  /*
-   * Verificación de acceso:
-   * - El modo (admin/técnico/demo) SIEMPRE se valida contra Supabase cuando la app está publicada.
-   * - No se permite fallback local para 'modo': ocultarlo aquí convertiría un fallo de backend/CORS
-   *   en un falso acceso local y además impediría diagnosticar el problema real.
-   * - El fallback local queda reservado a otros ámbitos y solo cuando la política lo permite.
-   */
+  /* AUTENTICACIÓN SUPABASE EXCLUSIVA: sin fallback local para ningún acceso. */
   function verificar(scope, value) {
-    var cfg = window.SintergiaSecurityConfig || {};
-    var allowLocalFallback = scope !== 'modo' && cfg.clientFallbackAllowed !== false;
     if (location.protocol === 'file:') {
-      if (allowLocalFallback) return verificarLocal(scope, value);
-      return Promise.reject(new Error('El acceso por modo requiere conexión con Supabase. Abre la aplicación desde su URL publicada.'));
+      return Promise.reject(new Error('La autenticación requiere abrir la aplicación desde un servidor conectado a Supabase.'));
     }
-    return verificarServidor(scope, value).catch(function (e) {
-      if (allowLocalFallback && e && e.fallback) return verificarLocal(scope, value);
-      throw e;
-    });
+    return verificarServidor(scope, value);
   }
   function verificarServidor(scope, value) {
     return fetch(endpoint(), {
       method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, (window.authHeadersSintergia ? window.authHeadersSintergia() : {})),
+      headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
       credentials: 'omit',
-      body: JSON.stringify({ scope: scope, password: String(value == null ? '' : value) })
+      body: JSON.stringify({ scope: String(scope || ''), password: String(value == null ? '' : value) })
     }).then(function (r) {
-      var ct = (r.headers.get('content-type') || '').toLowerCase();
-      if (ct.indexOf('json') === -1) {
-        var fe = new Error('Supabase devolvió una respuesta no JSON (HTTP ' + r.status + ').'); fe.fallback = true; throw fe;
-      }
-      if (r.status === 404 || r.status === 405 || r.status >= 500) {
-        var fe2 = new Error('Supabase no pudo procesar la autenticación (HTTP ' + r.status + ').'); fe2.fallback = true; throw fe2;
-      }
-      return r.json().catch(function () {
-        var fe = new Error('No se pudo leer la respuesta JSON de Supabase.'); fe.fallback = true; throw fe;
-      }).then(function (d) {
-        if (d && typeof d.ok === 'undefined' && r.ok) {
-          var fe = new Error('Supabase respondió sin un resultado de autenticación válido.'); fe.fallback = true; throw fe;
-        }
-        if (r.status === 429) {
-          throw new Error(d.error || 'Demasiados intentos. Inténtalo de nuevo en unos segundos.');
-        }
-        if (!r.ok && r.status !== 401) {
-          throw new Error(d.error || 'No se pudo verificar el acceso en Supabase (HTTP ' + r.status + ').');
-        }
-        if (!d || !d.ok) return null;
+      return r.text().then(function (raw) {
+        var d = null;
+        try { d = raw ? JSON.parse(raw) : null; } catch (_) {}
+        if (!d) throw new Error('Supabase respondió sin JSON válido (HTTP ' + r.status + ').');
+        if (r.status === 429) throw new Error(d.error || 'Demasiados intentos. Inténtalo de nuevo en unos segundos.');
+        if (r.status === 401) return null;
+        if (!r.ok) throw new Error(d.error || d.message || 'Supabase rechazó la autenticación (HTTP ' + r.status + ').');
+        if (d.ok !== true) return null;
         guardarSesion(d);
         return d.id || null;
       });
-    }, function (e) {
-      /* Para 'modo' NO convertir un fallo de red/CORS en fallback local. */
-      if (scope === 'modo') {
-        var msg = e && e.message ? String(e.message) : 'fallo de red o CORS';
-        throw new Error('No se pudo comunicar con Supabase para autenticar el modo: ' + msg);
-      }
-      if (e && e.fallback) throw e;
-      var fe = new Error('No se pudo comunicar con el servidor de autenticación.'); fe.fallback = true; throw fe;
+    }).catch(function (e) {
+      throw (e instanceof Error ? e : new Error(String(e || 'Error de comunicación con Supabase.')));
     });
   }
 
