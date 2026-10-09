@@ -14040,18 +14040,19 @@ async function biometricEnroll(){
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
   const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint;
-  if(!ep)return{attempted:false,available:false,ok:false};
+  if(!ep)return{attempted:false,available:false,ok:false,session:null};
   try{
-    const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-VERIFY-'+Date.now().toString(36)};
-    if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
     const r=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify(assertion)});
     const ct=(r.headers.get('content-type')||'').toLowerCase();
-    if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false};
+    if(ct.indexOf('json')===-1||r.status===404||r.status===405||r.status>=500)return{attempted:true,available:false,ok:false,session:null};
     const d=await r.json().catch(()=>null);
-    if(!d)return{attempted:true,available:false,ok:false};
-    return{attempted:true,available:true,ok:!!d.ok};
-  }catch(_){return{attempted:true,available:false,ok:false}}
+    if(!d)return{attempted:true,available:false,ok:false,session:null};
+    /* A valid biometric assertion must result in a server-issued session, not just {ok:true}. */
+    const session=d.session;
+    const valid=!!(d.ok&&session&&typeof session.token==='string'&&session.token.length>0);
+    return{attempted:true,available:true,ok:valid,session:valid?session:null,data:d};
+  }catch(_){return{attempted:true,available:false,ok:false,session:null}}
 }
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
@@ -14069,9 +14070,13 @@ async function biometricUnlock(){
     const assertion={action:'verify-authentication',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),authenticatorData:b64u(cred.response.authenticatorData),signature:b64u(cred.response.signature),userHandle:cred.response.userHandle?b64u(cred.response.userHandle):null},credentialId:raw.credentialId||raw.id};
     const res=await verificarBiometriaBackend(assertion);
     if(!res.attempted||!res.available){alert('⚠️ El backend biométrico no está disponible. Por seguridad no se desbloquea la sesión.');audit('BIOMETRIC_UNLOCK_FAIL','Backend biométrico no disponible');return false}
-    if(!res.ok){alert('⚠️ El servidor ha rechazado la credencial biométrica.');audit('BIOMETRIC_UNLOCK_FAIL','Rechazado por backend');return false}
+    if(!res.ok||!res.session?.token){alert('⚠️ El servidor no ha emitido una sesión válida tras verificar la biometría.');audit('BIOMETRIC_UNLOCK_FAIL','Sin sesión de backend');return false}
+    const ses=res.session;
+    window.SintergiaAuthToken=ses.token;
+    sessionStorage.setItem('sintergia_auth_token',JSON.stringify({token:ses.token,refreshToken:ses.refreshToken||null,scope:ses.scope,id:ses.id,expiresAt:ses.expiresAt}));
+    if(ses.id)window.SintergiaTechnician=Object.assign({},window.SintergiaTechnician||{},{id:ses.id,scope:ses.scope||((window.SintergiaTechnician||{}).scope)});
     sessionStorage.setItem('sintergia_biometric_auth','1');
-    audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend');
+    audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend; sesión de servidor instalada');
     return true;
   }catch(e){alert('No se pudo validar la biometría: '+(e.message||e));return false}
 }
