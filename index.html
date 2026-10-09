@@ -14022,6 +14022,8 @@ async function biometricEnroll(){
   if(!opt||!opt.ok||!opt.challenge||!opt.rpId||!opt.user||!opt.user.id)throw new Error('Respuesta WebAuthn de registro incompleta.');
   const publicKey=Object.assign({},opt);
   publicKey.challenge=ub64u(opt.challenge);publicKey.rp={name:opt.rpName||'SintergiaSE APP',id:opt.rpId};publicKey.user=Object.assign({},opt.user,{id:ub64u(opt.user.id)});
+  /* WebAuthn exige que excludeCredentials[].id sea un ArrayBuffer/TypedArray, nunca una cadena base64url. Normaliza los IDs que devuelve el backend antes de llamar a credentials.create(). */
+  publicKey.excludeCredentials=Array.isArray(opt.excludeCredentials)?opt.excludeCredentials.filter(x=>x&&x.id!=null).map(x=>Object.assign({},x,{type:x.type||'public-key',id:(typeof x.id==='string'?ub64u(x.id):(x.id instanceof ArrayBuffer||ArrayBuffer.isView(x.id)?x.id:null))})).filter(x=>x.id!==null):[];
   if(!publicKey.pubKeyCredParams)publicKey.pubKeyCredParams=[{type:'public-key',alg:-7},{type:'public-key',alg:-257}];
   publicKey.authenticatorSelection=publicKey.authenticatorSelection||{authenticatorAttachment:'platform',userVerification:'required'};
   const cred=await navigator.credentials.create({publicKey:publicKey});
