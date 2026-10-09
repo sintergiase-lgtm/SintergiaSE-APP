@@ -14006,12 +14006,12 @@ function cerrarPreview(){document.getElementById('compra-preview-modal').style.d
 
 /* Biometría: WebAuthn/Passkey. Se registra y se verifica obligatoriamente contra Supabase mediante registerBiometricEndpoint / authenticateBiometricEndpoint; si el backend no responde, no se acepta un desbloqueo local como sustituto. */
 function b64u(buf){const a=new Uint8Array(buf);let s='';for(const b of a)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-function ub64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);return Uint8Array.from(b,c=>c.charCodeAt(0))}
-let biometricEnrollInProgress=false;
+function ub64u(s){if(s instanceof ArrayBuffer||ArrayBuffer.isView(s))return s;if(typeof s!=='string'||!s)throw new TypeError('Identificador WebAuthn base64url inválido.');s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);return Uint8Array.from(b,c=>c.charCodeAt(0))}
+let biometricOperationInProgress=false;
 async function biometricEnroll(){
- if(biometricEnrollInProgress){alert('Ya hay una solicitud biométrica en curso. Espera a que termine antes de volver a intentarlo.');return}
+ if(biometricOperationInProgress){alert('Ya hay una solicitud biométrica en curso. Espera a que termine antes de volver a intentarlo.');return}
  if(!window.PublicKeyCredential){alert('Este navegador no ofrece WebAuthn/biometría.');return}
- biometricEnrollInProgress=true;
+ biometricOperationInProgress=true;
  try{
   const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
   const t=window.SintergiaTechnician||{};
@@ -14042,7 +14042,7 @@ async function biometricEnroll(){
   audit('BIOMETRIC_ENROLL','Biometría registrada y verificada en backend');
   alert('Biometría configurada y registrada en el servidor.');
   renderSecurityBio();
- }catch(e){const msg=String(e&&e.message||e);if(e&&e.name==='InvalidStateError'||/already registered with the relying party|credential.*already|already.*credential/i.test(msg)){alert('Este autenticador ya contiene una credencial registrada. No se ha creado otra. Pulsa «Probar biometría». Si la aplicación indica que aún no está configurada, hay que recuperar la credencial existente desde el backend.')}else if(e&&e.name==='NotAllowedError'){alert('La solicitud biométrica se canceló o expiró. Espera unos segundos y vuelve a intentarlo una sola vez.')}else{alert('No se pudo configurar la biometría: '+msg)}}finally{biometricEnrollInProgress=false}
+ }catch(e){const msg=String(e&&e.message||e);if(e&&e.name==='InvalidStateError'||/already registered with the relying party|credential.*already|already.*credential/i.test(msg)){alert('Este autenticador ya contiene una credencial registrada. No se ha creado otra. Pulsa «Probar biometría». Si la aplicación indica que aún no está configurada, hay que recuperar la credencial existente desde el backend.')}else if(e&&e.name==='NotAllowedError'){alert('La solicitud biométrica se canceló o expiró. Espera unos segundos y vuelve a intentarlo una sola vez.')}else{alert('No se pudo configurar la biometría: '+msg)}}finally{biometricOperationInProgress=false}
 }
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
@@ -14063,6 +14063,8 @@ async function verificarBiometriaBackend(assertion){
 }
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
+  if(biometricOperationInProgress){alert('Ya hay una solicitud biométrica en curso. Espera a que termine antes de volver a intentarlo.');return false}
+  biometricOperationInProgress=true;
   try{
     const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
@@ -14085,7 +14087,7 @@ async function biometricUnlock(){
     sessionStorage.setItem('sintergia_biometric_auth','1');
     audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend; sesión de servidor instalada');
     return true;
-  }catch(e){alert('No se pudo validar la biometría: '+(e.message||e));return false}
+  }catch(e){const msg=String(e&&e.message||e);if(e&&e.name==='InvalidStateError'||/already registered with the relying party|credential.*already|already.*credential/i.test(msg)){alert('El autenticador ya contiene una credencial. No intentes registrarla de nuevo: pulsa «Probar biometría». Si falla, hay que corregir la lista de credenciales que devuelve el backend.')}else if(e&&e.name==='NotAllowedError'){alert('La solicitud biométrica se canceló o expiró. Espera unos segundos y vuelve a intentarlo una sola vez.')}else{alert('No se pudo validar la biometría: '+msg)}return false}finally{biometricOperationInProgress=false}
 }
 function renderSecurityBio(){const el=document.getElementById('sintergia-bio-status');if(el){const x=load(BIO,null);el.textContent=x?'🟢 Biometría configurada en este dispositivo':'⚪ Biometría no configurada';el.className='sintergia-status '+(x?'ok':'warn')}}
 function addBioCard(){const tab=document.getElementById('tab-seguridad');if(!tab||document.getElementById('sintergia-bio-card'))return;const d=document.createElement('div');d.id='sintergia-bio-card';d.className='sintergia-sec-card';d.style.marginTop='var(--phi-s5)';d.innerHTML=`<h3>🧬 Autenticación biométrica</h3><div id="sintergia-bio-status" class="sintergia-status warn">Comprobando…</div><p class="sintergia-mini">Usa Face ID, Touch ID, Windows Hello o el autenticador de plataforma compatible. La biometría requiere validación del backend para registrar y desbloquear la sesión; no se acepta un desbloqueo local como sustituto de la autenticación del servidor.</p><div class="horario-actions"><button class="btn-primary" onclick="HorarioSintergia.configurarBiometria()">🧬 Configurar biometría</button><button class="btn-secondary" onclick="HorarioSintergia.desbloquearBiometria()">🔓 Probar biometría</button></div>`;tab.appendChild(d);renderSecurityBio()}
