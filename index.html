@@ -14007,8 +14007,11 @@ function cerrarPreview(){document.getElementById('compra-preview-modal').style.d
 /* Biometría: WebAuthn/Passkey. Se registra y se verifica obligatoriamente contra Supabase mediante registerBiometricEndpoint / authenticateBiometricEndpoint; si el backend no responde, no se acepta un desbloqueo local como sustituto. */
 function b64u(buf){const a=new Uint8Array(buf);let s='';for(const b of a)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function ub64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);return Uint8Array.from(b,c=>c.charCodeAt(0))}
+let biometricEnrollInProgress=false;
 async function biometricEnroll(){
+ if(biometricEnrollInProgress){alert('Ya hay una solicitud biométrica en curso. Espera a que termine antes de volver a intentarlo.');return}
  if(!window.PublicKeyCredential){alert('Este navegador no ofrece WebAuthn/biometría.');return}
+ biometricEnrollInProgress=true;
  try{
   const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();if(available===false){alert('No se detecta un autenticador biométrico/plataforma disponible.');return}
   const t=window.SintergiaTechnician||{};
@@ -14023,7 +14026,9 @@ async function biometricEnroll(){
   const publicKey=Object.assign({},opt);
   publicKey.challenge=ub64u(opt.challenge);publicKey.rp={name:opt.rpName||'SintergiaSE APP',id:opt.rpId};publicKey.user=Object.assign({},opt.user,{id:ub64u(opt.user.id)});
   /* WebAuthn exige que excludeCredentials[].id sea un ArrayBuffer/TypedArray, nunca una cadena base64url. Normaliza los IDs que devuelve el backend antes de llamar a credentials.create(). */
-  publicKey.excludeCredentials=Array.isArray(opt.excludeCredentials)?opt.excludeCredentials.filter(x=>x&&x.id!=null).map(x=>Object.assign({},x,{type:x.type||'public-key',id:(typeof x.id==='string'?ub64u(x.id):(x.id instanceof ArrayBuffer||ArrayBuffer.isView(x.id)?x.id:null))})).filter(x=>x.id!==null):[];
+  publicKey.excludeCredentials=Array.isArray(opt.excludeCredentials)?opt.excludeCredentials.filter(x=>x&&x.id!=null).map(x=>{let id=null;try{id=typeof x.id==='string'?ub64u(x.id):(x.id instanceof ArrayBuffer||ArrayBuffer.isView(x.id)?x.id:null)}catch(_){id=null}return Object.assign({},x,{type:x.type||'public-key',id})}).filter(x=>x.id!==null):[];
+  /* Si el servidor ya conoce una credencial para este técnico, reutilízala para la autenticación en vez de pedir al autenticador que registre un duplicado. */
+  if(publicKey.excludeCredentials.length){const existing=publicKey.excludeCredentials[0];const existingId=typeof opt.excludeCredentials[0].id==='string'?opt.excludeCredentials[0].id:b64u(existing.id);localStorage.setItem(BIO,JSON.stringify({id:existingId,credentialId:existingId,createdAt:new Date().toISOString(),backendRegistered:true,recoveredFromBackend:true}));renderSecurityBio();alert('Este técnico ya tiene una credencial biométrica registrada. Se ha recuperado su identificador desde el servidor. Pulsa «Probar biometría» para verificarla.');return}
   if(!publicKey.pubKeyCredParams)publicKey.pubKeyCredParams=[{type:'public-key',alg:-7},{type:'public-key',alg:-257}];
   publicKey.authenticatorSelection=publicKey.authenticatorSelection||{authenticatorAttachment:'platform',userVerification:'required'};
   const cred=await navigator.credentials.create({publicKey:publicKey});
@@ -14037,7 +14042,7 @@ async function biometricEnroll(){
   audit('BIOMETRIC_ENROLL','Biometría registrada y verificada en backend');
   alert('Biometría configurada y registrada en el servidor.');
   renderSecurityBio();
- }catch(e){alert('No se pudo configurar la biometría: '+(e.message||e))}
+ }catch(e){const msg=String(e&&e.message||e);if(e&&e.name==='InvalidStateError'||/already registered with the relying party|credential.*already|already.*credential/i.test(msg)){alert('Este autenticador ya contiene una credencial registrada. No se ha creado otra. Pulsa «Probar biometría». Si la aplicación indica que aún no está configurada, hay que recuperar la credencial existente desde el backend.')}else if(e&&e.name==='NotAllowedError'){alert('La solicitud biométrica se canceló o expiró. Espera unos segundos y vuelve a intentarlo una sola vez.')}else{alert('No se pudo configurar la biometría: '+msg)}}finally{biometricEnrollInProgress=false}
 }
 /* Verificación biométrica: el desbloqueo requiere validación del backend. Si el servidor no responde, NO se acepta el autenticador local como sustituto. */
 async function verificarBiometriaBackend(assertion){
