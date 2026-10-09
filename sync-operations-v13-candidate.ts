@@ -1,5 +1,6 @@
 import postgres from 'npm:postgres@3.4.3'
 const enc = new TextEncoder(), dec = new TextDecoder()
+const MAX_REQUEST_BYTES = 5_500_000
 let db: any = null
 function sql() {
   if (!db) {
@@ -39,18 +40,56 @@ function cors(req: Request) {
 function json(req: Request, status: number, body: any) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...cors(req) } })
 }
+async function readJsonLimited(req: Request): Promise<Record<string, unknown>> {
+  const declared = Number(req.headers.get('content-length') || 0)
+  if (declared > MAX_REQUEST_BYTES) throw new RangeError('request_too_large')
+  if (!req.body) throw new SyntaxError('empty_body')
+  const reader = req.body.getReader(), chunks: Uint8Array[] = []
+  let total = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > MAX_REQUEST_BYTES) { await reader.cancel().catch(() => undefined); throw new RangeError('request_too_large') }
+      chunks.push(value)
+    }
+  } finally { reader.releaseLock() }
+  const bytes = new Uint8Array(total); let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+  const parsed: unknown = JSON.parse(dec.decode(bytes))
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new SyntaxError('invalid_json')
+  return parsed as Record<string, unknown>
+}
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) })
   if (req.method !== 'POST') return json(req, 405, { ok: false, error: 'method_not_allowed' })
   const t = await token(req)
   if (!t) return json(req, 401, { ok: false, error: 'unauthorized' })
   try {
-    const b = await req.json().catch(() => ({}))
+    let b: Record<string, unknown>
+    try { b = await readJsonLimited(req) } catch (error) {
+      return error instanceof RangeError ? json(req, 413, { ok: false, error: 'request_too_large' }) : json(req, 400, { ok: false, error: 'invalid_json' })
+    }
     const rid = String(b?.requestId || req.headers.get('x-sintergia-request-id') || '')
     if (!rid || rid.length > 200) return json(req, 400, { ok: false, error: 'request_id_required' })
-    const rawOp = b?.operation
-    const op = typeof rawOp === 'string' ? rawOp : String(rawOp?.op || 'snapshot')
-    const payload = (b?.payload && typeof b.payload === 'object') ? b.payload : (rawOp && typeof rawOp === 'object' ? (op === 'snapshot' ? rawOp : { operation: rawOp, stateId: String(t.sub || 'default'), deviceId: String(t.sub || '') }) : {})
+    const rawOp = b.operation
+    const op = typeof rawOp === 'string' ? rawOp : String((rawOp as Record<string, unknown> | null)?.op || '')
+    const payload = (b.payload && typeof b.payload === 'object' && !Array.isArray(b.payload))
+      ? b.payload as Record<string, unknown>
+      : (rawOp && typeof rawOp === 'object' && !Array.isArray(rawOp) ? rawOp as Record<string, unknown> : {})
+
+    // The current browser client sends upsert/delete operations and explicitly falls
+    // back to the full snapshot when this optional endpoint returns 404/405. Never
+    // acknowledge those mutations as applied here: v12 only logged them and did not
+    // update app_state. This keeps the operation queue from silently losing changes.
+    if (op !== 'snapshot') return json(req, 405, { ok: false, error: 'operation_endpoint_unsupported', fallback: 'snapshot' })
+    if (!payload.state || typeof payload.state !== 'object' || Array.isArray(payload.state)) {
+      return json(req, 405, { ok: false, error: 'snapshot_payload_required', fallback: 'snapshot' })
+    }
+    const state = payload.state as Record<string, unknown>
+    const id = String(payload.id || t.sub || 'default').trim()
+    if (!id || id.length > 128) return json(req, 400, { ok: false, error: 'invalid_state_id' })
     const s = sql()
 
     // A single DB transaction makes the request-id claim, state mutation and result atomic.
@@ -59,12 +98,15 @@ Deno.serve(async req => {
     const outcome = await s.begin(async (tx: any) => {
       const claimed = await tx`
         insert into sintergia.sync_operations(request_id,operation,payload,status)
-        values(${rid},${op},${JSON.stringify(payload)},'pending')
+        values(${rid},${op},${JSON.stringify(payload)}::jsonb,'pending')
         on conflict (request_id) do nothing
         returning request_id`
       if (!claimed.length) {
-        const existing = await tx`select result,status from sintergia.sync_operations where request_id=${rid}`
+        const existing = await tx`select result,status, (operation <> ${op} or payload <> ${JSON.stringify(payload)}::jsonb) as mismatch from sintergia.sync_operations where request_id=${rid}`
         if (!existing.length) throw new Error('idempotency_record_unavailable')
+        // A request ID must identify one immutable operation and payload. Reusing it for
+        // different content is a conflict, not a successful idempotent retry.
+        if (existing[0].mismatch) return { duplicate: true, conflict: true, status: existing[0].status }
         if (existing[0].status === 'applied' && existing[0].result != null) {
           return { duplicate: true, status: existing[0].status, result: existing[0].result }
         }
@@ -74,16 +116,13 @@ Deno.serve(async req => {
       }
 
       let result: any = { accepted: true, operation: op }
-      if (rawOp && typeof rawOp === 'object') result.operationId = String(rawOp.operationId || rid)
-      if (op === 'snapshot' && payload.state && typeof payload.state === 'object') {
-        const id = String(payload.id || t.sub || 'default')
-        const v = await tx`select sintergia.touch_app_state(${id},${JSON.stringify(payload.state)},${String(t.sub || '')}) as version`
-        result = { ...result, id, version: Number(v[0].version) }
-      }
-      await tx`update sintergia.sync_operations set result=${JSON.stringify(result)},status='applied',completed_at=now() where request_id=${rid}`
+      const v = await tx`select sintergia.touch_app_state(${id},${JSON.stringify(state)}::jsonb,${String(t.sub || '')}) as version`
+      result = { ...result, id, version: Number(v[0].version) }
+      await tx`update sintergia.sync_operations set result=${JSON.stringify(result)}::jsonb,status='applied',completed_at=now() where request_id=${rid}`
       return { duplicate: false, status: 'applied', result }
     })
 
+    if (outcome.conflict) return json(req, 409, { ok: false, error: 'request_id_conflict' })
     if (outcome.incomplete) return json(req, 503, { ok: false, error: 'operation_incomplete', status: outcome.status })
     if (outcome.duplicate) return json(req, 200, { ok: true, idempotent: true, status: outcome.status, result: outcome.result })
     return json(req, 200, { ok: true, ...outcome.result })
