@@ -1,21 +1,22 @@
 /* SintergiaSE offline shell + restricted offline authorization guard. */
 'use strict';
 const CACHE_PREFIX = 'sintergiase-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'v4';
+const CACHE_NAME = CACHE_PREFIX + 'v5';
 const SCOPE_URL = self.registration.scope;
 const APP_SHELL = new URL('./index.html', SCOPE_URL).href;
 const SCOPE_PATH = new URL(SCOPE_URL).pathname;
-const OPTIONAL_ASSETS = [new URL('./manifest.webmanifest', SCOPE_URL).href, new URL('./offline-guard.js', SCOPE_URL).href];
-
-/* Inject the guard as the first script in <head>, before app scripts and before
-   synchronization starts. The separate same-origin file is cached for offline use. */
+const OPTIONAL_ASSETS = [
+  new URL('./manifest.webmanifest', SCOPE_URL).href,
+  new URL('./offline-guard.js', SCOPE_URL).href,
+  new URL('./offline-login-bridge.js', SCOPE_URL).href
+];
 const GUARD_TAG = '<script id="sintergia-offline-auth-guard" src="./offline-guard.js"><\/script>';
 
 function isBackend(url, request) {
   if (url.origin !== self.location.origin) return true;
   if (request && request.headers && request.headers.has('authorization')) return true;
-  return /\/functions\/v1\/|\/rest\/v1\/|\/auth\/v1\/|\/storage\/v1\/|\/realtime\/v1\//i.test(url.pathname)
-    || /[?&](token|access_token|apikey)=/i.test(url.search);
+  return /\/(?:functions|rest|auth|storage|realtime)\/v1\//i.test(url.pathname)
+    || /[?&](?:token|access_token|apikey)=/i.test(url.search);
 }
 function isAppDocument(url) {
   return url.origin === self.location.origin && (url.pathname === new URL(APP_SHELL).pathname || url.pathname === SCOPE_PATH);
@@ -32,15 +33,17 @@ async function withOfflineGuard(response) {
   headers.delete('content-encoding');
   headers.delete('etag');
   headers.delete('last-modified');
-  return new Response(guardedHtml, {status: response.status, statusText: response.statusText, headers});
+  return new Response(guardedHtml, { status: response.status, statusText: response.statusText, headers });
 }
-
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await cache.add(new Request(APP_SHELL, { cache: 'reload' }));
     await Promise.all(OPTIONAL_ASSETS.map(async url => {
-      try { const r = await fetch(new Request(url, { cache: 'reload' })); if (r.ok) await cache.put(url, r); } catch (_) {}
+      try {
+        const r = await fetch(new Request(url, { cache: 'reload' }));
+        if (r.ok) await cache.put(url, r);
+      } catch (_) {}
     }));
     await self.skipWaiting();
   })());
@@ -56,7 +59,7 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  // Never cache or replace API/auth/sync responses, including cross-origin backend traffic.
+  // Nunca guardar ni sustituir respuestas de API, sincronización o autenticación.
   if (isBackend(url, request)) return;
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
@@ -83,7 +86,7 @@ self.addEventListener('fetch', event => {
     })());
     return;
   }
-  if (url.origin === self.location.origin && ['script','style','image','font','manifest'].includes(request.destination)) {
+  if (url.origin === self.location.origin && ['script', 'style', 'image', 'font', 'manifest'].includes(request.destination)) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       const cached = await cache.match(request);

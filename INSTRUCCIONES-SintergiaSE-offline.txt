@@ -1,0 +1,26 @@
+SintergiaSE — Archivos para habilitar acceso biométrico con modo offline limitado
+
+ARCHIVOS A SUBIR A LA RAÍZ DEL REPOSITORIO (junto a index.html y sw.js):
+1. offline-guard.js       (reemplaza el archivo existente)
+2. offline-login-bridge.js (archivo nuevo)
+3. sw.js                  (reemplaza el archivo existente)
+
+CAMBIO MANUAL EN index.html:
+Añade esta línea inmediatamente ANTES de </body>, al final del archivo:
+<script src="./offline-login-bridge.js"></script>
+
+No reemplaces index.html completo con este parche. Conserva el HTML original y añade únicamente la línea anterior.
+
+CONDICIONES DE SEGURIDAD:
+- El acceso offline solo concede modo Técnico restringido; nunca Administrador ni Demo.
+- Requiere HTTPS, credencial WebAuthn registrada en el servidor, una validación biométrica online dentro de los últimos 7 días y datos locales que puedan desbloquearse con la clave local común.
+- Si no se puede desbloquear el almacén cifrado con esa clave, el acceso falla sin borrar ni reiniciar las envolturas de cifrado.
+- El modo restringido bloquea operaciones remotas aunque la conectividad vuelva. Se elimina al autenticar correctamente el acceso online o la biometría online.
+
+DESPUÉS DE SUBIR:
+1. Abre la app con Internet y espera a que cargue completamente una vez para que se cacheen los archivos nuevos.
+2. Comprueba en Seguridad > biometría que la biometría esté configurada y prueba la autenticación estando online.
+3. Recarga la app; activa modo avión y toca «Entrar con biometría (también sin conexión)».
+4. Verifica que accede en modo Técnico restringido y que las operaciones remotas no se ejecutan.
+
+Importante: el código ha pasado comprobación sintáctica JavaScript (node --check). Esto no equivale a una prueba de ejecución real en el navegador o con la función Edge de Supabase.
