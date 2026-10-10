@@ -1,82 +1,166 @@
 
+/* SintergiaSE — Protección biométrica offline */
 (function () {
-  'use strict';
+  "use strict";
 
-  const GRANT = 'sintergia_biometric_last_online_ok_v1';
+  const MODE = "sintergia_offline_biometric_mode";
+  const BIO = "sintergia_biometric_auth";
+  const LOCK = "sintergia_offline_biometric_lockdown_v1";
+  const GRANT = "sintergia_biometric_last_online_ok_v1";
   const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
-  const AUTH_PATH = '/functions/v1/authenticate-biometric';
 
-  function offlineGrantValid() {
+  function getStore(key) {
     try {
-      const value = localStorage.getItem(GRANT);
-      if (!value) return false;
+      return localStorage.getItem(key);
+    } catch (_) {
+      return null;
+    }
+  }
 
-      const timestamp = Number(value);
-      if (!Number.isFinite(timestamp)) return false;
-
-      const age = Date.now() - timestamp;
-      if (age < 0 || age > MAX_AGE) {
-        localStorage.removeItem(GRANT);
-        return false;
-      }
-
+  function setStore(key, value) {
+    try {
+      localStorage.setItem(key, value);
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  function saveOfflineGrant() {
+  function removeStore(key) {
     try {
-      localStorage.setItem(GRANT, String(Date.now()));
-    } catch (_) {
-      // Si el almacenamiento no está disponible, no conceder acceso offline.
+      localStorage.removeItem(key);
+    } catch (_) {}
+  }
+
+  function offlineGrantValid() {
+    const raw = getStore(GRANT);
+    if (!raw) return false;
+
+    const timestamp = Number(raw);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) {
+      removeStore(GRANT);
+      return false;
     }
+
+    if (Date.now() - timestamp > MAX_AGE) {
+      removeStore(GRANT);
+      return false;
+    }
+
+    return true;
+  }
+
+  function clearOfflineGrant() {
+    removeStore(GRANT);
   }
 
   function isBiometricAuthRequest(input) {
+    let url = "";
+
     try {
-      const rawUrl =
-        typeof input === 'string'
-          ? input
-          : input && input.url
-            ? input.url
-            : String(input);
-
-      const url = new URL(rawUrl, window.location.href);
-
-      return (
-        url.pathname.includes(AUTH_PATH) ||
-        url.pathname.endsWith('/authenticate-biometric')
-      );
+      url = typeof input === "string"
+        ? input
+        : input && input.url
+          ? input.url
+          : String(input || "");
     } catch (_) {
       return false;
     }
+
+    return url.includes("/functions/v1/authenticate-biometric");
   }
 
-  // Registrar una autenticación online que el servidor haya aceptado.
-  if (typeof window.fetch === 'function') {
+  function isAllowedWhileRestricted(input) {
+    let url = "";
+
+    try {
+      url = typeof input === "string"
+        ? input
+        : input && input.url
+          ? input.url
+          : String(input || "");
+    } catch (_) {
+      return false;
+    }
+
+    return (
+      url.includes("/functions/v1/authenticate-biometric") ||
+      url.includes("/functions/v1/health")
+    );
+  }
+
+  function restricted() {
+    return getStore(MODE) === "true" ||
+      getStore(LOCK) === "true";
+  }
+
+  function lockOfflineMode() {
+    setStore(LOCK, "true");
+    document.documentElement.dataset.sintergiaOfflineLocked = "true";
+  }
+
+  function unlockOfflineMode() {
+    removeStore(LOCK);
+    delete document.documentElement.dataset.sintergiaOfflineLocked;
+  }
+
+  function pauseProtectedSync() {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("sintergia:offline-sync-pause")
+      );
+    } catch (_) {}
+  }
+
+  function resumeProtectedSync() {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("sintergia:offline-sync-resume")
+      );
+    } catch (_) {}
+  }
+
+  function saveGrantFromResponse(response, data) {
+    if (!response || !response.ok || !data || data.ok !== true) {
+      return;
+    }
+
+    const token = typeof data.token === "string" ? data.token : "";
+
+    if (token.length > 20 && !token.startsWith("local-")) {
+      setStore(GRANT, String(Date.now()));
+      unlockOfflineMode();
+    }
+  }
+
+  function installFetchGuard() {
+    if (typeof window.fetch !== "function" || window.__sintergiaFetchGuardInstalled) {
+      return;
+    }
+
+    window.__sintergiaFetchGuardInstalled = true;
     const originalFetch = window.fetch.bind(window);
 
-    window.fetch = async function (...args) {
-      const isAuthRequest = isBiometricAuthRequest(args[0]);
-      const response = await originalFetch(...args);
+    window.fetch = async function (input, init) {
+      if (
+        restricted() &&
+        !navigator.onLine &&
+        !isAllowedWhileRestricted(input)
+      ) {
+        throw new TypeError(
+          "SintergiaSE: operación de backend bloqueada en modo offline."
+        );
+      }
 
-      if (isAuthRequest && response.ok) {
+      const response = await originalFetch(input, init);
+
+      if (isBiometricAuthRequest(input) && response.ok) {
         try {
-          const data = await response.clone().json();
-
-          if (
-            data &&
-            data.ok === true &&
-            typeof data.token === 'string' &&
-            data.token.length > 20 &&
-            !data.token.startsWith('local-')
-          ) {
-            saveOfflineGrant();
-          }
+          const copy = response.clone();
+          const data = await copy.json();
+          saveGrantFromResponse(response, data);
         } catch (_) {
-          // Una respuesta que no se pueda validar no concede acceso offline.
+          // Una respuesta inesperada no concede acceso offline.
         }
       }
 
@@ -84,13 +168,50 @@
     };
   }
 
-  // Exponer el estado para que la aplicación pueda consultarlo.
-  window.SintergiaOfflineGuard = Object.freeze({
-    offlineGrantValid,
-    clearOfflineGrant: function () {
-      try {
-        localStorage.removeItem(GRANT);
-      } catch (_) {}
+  function checkGrantExpiry() {
+    if (getStore(MODE) === "true" && !offlineGrantValid()) {
+      lockOfflineMode();
+      pauseProtectedSync();
     }
-  });
+  }
+
+  function initialize() {
+    installFetchGuard();
+
+    if (restricted()) {
+      pauseProtectedSync();
+    }
+
+    checkGrantExpiry();
+
+    window.addEventListener("online", function () {
+      resumeProtectedSync();
+    });
+
+    window.addEventListener("offline", function () {
+      if (restricted()) {
+        pauseProtectedSync();
+      }
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) checkGrantExpiry();
+    });
+  }
+
+  window.SintergiaOfflineGuard = {
+    restricted,
+    offlineGrantValid,
+    clearOfflineGrant,
+    lockOfflineMode,
+    unlockOfflineMode,
+    pauseProtectedSync,
+    resumeProtectedSync
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  } else {
+    initialize();
+  }
 })();
