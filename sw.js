@@ -1,22 +1,43 @@
-/* SintergiaSE offline shell. Never cache API/auth/sync responses. */
+/* SintergiaSE offline shell + restricted offline authorization guard. */
 'use strict';
 const CACHE_PREFIX = 'sintergiase-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'v2';
+const CACHE_NAME = CACHE_PREFIX + 'v3';
 const SCOPE_URL = self.registration.scope;
 const APP_SHELL = new URL('./index.html', SCOPE_URL).href;
-const OPTIONAL_ASSETS = [
-  new URL('./manifest.webmanifest', SCOPE_URL).href
-];
+const SCOPE_PATH = new URL(SCOPE_URL).pathname;
+const OPTIONAL_ASSETS = [new URL('./manifest.webmanifest', SCOPE_URL).href, new URL('./offline-guard.js', SCOPE_URL).href];
+
+/* Inject the guard as the first script in <head>, before app scripts and before
+   synchronization starts. The separate same-origin file is cached for offline use. */
+const GUARD_TAG = '<script id="sintergia-offline-auth-guard" src="./offline-guard.js"><\/script>';
+
 function isBackend(url, request) {
   if (url.origin !== self.location.origin) return true;
   if (request && request.headers && request.headers.has('authorization')) return true;
   return /\/functions\/v1\/|\/rest\/v1\/|\/auth\/v1\/|\/storage\/v1\/|\/realtime\/v1\//i.test(url.pathname)
     || /[?&](token|access_token|apikey)=/i.test(url.search);
 }
+function isAppDocument(url) {
+  return url.origin === self.location.origin && (url.pathname === new URL(APP_SHELL).pathname || url.pathname === SCOPE_PATH);
+}
+async function withOfflineGuard(response) {
+  if (!response || !response.ok || !/text\/html/i.test(response.headers.get('content-type') || '')) return response;
+  const html = await response.clone().text();
+  if (html.includes('id="sintergia-offline-auth-guard"')) return response;
+  const headPattern = /<head(?:\s[^>]*)?>/i;
+  if (!headPattern.test(html)) return response;
+  const guardedHtml = html.replace(headPattern, match => match + GUARD_TAG);
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  headers.delete('etag');
+  headers.delete('last-modified');
+  return new Response(guardedHtml, {status: response.status, statusText: response.statusText, headers});
+}
+
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // The HTML shell is required; optional PWA assets must not block installation.
     await cache.add(new Request(APP_SHELL, { cache: 'reload' }));
     await Promise.all(OPTIONAL_ASSETS.map(async url => {
       try { const r = await fetch(new Request(url, { cache: 'reload' })); if (r.ok) await cache.put(url, r); } catch (_) {}
@@ -35,30 +56,33 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  // Never synthesize/cache authentication, database, storage, realtime, or edge-function replies.
+  // Never cache or replace API/auth/sync responses, including cross-origin backend traffic.
   if (isBackend(url, request)) return;
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       try {
         const response = await fetch(request);
-        // Only refresh the cached shell from the canonical index URL; never let an
-        // unrelated in-scope navigation (e.g. a deep link or login route) overwrite it.
-        const requested = new URL(request.url);
-        const canonical = new URL(APP_SHELL);
-        if (requested.origin === canonical.origin && requested.pathname === canonical.pathname
-            && response && response.ok && response.type !== 'opaque'
-            && /text\/html/i.test(response.headers.get('content-type') || '')) {
-          await cache.put(APP_SHELL, response.clone());
+        if (isAppDocument(url)) {
+          const guarded = await withOfflineGuard(response);
+          if (guarded && guarded.ok && /text\/html/i.test(guarded.headers.get('content-type') || '')) {
+            await cache.put(APP_SHELL, guarded.clone());
+            return guarded;
+          }
         }
         return response;
       } catch (_) {
-        return (await cache.match(request)) || (await cache.match(APP_SHELL)) || new Response('SintergiaSE no está disponible sin conexión. Abre la aplicación al menos una vez con Internet y vuelve a intentarlo.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        const cached = (await cache.match(request)) || (await cache.match(APP_SHELL));
+        if (cached) {
+          const guarded = await withOfflineGuard(cached);
+          if (guarded !== cached) await cache.put(APP_SHELL, guarded.clone()).catch(() => {});
+          return guarded;
+        }
+        return new Response('SintergiaSE no está disponible sin conexión. Abre la aplicación al menos una vez con Internet y vuelve a intentarlo.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
     })());
     return;
   }
-  // Cache only same-origin static assets; API calls and all cross-origin requests bypass this worker.
   if (url.origin === self.location.origin && ['script','style','image','font','manifest'].includes(request.destination)) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
