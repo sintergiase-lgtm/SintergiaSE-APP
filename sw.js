@@ -1,11 +1,12 @@
 /* SintergiaSE offline shell + restricted offline authorization guard. */
 'use strict';
 const CACHE_PREFIX = 'sintergiase-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'v3';
+const CACHE_NAME = CACHE_PREFIX + 'v4';
 const SCOPE_URL = self.registration.scope;
 const APP_SHELL = new URL('./index.html', SCOPE_URL).href;
 const SCOPE_PATH = new URL(SCOPE_URL).pathname;
-const OPTIONAL_ASSETS = [new URL('./manifest.webmanifest', SCOPE_URL).href, new URL('./offline-guard.js', SCOPE_URL).href];
+const OPTIONAL_ASSETS = [new URL('./manifest.webmanifest', SCOPE_URL).href, new URL('./offline-guard.js', SCOPE_URL).href, new URL('./icon-192.png', SCOPE_URL).href, new URL('./icon-512.png', SCOPE_URL).href];
+const NAV_TIMEOUT_MS = 4000;
 
 /* Inject the guard as the first script in <head>, before app scripts and before
    synchronization starts. The separate same-origin file is cached for offline use. */
@@ -62,7 +63,12 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       try {
-        const response = await fetch(request);
+        /* With a cached shell, don't hang on a connection that reports online but
+           doesn't respond: fall back to the cache after NAV_TIMEOUT_MS. */
+        const hasShell = await cache.match(APP_SHELL);
+        const response = hasShell
+          ? await Promise.race([fetch(request), new Promise((_, rej) => setTimeout(() => rej(new Error('nav-timeout')), NAV_TIMEOUT_MS))])
+          : await fetch(request);
         if (isAppDocument(url)) {
           const guarded = await withOfflineGuard(response);
           if (guarded && guarded.ok && /text\/html/i.test(guarded.headers.get('content-type') || '')) {
