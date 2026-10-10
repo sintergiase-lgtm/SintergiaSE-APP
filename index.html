@@ -14205,7 +14205,7 @@ async function verificarBiometriaBackend(assertion){
 async function biometricUnlock(){
   const raw=load(BIO,null);if(!raw?.id){alert('Configura primero la biometría.');return false}
   if(biometricOperationInProgress){alert('Ya hay una solicitud biométrica en curso. Espera a que termine antes de volver a intentarlo.');return false}
-  /* Seguridad: probar biometría desde la pantalla de Seguridad también debe probar un estado realmente bloqueado. Si el usuario cancela o el challenge expira, no debe quedarse con la aplicación abierta. */
+  /* La pantalla debe estar bloqueada antes de iniciar cualquier comprobación. */
   const security=window.SintergiaSecurity;
   if(security&&typeof security.estaBloqueada==='function'&&!security.estaBloqueada()){
     const nowLocked=typeof security.bloquear==='function'?await security.bloquear():false;
@@ -14216,11 +14216,31 @@ async function biometricUnlock(){
     const ep=window.SINTERGIA_BACKEND?.auth?.authenticateBiometricEndpoint||'https://bgjicsowspppsjzigazb.supabase.co/functions/v1/authenticate-biometric';
     const authToken=window.SintergiaAuthToken||(()=>{try{return JSON.parse(sessionStorage.getItem('sintergia_auth_token')||'null')?.token||''}catch(_){return ''}})();
     const authHeaders={'Content-Type':'application/json','X-Sintergia-Request-ID':'BIO-AUTH-OPTIONS-'+Date.now().toString(36)}; if(authToken&&!String(authToken).startsWith('local-')) authHeaders.Authorization='Bearer '+authToken;
-    const optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
+    let optRes;
+    try{
+      optRes=await fetch(ep,{method:'POST',credentials:'omit',cache:'no-store',headers:authHeaders,body:JSON.stringify({action:'options',credentialId:raw.credentialId||raw.id,technicianId:(window.SintergiaTechnician||{}).id||'',dni:(window.SintergiaTechnician||{}).dni||''})});
+    }catch(networkError){
+      /* Modo local limitado: sólo se ofrece si esta credencial fue registrada en servidor
+         y se validó online recientemente. No crea ni renueva una sesión del servidor. */
+      const grant=Number(localStorage.getItem('sintergia_biometric_last_online_ok_v1')||0);
+      const grantValid=raw.backendRegistered===true && grant>0 && Date.now()-grant>=0 && Date.now()-grant<=7*24*60*60*1000;
+      if(!grantValid){alert('No hay conexión con el servidor y no existe una autorización biométrica local reciente. Conéctate a Internet y valida la biometría una vez antes de usarla sin conexión.');audit('BIOMETRIC_UNLOCK_FAIL','Sin red y sin autorización local vigente');return false;}
+      if(!navigator.credentials?.get||!window.PublicKeyCredential||!crypto?.getRandomValues){alert('Este navegador no permite validar la biometría localmente.');return false;}
+      const challenge=new Uint8Array(32);crypto.getRandomValues(challenge);
+      const credentialId=raw.credentialId||raw.id;
+      const localAssertion=await navigator.credentials.get({publicKey:{challenge,rpId:location.hostname,allowCredentials:[{type:'public-key',id:ub64u(credentialId)}],userVerification:'required',timeout:60000}});
+      if(!localAssertion||localAssertion.type!=='public-key'||localAssertion.id!==credentialId){audit('BIOMETRIC_UNLOCK_FAIL','La credencial local no coincide');return false;}
+      sessionStorage.setItem('sintergia_offline_biometric_mode','restricted');
+      sessionStorage.setItem('sintergia_biometric_auth','offline-restricted');
+      window.dispatchEvent(new Event('sintergia-biometric-unlock'));
+      audit('BIOMETRIC_UNLOCK_OFFLINE','Autenticador local aceptado; sin sesión de servidor, modo restringido');
+      alert('Biometría local aceptada. Estás en MODO SIN CONEXIÓN LIMITADO: no hay sesión de servidor; las operaciones remotas y las acciones que requieran autorización online seguirán bloqueadas. La autorización local caduca en un máximo de 7 días desde la última validación online.');
+      return true;
+    }
     if(!optRes.ok)throw new Error('El backend biométrico no está disponible para obtener el challenge (HTTP '+optRes.status+').');
     const opt=await optRes.json();
     if(!opt||!opt.ok||!opt.challenge)throw new Error('El backend no devolvió un challenge biométrico válido.');
-    const publicKey={challenge:ub64u(opt.challenge),rpId:opt.rpId||location.hostname,allowCredentials:(opt.allowCredentials||[{type:'public-key',id:raw.id}]).map(function(x){return Object.assign({},x,{id:typeof x.id==='string'?ub64u(x.id):x.id})}),userVerification:'required'};
+    const publicKey={challenge:ub64u(opt.challenge),rpId:opt.rpId||location.hostname,allowCredentials:(opt.allowCredentials||[{type:'public-key',id:raw.credentialId||raw.id}]).map(function(x){return Object.assign({},x,{id:typeof x.id==='string'?ub64u(x.id):x.id})}),userVerification:'required'};
     const cred=await navigator.credentials.get({publicKey:publicKey,mediation:'optional'});
     if(!cred)return false;
     const assertion={action:'verify-authentication',id:cred.id,rawId:b64u(cred.rawId),type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),authenticatorData:b64u(cred.response.authenticatorData),signature:b64u(cred.response.signature),userHandle:cred.response.userHandle?b64u(cred.response.userHandle):null},credentialId:cred.id};
@@ -14231,8 +14251,9 @@ async function biometricUnlock(){
     window.SintergiaAuthToken=ses.token;
     sessionStorage.setItem('sintergia_auth_token',JSON.stringify({token:ses.token,refreshToken:ses.refreshToken||null,scope:ses.scope,id:ses.id,expiresAt:ses.expiresAt}));
     if(ses.id)window.SintergiaTechnician=Object.assign({},window.SintergiaTechnician||{},{id:ses.id,scope:ses.scope||((window.SintergiaTechnician||{}).scope)});
+    localStorage.setItem('sintergia_biometric_last_online_ok_v1',String(Date.now()));
+    sessionStorage.removeItem('sintergia_offline_biometric_mode');
     sessionStorage.setItem('sintergia_biometric_auth','1');
-    /* Notifica el éxito desde la propia ruta común para que cualquier botón de biometría desbloquee el mismo estado de interfaz. */
     window.dispatchEvent(new Event('sintergia-biometric-unlock'));
     audit('BIOMETRIC_UNLOCK','Desbloqueo biométrico verificado en backend; sesión de servidor instalada');
     return true;
