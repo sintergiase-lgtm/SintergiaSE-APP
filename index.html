@@ -945,9 +945,9 @@ window.SintergiaSecurityConfig = Object.freeze({
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0F2B48">
-    <link rel="manifest" href="/sintergia/manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="192x192" href="/sintergia/icon-192.png">
-    <link rel="apple-touch-icon" href="/sintergia/apple-touch-icon.png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2861,6 +2861,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       return check.length===q.length;
     }catch(_){return false;}
   }
+  function queueIdentity(item){
+    if(!item||typeof item!=='object')return '';
+    return String(item.id||item.operationId||item.requestId||'')||stableJson(item);
+  }
+  /* A flush must not overwrite items queued while network requests are in flight. */
+  function mergeQueueAfterFlush(key,original,retained){
+    const originalIds=new Set((Array.isArray(original)?original:[]).map(queueIdentity));
+    const merged=[],seen=new Set();
+    for(const item of (Array.isArray(retained)?retained:[])){
+      const id=queueIdentity(item);if(id&&seen.has(id))continue;if(id)seen.add(id);merged.push(item);
+    }
+    for(const item of getQ(key)){
+      const id=queueIdentity(item);
+      if(id&&originalIds.has(id))continue;
+      if(id&&seen.has(id))continue;
+      if(id)seen.add(id);merged.push(item);
+    }
+    return putQ(key,merged);
+  }
   function entityKey(x){return String(x?.id??x?.uid??x?.ref??x?.referencia??x?.numero??x?.codigo??'');}
   function stableJson(x){try{return JSON.stringify(x??null);}catch(_){return '';}}
   function tombstoneId(collection,key){return String(collection||'')+'::'+String(key||'');}
@@ -3352,7 +3371,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     queueApi:function(url,body,reason){const headers={'Content-Type':'application/json','X-Sintergia-Request-ID':uuid()};return enqueueApi(url,{method:'POST',headers:headers,body:typeof body==='string'?body:JSON.stringify(body||{})},reason);},
     defer:function(type,payload){const q=getQ(LS.deferred);q.push({id:uuid(),type:type,payload:payload||{},createdAt:now(),deviceId:DEVICE});putQ(LS.deferred,q);},
     snapshot:function(reason){try{if(typeof window.obtenerSnapshotSincronizacion!=='function')return null;const s=window.obtenerSnapshotSincronizacion();if(!s)return null;s.version=Math.max(Number(s.version)||0,6);s.deviceId=DEVICE;s.clientUpdatedAt=now();s.syncReason=reason||'local-change';const raw=JSON.stringify(s);if(raw.length>MAX_BYTES)throw new Error('Estado local demasiado grande para sincronizar.');return s;}catch(e){return null;}},
-    queueSnapshot:function(reason){const s=this.snapshot(reason);if(s)addChange(s,reason);return s;},
+    queueSnapshot:function(reason,providedSnapshot){
+      let s=null;
+      if(providedSnapshot&&typeof providedSnapshot==='object'&&!Array.isArray(providedSnapshot)){
+        try{s=JSON.parse(JSON.stringify(providedSnapshot));if(!s.deviceId)s.deviceId=DEVICE;}catch(_){s=null;}
+      }else s=this.snapshot(reason);
+      if(s)addChange(s,reason);
+      return s;
+    },
     flush:async function(){return flush();},
     conflicts:function(){return getQ(LS.conflicts);},
     queueIntegrity:function(){return queueIntegrity();},
@@ -3570,25 +3596,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     flushing=true;
     appendJournal('flush-start',{});
 
-    if(flushing||!navigator.onLine)return false;
-    flushing=true;
     let okAll=true;
     try{
+      /* La bandera flushing ya está activa aquí; no debe usarse para abortar su propia ejecución.
+         Si la conexión cae justo antes de empezar el envío, salimos dentro del try para que finally
+         libere siempre la bandera y el lease. */
+      if(!navigator.onLine){setSyncState('offline',{reason:'connection-lost-before-flush'});return false;}
       /* Primero operaciones API diferidas: email/citas/rutas/IA/documentos. */
       let aq=getQ(LS.api);
       const remain=[];
-      for(const item of aq){
+      for(let apiIndex=0;apiIndex<aq.length;apiIndex++){
+        const item=aq[apiIndex];
         try{await postApi(item);}catch(e){
           if(!e.permanent)remain.push(Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e),lastAttemptAt:now()}));
           else toast('⚠️ Operación rechazada por backend: '+(e.message||e));
-          okAll=false;if(!navigator.onLine)break;
+          okAll=false;
+          if(!navigator.onLine){
+            /* Preserve every item not attempted after a connection drop. */
+            remain.push(...aq.slice(apiIndex+1));
+            break;
+          }
         }
       }
-      putQ(LS.api,remain);
+      mergeQueueAfterFlush(LS.api,aq,remain);
       /* P41: operaciones idempotentes. Si el endpoint aún no existe, el snapshot
          completo actúa como fallback y conserva la compatibilidad con Supabase. */
       let oq=getQ(LS.operations), opKeep=[], operationEndpointUnsupported=false;
-      for(const item of oq){
+      const operationIdsAtStart=new Set(oq.map(queueIdentity));
+      for(let opIndex=0;opIndex<oq.length;opIndex++){
+        const item=oq[opIndex];
         try{
           const result=await postOperation(item);
           if(result&&result.unsupported){operationEndpointUnsupported=true;break;}
@@ -3619,19 +3655,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             opKeep.push(next);
           }
           okAll=false;
-          if(!navigator.onLine)break;
+          if(!navigator.onLine){
+            /* Preserve unattempted operations when the network drops mid-loop. */
+            opKeep.push(...oq.slice(opIndex+1));
+            break;
+          }
         }
       }
       if(operationEndpointUnsupported){
-        /* El endpoint es opcional: las operaciones no se pierden porque el snapshot sigue siendo el fallback. */
-        opKeep=[];
+        /* Keep operations until a full snapshot fallback is positively acknowledged. */
+        opKeep=oq.slice();
+        if(getQ(LS.changes).length===0){
+          try{
+            const fallback=window.SintergiaOffline&&window.SintergiaOffline.snapshot
+              ?window.SintergiaOffline.snapshot('operations-endpoint-unsupported-fallback')
+              :(window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion());
+            if(fallback)addChange(fallback,'operations-endpoint-unsupported-fallback');
+          }catch(e){window.__sgIgn&&window.__sgIgn(e);}
+        }
       }
-      putQ(LS.operations,opKeep);
+      mergeQueueAfterFlush(LS.operations,oq,opKeep);
       let cq=getQ(LS.changes), keep=[];
-      for(const item of cq){
-        try{await postSnapshot(item);}catch(e){keep.push(Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e)}));okAll=false;if(!navigator.onLine)break;}
+      for(let changeIndex=0;changeIndex<cq.length;changeIndex++){
+        const item=cq[changeIndex];
+        try{await postSnapshot(item);}catch(e){
+          keep.push(Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e)}));
+          okAll=false;
+          if(!navigator.onLine){
+            /* Do not drop snapshots that were still waiting in the queue. */
+            keep.push(...cq.slice(changeIndex+1));
+            break;
+          }
+        }
       }
-      putQ(LS.changes,keep);
+      mergeQueueAfterFlush(LS.changes,cq,keep);
+      /* Unsupported operation endpoint: clear only operations that existed at flush start, and only after every fallback snapshot was acknowledged. Preserve operations added during the request. */
+      if(operationEndpointUnsupported&&okAll&&keep.length===0){
+        const pendingNow=getQ(LS.operations).filter(item=>!operationIdsAtStart.has(queueIdentity(item)));
+        const cleared=putQ(LS.operations,pendingNow);
+        if(cleared)opKeep=pendingNow;
+        else{opKeep=getQ(LS.operations);okAll=false;}
+      }
       const conflictQueue=getQ(LS.conflicts);
       const pendingConflicts=conflictQueue.filter(x=>x.status==='pending').length;
       const meta={lastFlushAt:now(),ok:okAll,pendingApi:remain.length,pendingOperations:opKeep.length,pendingSnapshots:keep.length,pendingConflicts,operationEndpointUnsupported};write(LS.meta,meta);
@@ -3640,13 +3704,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     else scheduleSyncRetry('flush-incomplete');
 
       return okAll;
-    }finally{flushing=false;}
-    refreshFlushLease();
-    flushing=false;
-    releaseFlushLease();
-    appendJournal('flush-end',{ok:okAll});
-
-
+    }finally{
+      flushing=false;
+      refreshFlushLease();
+      releaseFlushLease();
+      appendJournal('flush-end',{ok:okAll});
+    }
   }
 
   async function replayDeferred(){
@@ -6624,13 +6687,15 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             }
         }
         if (changed) {
+            /* Advance the revision BEFORE dispatching the synchronous event. The sync listener
+               builds its snapshot inside that event and must see the revision for this save. */
+            const prev = parseInt(localStorage.getItem('sintergia_sync_revision') || '0', 10);
+            localStorage.setItem('sintergia_sync_revision', String(Number.isFinite(prev) ? prev + 1 : 1));
             try {
                 if (!window.__sintergiaSuppressOfflineQueue) {
                     window.dispatchEvent(new CustomEvent('sintergia-state-saved', {detail:{reason:'guardarEstadoStorage'}}));
                 }
             } catch (_) { window.__sgIgn && window.__sgIgn(_); }
-            const prev = parseInt(localStorage.getItem('sintergia_sync_revision') || '0', 10);
-            localStorage.setItem('sintergia_sync_revision', String(Number.isFinite(prev) ? prev + 1 : 1));
         }
         return true;
     } catch (error) {
@@ -13706,7 +13771,7 @@ window.sgKmTrayecto=async function(ini,fin){
  return {km:Math.round(km*100)/100,fuente:fuente};
 };
 
-window.obtenerSnapshotSincronizacion=function(){try{const st=window.appState||{};const now=new Date().toISOString();let rev=parseInt(localStorage.getItem('sintergia_sync_revision')||'0',10);if(!Number.isFinite(rev)||rev<0)rev=0;rev+=1;localStorage.setItem('sintergia_sync_revision',String(rev));let sourceId=sessionStorage.getItem('sintergia_device_id');if(!sourceId){sourceId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();sessionStorage.setItem('sintergia_device_id',sourceId);}const snapshot={version:7,updatedAt:now,clientUpdatedAt:now,revision:rev,sourceId,deviceId:sourceId,clientes:st.clientes||[],partes:st.partes||[],facturas:st.facturas||[],pendientes:st.pendientes||[],stock:st.stock||[],stockListas:st.stockListas||[],partCounter:st.partCounter,facCounter:st.facCounter,horario:st.horario||null,compras:st.compras||[],tombstones:getTombstones(),entityVersioning:true};const raw=JSON.stringify(snapshot);if(raw.length>MAX_SYNC_BYTES)throw new Error('El estado supera el límite de sincronización de 5 MB.');return JSON.parse(raw);}catch(e){if(window.__mostrarErrorApp)window.__mostrarErrorApp('Sincronización: '+(e.message||e));return null;}};
+window.obtenerSnapshotSincronizacion=function(){try{const st=window.appState||{};const now=new Date().toISOString();let rev=parseInt(localStorage.getItem('sintergia_sync_revision')||'0',10);if(!Number.isFinite(rev)||rev<0)rev=0;/* Reading/building a snapshot must not mutate the local revision. Only a successful local save advances it. */let sourceId=sessionStorage.getItem('sintergia_device_id');if(!sourceId){sourceId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();sessionStorage.setItem('sintergia_device_id',sourceId);}const snapshot={version:7,updatedAt:now,clientUpdatedAt:now,revision:rev,sourceId,deviceId:sourceId,clientes:st.clientes||[],partes:st.partes||[],facturas:st.facturas||[],pendientes:st.pendientes||[],stock:st.stock||[],stockListas:st.stockListas||[],partCounter:st.partCounter,facCounter:st.facCounter,horario:st.horario||null,compras:st.compras||[],tombstones:getTombstones(),entityVersioning:true};const raw=JSON.stringify(snapshot);if(raw.length>MAX_SYNC_BYTES)throw new Error('El estado supera el límite de sincronización de 5 MB.');return JSON.parse(raw);}catch(e){if(window.__mostrarErrorApp)window.__mostrarErrorApp('Sincronización: '+(e.message||e));return null;}};
 /* P13: healthcheck runtime no invasivo para Supabase/PWA. */
 window.SintergiaRuntimeHealth=function(){
   const checks={};
@@ -13820,7 +13885,66 @@ window.SintergiaDiagnostico={contexto:contextoDiagnostico,reverseGeocode:reverse
   </div>
 </div>
 <script id="sintergia-sync-queue-js">
-(function(){'use strict';const Q='sintergia_sync_queue_v1';function get(){try{return window.__safeParse(localStorage.getItem(Q))||null;}catch(_){return null;}}function set(v){try{if(v)localStorage.setItem(Q,JSON.stringify(v));else localStorage.removeItem(Q);}catch(_){window.__sgIgn&&window.__sgIgn(_);}}async function flush(){if(!navigator.onLine||!window.SintergiaRealtime||!window.obtenerSnapshotSincronizacion)return;const q=get();if(!q)return;try{const ok=await window.SintergiaRealtime.publish(q.snapshot);if(ok){set(null);window.SintergiaSecurity?.audit('SYNC_QUEUE_FLUSH','Cambio pendiente publicado');}}catch(_){window.__sgIgn&&window.__sgIgn(_);} }/* P11: la cola offline no envuelve APIs; se integra por eventos de persistencia. */window.addEventListener('online',flush);setInterval(flush,30000);})();
+(function(){
+'use strict';
+/* Compatibility bridge for the former snapshot-only queue. The durable v3 queue is now the
+   sole publisher; running two independent publishers caused duplicate, concurrent writes to
+   realtime-snapshot. A legacy pending snapshot is migrated before the old key is removed. */
+const LEGACY='sintergia_sync_queue_v1', DURABLE='sintergia_offline_changes_v3';
+let migrationAttempted=false;
+function getLegacy(){try{return JSON.parse(localStorage.getItem(LEGACY)||'null')}catch(_){return null}}
+function readDurable(){try{const q=JSON.parse(localStorage.getItem(DURABLE)||'[]');return Array.isArray(q)?q:[]}catch(_){return []}}
+function mainQueue(){return window.SintergiaOffline&&typeof window.SintergiaOffline.flush==='function'?window.SintergiaOffline:null}
+function migrationStored(snapshot){return readDurable().some(item=>item&&JSON.stringify(item.snapshot)===JSON.stringify(snapshot))}
+function clearMigrated(snapshot){
+  if(!migrationStored(snapshot))return false;
+  try{localStorage.removeItem(LEGACY);}catch(e){window.__sgIgn&&window.__sgIgn(e);return false;}
+  window.dispatchEvent(new CustomEvent('sintergia-offline-queue-status',{detail:{pending:true,migrated:true,revision:snapshot&&snapshot.revision}}));
+  return true;
+}
+function migrateLegacy(){
+  const legacy=getLegacy();
+  if(!legacy||!legacy.snapshot||typeof legacy.snapshot!=='object')return false;
+  const core=mainQueue();
+  if(!core||typeof core.queueSnapshot!=='function')return false;
+  /* If this snapshot is already durable, clear only the redundant old pointer. */
+  if(migrationStored(legacy.snapshot))return clearMigrated(legacy.snapshot);
+  /* Avoid filling the queue repeatedly if storage is currently full; keep the legacy record
+     intact and allow another attempt after the app is reopened. */
+  if(migrationAttempted)return false;
+  migrationAttempted=true;
+  try{
+    const snapshot=core.queueSnapshot('legacy-queue-migration',legacy.snapshot);
+    if(!snapshot||!migrationStored(snapshot))return false;
+    return clearMigrated(snapshot);
+  }catch(e){window.__sgIgn&&window.__sgIgn(e);return false;}
+}
+async function flush(){
+  migrateLegacy();
+  const core=mainQueue();
+  return core?core.flush():false;
+}
+function queueCurrentState(){
+  if(window.__sintergiaSuppressOfflineQueue)return false;
+  const core=mainQueue();
+  if(!core||typeof core.queueSnapshot!=='function')return false;
+  try{
+    const snapshot=core.queueSnapshot('legacy-queue-bridge');
+    if(!snapshot)return false;
+    window.dispatchEvent(new CustomEvent('sintergia-offline-queue-status',{detail:{pending:true,revision:snapshot.revision}}));
+    if(navigator.onLine)flush();
+    return true;
+  }catch(e){window.__sgIgn&&window.__sgIgn(e);return false;}
+}
+function pending(){
+  migrateLegacy();
+  const core=mainQueue();
+  try{return !!getLegacy()||!!(core&&Number(core.status()?.snapshots)>0)}catch(_){return !!getLegacy();}
+}
+window.SintergiaOfflineQueue={pending,flush,queueCurrentState};
+/* Run a one-time migration on startup; normal saves and retries are owned by SintergiaOffline. */
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',migrateLegacy,{once:true});else setTimeout(migrateLegacy,0);
+})();
 </script>
 <script id="sintergia-security-productivity-js">
 (function(){
