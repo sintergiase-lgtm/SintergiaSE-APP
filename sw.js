@@ -1,7 +1,7 @@
 /* SintergiaSE offline shell + restricted offline authorization guard. */
 'use strict';
 const CACHE_PREFIX = 'sintergiase-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'v5';
+const CACHE_NAME = CACHE_PREFIX + 'v6';
 const SCOPE_URL = self.registration.scope;
 const APP_SHELL = new URL('./index.html', SCOPE_URL).href;
 const SCOPE_PATH = new URL(SCOPE_URL).pathname;
@@ -10,10 +10,9 @@ const OPTIONAL_ASSETS = [
   new URL('./offline-guard.js', SCOPE_URL).href,
   new URL('./offline-login-bridge.js', SCOPE_URL).href
 ];
-const GUARD_TAG = '<script id="sintergia-offline-auth-guard" src="./offline-guard.js"><\/script>';
 
+// API/auth responses must never enter the offline shell cache.
 function isBackend(url, request) {
-  if (url.origin !== self.location.origin) return true;
   if (request && request.headers && request.headers.has('authorization')) return true;
   return /\/(?:functions|rest|auth|storage|realtime)\/v1\//i.test(url.pathname)
     || /[?&](?:token|access_token|apikey)=/i.test(url.search);
@@ -27,7 +26,11 @@ async function withOfflineGuard(response) {
   if (html.includes('id="sintergia-offline-auth-guard"')) return response;
   const headPattern = /<head(?:\s[^>]*)?>/i;
   if (!headPattern.test(html)) return response;
-  const guardedHtml = html.replace(headPattern, match => match + GUARD_TAG);
+
+  // This is an external JavaScript file, so the closing script tag is literal.
+  // A backslash left in the emitted HTML prevents normal recognition of the tag.
+  const guardTag = '<script id="sintergia-offline-auth-guard" src="./offline-guard.js"></script>';
+  const guardedHtml = html.replace(headPattern, match => match + guardTag);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
@@ -59,7 +62,7 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  // Nunca guardar ni sustituir respuestas de API, sincronización o autenticación.
+  // Never cache or replace API, synchronization, or authentication responses.
   if (isBackend(url, request)) return;
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
