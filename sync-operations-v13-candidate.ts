@@ -34,7 +34,7 @@ async function token(req: Request) {
 function cors(req: Request) {
   const o = req.headers.get('origin'), a = (Deno.env.get('ALLOWED_ORIGINS') || '').split(',').map(x => x.trim()).filter(Boolean)
   const h: any = { 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'authorization,content-type,x-requested-with,x-sintergia-request-id,apikey,x-client-info', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
-  if (o && (!a.length || a.includes(o))) { h['Access-Control-Allow-Origin'] = o; h['Access-Control-Allow-Credentials'] = 'true' }
+  if (o && a.includes(o)) { h['Access-Control-Allow-Origin'] = o; h['Access-Control-Allow-Credentials'] = 'true' }
   return h
 }
 function json(req: Request, status: number, body: any) {
