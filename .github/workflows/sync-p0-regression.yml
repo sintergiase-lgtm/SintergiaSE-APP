@@ -6,11 +6,14 @@ on:
       - fix/sync-p0-ack-and-durability-20261013
       - fix/sync-fallback-full-snapshot-20261013
       - fix/backend-allowlist-test-20261013
+      - fix/sync-state-merge-inventory-20261013
   pull_request:
     branches:
       - main
       - fix/sync-p0-ack-and-durability-20261013
       - fix/sync-fallback-full-snapshot-20261013
+      - fix/backend-allowlist-test-20261013
+      - fix/sync-state-merge-inventory-20261013
   workflow_dispatch:
 
 permissions:
@@ -35,5 +38,9 @@ jobs:
         run: node --check test-backend-allowlist.cjs
       - name: Run backend allowlist dynamic test
         run: node test-backend-allowlist.cjs
+      - name: Check state merge regression test syntax
+        run: node --check test-sync-state-merge.cjs
+      - name: Run state merge regression tests
+        run: node test-sync-state-merge.cjs
       - name: Parse all inline JavaScript blocks
         run: node test-inline-script-syntax.cjs
