@@ -88,6 +88,31 @@ const operation = {
     'an untrusted origin must be rejected even when it uses an Edge Function path');
   assert.throws(() => checkedFetch('https://bgjicsowspppsjzigazb.supabase.co/rest/v1/users'), /Endpoint de backend no permitido/,
     'the configured backend origin must not allow arbitrary non-Edge-Function paths');
+  await checkedFetch('/local-health', { method: 'GET' });
+  assert.equal(fetchCalls[1].url, 'https://sintergiase-lgtm.github.io/local-health',
+    'same-origin HTTP(S) paths must remain available');
+
+  assert.throws(() => checkedFetch('https://user:pass@bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot'), /Endpoint de backend no permitido/,
+    'URLs containing credentials must be rejected even for the configured host');
+  assert.throws(() => checkedFetch('ftp://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot'), /Endpoint de backend no permitido/,
+    'non-HTTP protocols must be rejected');
+
+  const httpBackendFetch = backendFetchFactory({
+    location: { origin: 'https://sintergiase-lgtm.github.io' },
+    SINTERGIA_BACKEND_ORIGIN: 'http://bgjicsowspppsjzigazb.supabase.co',
+  }, async () => ({ ok: true, status: 200 }), URL);
+  assert.throws(() => httpBackendFetch('http://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot'), /Endpoint de backend no permitido/,
+    'a configured remote backend must use HTTPS');
+
+  const credentialedConfigFetch = backendFetchFactory({
+    location: { origin: 'https://sintergiase-lgtm.github.io' },
+    SINTERGIA_BACKEND_ORIGIN: 'https://user:pass@bgjicsowspppsjzigazb.supabase.co',
+  }, async () => ({ ok: true, status: 200 }), URL);
+  assert.throws(() => credentialedConfigFetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot'), /Endpoint de backend no permitido/,
+    'configured origins containing credentials must be rejected');
+
+  assert.throws(() => checkedFetch('https://['), /Endpoint de backend no permitido/,
+    'malformed URLs must fail with the safe endpoint error');
 
   console.log('PASS: sync P0 durability, fallback, and round-trip invariants');
 })().catch(error => {

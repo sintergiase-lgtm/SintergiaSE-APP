@@ -13500,10 +13500,19 @@ const SYNC_CHANNEL=(window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.realtime&
 const SYNC_API='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
 const MAX_SYNC_BYTES=5*1024*1024;
 function backendFetch(url,options){
-  const u=new URL(url,window.location.origin);
-  const origin=String(window.SINTERGIA_BACKEND_ORIGIN||'').replace(/\/$/,'');
-  const permitted=new Set([window.location.origin,origin].filter(Boolean));
-  if(!permitted.has(u.origin)||(u.origin!==window.location.origin&&!/^\/functions\/v1\//.test(u.pathname)))throw new Error('Endpoint de backend no permitido.');
+  const pageOrigin=String(window.location&&window.location.origin||'');
+  let u;
+  try{u=new URL(url,pageOrigin);}catch(_){throw new Error('Endpoint de backend no permitido.');}
+  if(!['https:','http:'].includes(u.protocol)||u.username||u.password)throw new Error('Endpoint de backend no permitido.');
+  const sameOrigin=u.origin===pageOrigin;
+  let configured=null;
+  try{
+    const configuredValue=String(window.SINTERGIA_BACKEND_ORIGIN||'').trim();
+    if(configuredValue)configured=new URL(configuredValue);
+  }catch(_){}
+  const validConfiguredOrigin=!!(configured&&configured.protocol==='https:'&&!configured.username&&!configured.password&&configured.pathname==='/'&&!configured.search&&!configured.hash);
+  const configuredEdgeFunction=validConfiguredOrigin&&u.protocol==='https:'&&u.origin===configured.origin&&u.pathname.startsWith('/functions/v1/');
+  if(!sameOrigin&&!configuredEdgeFunction)throw new Error('Endpoint de backend no permitido.');
   return fetch(u.toString(),options);
 }
 function syncToast(msg){if(typeof window.mostrarToast==='function')window.mostrarToast(msg);else if(window.__mostrarErrorApp)window.__mostrarErrorApp(msg);}
