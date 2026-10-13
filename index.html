@@ -3395,15 +3395,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     version:5,deviceId:DEVICE,
     status:function(){return {online:navigator.onLine,deviceId:DEVICE,snapshots:getQ(LS.changes).length,api:getQ(LS.api).length,deferred:getQ(LS.deferred).length,last:read(LS.meta,null)}},
     queueApi:function(url,body,reason){const headers={'Content-Type':'application/json','X-Sintergia-Request-ID':uuid()};return enqueueApi(url,{method:'POST',headers:headers,body:typeof body==='string'?body:JSON.stringify(body||{})},reason);},
-    defer:function(type,payload){const q=getQ(LS.deferred);q.push({id:uuid(),type:type,payload:payload||{},createdAt:now(),deviceId:DEVICE});putQ(LS.deferred,q);},
+    defer:function(type,payload){const q=getQ(LS.deferred);q.push({id:uuid(),type:type,payload:payload||{},createdAt:now(),deviceId:DEVICE});return putQ(LS.deferred,q);},
     snapshot:function(reason){try{if(typeof window.obtenerSnapshotSincronizacion!=='function')return null;const s=window.obtenerSnapshotSincronizacion();if(!s)return null;s.version=Math.max(Number(s.version)||0,6);s.deviceId=DEVICE;s.clientUpdatedAt=now();s.syncReason=reason||'local-change';const raw=JSON.stringify(s);if(raw.length>MAX_BYTES)throw new Error('Estado local demasiado grande para sincronizar.');return s;}catch(e){return null;}},
     queueSnapshot:function(reason,providedSnapshot){
       let s=null;
       if(providedSnapshot&&typeof providedSnapshot==='object'&&!Array.isArray(providedSnapshot)){
         try{s=JSON.parse(JSON.stringify(providedSnapshot));if(!s.deviceId)s.deviceId=DEVICE;}catch(_){s=null;}
       }else s=this.snapshot(reason);
-      if(s)addChange(s,reason);
-      return s;
+      /* Never report a snapshot as queued when local durable persistence failed. */
+      if(!s)return null;
+      return addChange(s,reason)?s:null;
     },
     flush:async function(){return flush();},
     conflicts:function(){return getQ(LS.conflicts);},
