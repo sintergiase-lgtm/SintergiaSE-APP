@@ -5,7 +5,6 @@ on:
     branches:
       - fix/sync-p0-ack-and-durability-20261013
       - fix/sync-fallback-full-snapshot-20261013
-      - fix/sync-preserve-tombstones-conflicts-20261013
   pull_request:
     branches:
       - main
