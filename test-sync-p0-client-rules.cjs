@@ -95,7 +95,7 @@ assert.ok(tombstoneStart >= 0 && tombstoneEnd > tombstoneStart, 'tombstone persi
 const tombstoneBlock = source.slice(tombstoneStart, tombstoneEnd);
 assert.match(tombstoneBlock, /return putQ\(LS\.tombstones,q\)/, 'tombstone persistence result must be checked by callers');
 assert.match(source, /if\(!rememberTombstone\(collection,key,before,revision,sourceId,createdAt\)\)[\s\S]{0,200}throw error;/, 'delete operations must not queue without durable tombstones');
-assert.match(source, /typeof window\.mergeTombstones!=='function'\|\|window\.mergeTombstones\(snapshot\.tombstones\)===false\)return false/, 'snapshot application must stop when tombstones cannot be persisted');
+assert.match(source, /typeof window\.mergeTombstones!=='function'\|\|window\.mergeTombstones\(snapshot\.tombstones\)===false\)\)return false/, 'snapshot application must stop when tombstones cannot be persisted');
 
 const conflictStart = source.indexOf('function queueConflict(item,remote,reason)');
 const conflictEnd = source.indexOf('function threeWayMerge', conflictStart);
