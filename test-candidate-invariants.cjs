@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
-const root = '/mnt/data/';
+const path = require('node:path');
+const root = __dirname;
 const cases = [
   ['verify-receipt-v14-candidate.ts', /parsed\?\.referenciaCoincide === true/, /parsed\?\.importeCoincide === true/, /MAX_REQUEST_BYTES/, /ALLOWED_ORIGINS/],
   ['receipt-register-v13-candidate.ts', /on conflict\(token\) do nothing/i, /409/, /MAX_REQUEST_BYTES/],
@@ -17,7 +18,7 @@ const cases = [
   ['gmail-oauth-v11-candidate.ts', /function escapeHtml\(/, /Content-Security-Policy/, /Referrer-Policy/, /AbortSignal\.timeout/],
 ];
 for (const [file, ...patterns] of cases) {
-  const content = fs.readFileSync(root + file, 'utf8');
+  const content = fs.readFileSync(path.join(root, file), 'utf8');
   for (const pattern of patterns) assert.match(content, pattern, `${file} missing invariant ${pattern}`);
 }
 console.log(`PASS: ${cases.length} candidate invariant groups`);

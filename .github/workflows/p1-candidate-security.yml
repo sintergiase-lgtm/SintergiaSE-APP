@@ -1,0 +1,40 @@
+name: P1 candidate security regressions
+
+on:
+  push:
+    branches:
+      - fix/p1-candidate-auth-and-receipt-tests-20261013
+  pull_request:
+    branches:
+      - audit/correcciones-2026-10-13
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test transpiler
+        run: npm install --no-save typescript@5.8.3
+      - name: Check portable test syntax
+        run: |
+          node --check test-receipt-verification-rules.cjs
+          node --check test-email-security-rules.cjs
+          node --check test-candidate-invariants.cjs
+          node --check test-p1-candidate-security.cjs
+      - name: Receipt verification rules
+        run: node test-receipt-verification-rules.cjs
+      - name: Email security rules
+        run: node test-email-security-rules.cjs
+      - name: Candidate invariants
+        run: node test-candidate-invariants.cjs
+      - name: CORS and HMAC failure-mode simulations
+        run: node test-p1-candidate-security.cjs
