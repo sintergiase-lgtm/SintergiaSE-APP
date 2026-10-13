@@ -2843,8 +2843,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function uuid(){try{if(crypto.randomUUID)return crypto.randomUUID();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return 'sint-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}
   function deviceId(){let id='';try{id=sessionStorage.getItem(LS.device)||localStorage.getItem(LS.device)||'';}catch(_){window.__sgIgn&&window.__sgIgn(_);}if(!id){id=uuid();try{sessionStorage.setItem(LS.device,id);localStorage.setItem(LS.device,id);}catch(_){window.__sgIgn&&window.__sgIgn(_);}}return id;}
   const DEVICE=deviceId();
-  function sameOriginApi(url){try{const u=new URL(url,location.href);return u.origin===location.origin && (/^\/functions\//.test(u.pathname)||u.pathname==='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot');}catch(_){return false;}}
-  function excluded(url){try{const p=new URL(url,location.href).pathname;return /\/authenticate(?:$|\/)/.test(p)||/\/health(?:$|\/)/.test(p)||p==='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';}catch(_){return true;}}
+  function backendApiOrigins(){
+    const origins=new Set([location.origin]);
+    for(const endpoint of [CFG.sync&&CFG.sync.snapshotEndpoint,CFG.sync&&CFG.sync.operationsEndpoint]){
+      try{if(endpoint)origins.add(new URL(endpoint,location.href).origin);}catch(_){}
+    }
+    return origins;
+  }
+  const API_ORIGINS=backendApiOrigins();
+  function sameOriginApi(url){try{const u=new URL(url,location.href);return /^\/functions\/v1\//.test(u.pathname)&&API_ORIGINS.has(u.origin);}catch(_){return false;}}
+  function excluded(url){try{const u=new URL(url,location.href);return /\/authenticate(?:$|\/)/.test(u.pathname)||/\/health(?:$|\/)/.test(u.pathname)||u.pathname==='/functions/v1/realtime-snapshot';}catch(_){return true;}}
   function toast(msg){try{if(window.mostrarToast)window.mostrarToast(msg);}catch(_){window.__sgIgn&&window.__sgIgn(_);} }
   function getQ(k){const q=read(k,[]);return Array.isArray(q)?q:[];}
   function putQ(k,q){
