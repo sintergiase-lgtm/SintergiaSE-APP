@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - fix/sync-p0-ack-and-durability-20261013
+      - fix/sync-fallback-full-snapshot-20261013
   workflow_dispatch:
 
 permissions:
