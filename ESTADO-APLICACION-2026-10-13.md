@@ -219,3 +219,8 @@ Cada iteración debe cerrar con evidencia reproducible y actualizar este informe
 - [Guía de despliegue](https://github.com/sintergiase-lgtm/SintergiaSE-APP/blob/main/DEPLOY.md)
 
 **Criterio de finalización:** ninguna reparación se considera cerrada hasta que la prueba que reproduce el fallo pase después del cambio, se compruebe el comportamiento real cuando afecta a producción y queden documentados los riesgos que sigan abiertos.
+
+
+### Rectificación de revisión posterior (13-10-2026)
+
+Una revisión del blob completo de `index.html` en la rama de la PR #2 confirmó que `window.SINTERGIA_BACKEND_ORIGIN` sí se inicializa antes del bloque de sincronización, en el script `sintergia-supabase-github-bridge-v2`, con el origen Supabase `https://bgjicsowspppsjzigazb.supabase.co`. Por ello, una nota provisional que cuestionaba la ausencia de esa variable era un falso positivo y queda retirada como bloqueo confirmado. No obstante, las pruebas estáticas no demuestran por sí solas el comportamiento dinámico de la allowlist; queda pendiente probar que se acepta el endpoint esperado y se rechaza un origen ajeno, además de verificar el flujo con sesión autenticada en navegador/entorno de prueba.
