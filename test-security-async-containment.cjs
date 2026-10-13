@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 async function verify(file) {
   const html = fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -29,6 +30,22 @@ async function verify(file) {
     `${file}: digest failures must be handled`);
   assert.match(map, /var r;\s*try\s*\{\s*r = await rutaKm[\s\S]*?catch \(e\) \{ prog\.textContent = 'No se pudo probar la ruta:/,
     `${file}: route-probe failures must be displayed, not left as rejections`);
+
+  const scripts = Array.from(html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi), match => match[1]);
+  const normative = scripts.find(script => script.includes('window.nrmPreguntar=async'));
+  assert.ok(normative, `${file}: normative search module must exist`);
+  const domErrors = [];
+  const normativeWindow = { __sgIgn: error => domErrors.push(error) };
+  const normativeContext = vm.createContext({
+    window: normativeWindow,
+    document: { getElementById: () => null, querySelectorAll: () => [] },
+    fetch: async () => { throw new Error('fetch should not run when DOM is absent'); }
+  });
+  vm.runInContext(normative, normativeContext);
+  assert.equal(await normativeWindow.nrmPreguntar(), false, `${file}: missing question UI must resolve safely`);
+  assert.equal(await normativeWindow.nrmBuscar(), false, `${file}: missing search UI must resolve safely`);
+  assert.doesNotThrow(() => normativeWindow.nrmFiltro('ley'), `${file}: absent filter input must be ignored`);
+  assert.equal(domErrors.length, 2, `${file}: missing DOM nodes must be reported without rejected promises`);
   console.log(`PASS: ${file} catches security and route-probe failures`);
 }
 

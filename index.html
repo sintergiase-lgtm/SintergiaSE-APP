@@ -15030,7 +15030,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  const resaltar=(txt,q)=>{const pal=quitar(q).split(/\s+/).filter(w=>w.length>2);if(!pal.length)return esc(txt);const n=quitar(txt);let out='',i=0;const re=new RegExp(pal.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g');let m;while((m=re.exec(n))){out+=esc(txt.slice(i,m.index))+'<mark class="w">'+esc(txt.slice(m.index,m.index+m[0].length))+'</mark>';i=m.index+m[0].length;}return out+esc(txt.slice(i));};
  const tarjeta=(url,html)=>{const safe=urlSeguraVisual(url);return safe?`<a class="nrm-card" href="${esc(safe)}" target="_blank" rel="noopener noreferrer">${html}</a>`:html};
  window.nrmPreguntar=async()=>{
-  const q=$('nrm-q').value.trim(),out=$('nrm-ia-out'),btn=$('nrm-ask');
+  const input=$('nrm-q'),out=$('nrm-ia-out'),btn=$('nrm-ask');
+  if(!input||!out||!btn){try{window.__sgIgn&&window.__sgIgn(new Error('Falta un elemento de la consulta normativa.'))}catch(_){}return false;}
+  const q=input.value.trim();
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Escribe tu consulta.</p>';return;}
   btn.disabled=true;out.innerHTML='<p class="nrm-msg">Analizando la normativa…</p>';
   try{
@@ -15044,9 +15046,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   finally{btn.disabled=false;}
  };
  let nrmTipo='todo';
- window.nrmFiltro=t=>{nrmTipo=t;document.querySelectorAll('.nrm-chip').forEach(b=>b.classList.toggle('on',b.dataset.f===t));if($('nrm-s').value.trim().length>=3)nrmBuscar();};
+ window.nrmFiltro=t=>{nrmTipo=t;document.querySelectorAll('.nrm-chip').forEach(b=>b.classList.toggle('on',b.dataset.f===t));const input=$('nrm-s');if(input&&input.value.trim().length>=3)void nrmBuscar().catch(e=>{try{window.__sgIgn&&window.__sgIgn(e)}catch(_){}});};
  window.nrmBuscar=async()=>{
-  const q=$('nrm-s').value.trim(),out=$('nrm-bus-out');
+  const input=$('nrm-s'),out=$('nrm-bus-out');
+  if(!input||!out){try{window.__sgIgn&&window.__sgIgn(new Error('Falta un elemento de búsqueda normativa.'))}catch(_){}return false;}
+  const q=input.value.trim();
   if(q.length<3){out.innerHTML='<p class="nrm-msg nrm-err">Mínimo 3 letras.</p>';return;}
   out.innerHTML='<p class="nrm-msg">Buscando…</p>';
   try{
