@@ -4911,12 +4911,12 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
             <div><label>Material conductor</label><select id="conf-material"><option>Cobre</option><option>Aluminio</option></select></div>
         </div>
         <div class="grid-2">
-            <div><label>Verificación visual</label><select id="conf-visual"><option value="si">Conforme</option><option value="no">No conforme</option><option value="pendiente">Pendiente</option></select></div>
-            <div><label>Continuidad de conductores PE</label><select id="conf-continuidad"><option value="si">Conforme</option><option value="no">No conforme</option><option value="pendiente">Pendiente</option></select></div>
-            <div><label>Resistencia de aislamiento</label><select id="conf-aislamiento"><option value="si">Conforme</option><option value="no">No conforme</option><option value="pendiente">Pendiente</option></select></div>
-            <div><label>Ensayo de diferenciales</label><select id="conf-diferencial"><option value="si">Conforme</option><option value="no">No conforme</option><option value="pendiente">Pendiente</option></select></div>
-            <div><label>Protecciones contra sobretensiones</label><select id="conf-sobretension"><option value="si">Conforme</option><option value="no">No conforme</option><option value="pendiente">Pendiente / no aplica</option></select></div>
-            <div><label>Unifilar / planos / croquis</label><select id="conf-unifilar"><option value="si">Disponible</option><option value="no">Falta</option><option value="pendiente">Pendiente</option></select></div>
+            <div><label>Verificación visual</label><select id="conf-visual"><option value="pendiente" selected>Pendiente</option><option value="si">Conforme</option><option value="no">No conforme</option></select></div>
+            <div><label>Continuidad de conductores PE</label><select id="conf-continuidad"><option value="pendiente" selected>Pendiente</option><option value="si">Conforme</option><option value="no">No conforme</option></select></div>
+            <div><label>Resistencia de aislamiento</label><select id="conf-aislamiento"><option value="pendiente" selected>Pendiente</option><option value="si">Conforme</option><option value="no">No conforme</option></select></div>
+            <div><label>Ensayo de diferenciales</label><select id="conf-diferencial"><option value="pendiente" selected>Pendiente</option><option value="si">Conforme</option><option value="no">No conforme</option></select></div>
+            <div><label>Protecciones contra sobretensiones</label><select id="conf-sobretension"><option value="pendiente" selected>Pendiente / no aplica</option><option value="si">Conforme</option><option value="no">No conforme</option></select></div>
+            <div><label>Unifilar / planos / croquis</label><select id="conf-unifilar"><option value="pendiente" selected>Pendiente</option><option value="si">Disponible</option><option value="no">Falta</option></select></div>
         </div>
         <div class="grid-2">
             <div><label>Observaciones / deficiencias</label><textarea id="conf-observaciones" rows="4" placeholder="Describe anomalías, medidas correctoras, datos pendientes..."></textarea></div>
@@ -12955,7 +12955,7 @@ VERIFICACIONES FINALES
       ['06','Redes aéreas de distribución'],['07','Redes subterráneas de distribución'],['08','Esquemas de distribución'],['09','Alumbrado exterior'],['10','Previsión de cargas'],['11','Acometidas'],['12','Esquemas de enlace'],['13','Cajas generales de protección'],['14','Línea general de alimentación'],['15','Derivaciones individuales'],['16','Contadores'],['17','Mando y protección'],['18','Puesta a tierra'],['19','Instalaciones interiores o receptoras'],['20','Sistemas de instalación'],['21','Tubos y canales'],['22','Sobreintensidades'],['23','Sobretensiones'],['24','Protección contra contactos'],['25','Instalaciones interiores en viviendas'],['26','Prescripciones generales'],['27','Locales con bañera o ducha'],['28','Locales de pública concurrencia'],['29','Locales con riesgo de incendio o explosión'],['30','Locales de características especiales'],['31','Piscinas y fuentes'],['32','Máquinas de elevación y transporte'],['33','Instalaciones provisionales y temporales de obra'],['34','Ferias, stands y similares'],['35','Establecimientos agrícolas y hortícolas'],['36','Cercas eléctricas'],['37','Instalaciones a muy baja tensión'],['38','Instalaciones generadoras de baja tensión'],['39','Equipos de tensión especial'],['40','Instalaciones generadoras'],['41','Receptores: motores'],['42','Receptores: transformadores y reactancias'],['43','Receptores: alumbrado'],['44','Receptores: rótulos luminosos'],['45','Receptores: aparatos de caldeo'],['46','Cables y sistemas de conexión'],['47','Motores y equipos especiales'],['48','Receptores especiales'],['49','Instalaciones eléctricas en muebles'],['50','Instalaciones de automatización, gestión técnica y seguridad'],['51','Instalaciones en locales de pública concurrencia y otros receptores especiales'],['52','Infraestructura para recarga de vehículo eléctrico']
     ];
 
-    function confN(id){const e=document.getElementById(id);return e?Number(e.value):NaN;}
+    function confN(id){const e=document.getElementById(id);if(!e)return NaN;const raw=String(e.value||'').trim();return raw===''?NaN:Number(raw);}
     function confV(id){const e=document.getElementById(id);return e?String(e.value||''):'';}
     function confEscape(v){return escapeHTML(String(v==null?'':v));}
 
@@ -12988,11 +12988,18 @@ VERIFICACIONES FINALES
       const doc=clasificarDocumentacionREBT(); const checks=[];
       function add(id,titulo,estado,detalle,ref){checks.push({id,titulo,estado,detalle,ref});}
       add('doc','Documentación exigible',doc.requiereProyecto?'pendiente':'ok',doc.requiereProyecto?'Corresponde PROYECTO según la clasificación introducida.':'Corresponde MEMORIA TÉCNICA DE DISEÑO (MTD) si no concurre otro supuesto reglamentario.', 'ITC-BT-04');
-      add('proteccion','Coordinación básica Ib ≤ In ≤ Iz',Number.isFinite(ib)&&Number.isFinite(In)&&Number.isFinite(Iz)&&ib<=In&&In<=Iz?'ok':'fail',`Ib=${ib||0} A · In=${In||0} A · Iz=${Iz||0} A`, 'ITC-BT-22 / ITC-BT-24');
+      const datosFaltantes=[];
+      if(!confV('conf-titular').trim())datosFaltantes.push('titular');
+      if(!confV('conf-nif').trim())datosFaltantes.push('NIF/CIF');
+      if(!confV('conf-emplazamiento').trim())datosFaltantes.push('emplazamiento');
+      add('datos','Identificación de la instalación',datosFaltantes.length?'pendiente':'ok',datosFaltantes.length?'Falta completar: '+datosFaltantes.join(', ')+'.':'Datos identificativos completos.','Datos del informe');
+      const proteccionCompleta=[ib,In,Iz].every(Number.isFinite);
+      add('proteccion','Coordinación básica Ib ≤ In ≤ Iz',!proteccionCompleta?'pendiente':ib<=In&&In<=Iz?'ok':'fail',`Ib=${Number.isFinite(ib)?ib:'—'} A · In=${Number.isFinite(In)?In:'—'} A · Iz=${Number.isFinite(Iz)?Iz:'—'} A`, 'ITC-BT-22 / ITC-BT-24');
       add('corte','Capacidad de corte frente a Icc',Number.isFinite(Icc)&&Number.isFinite(In)&&Icc>=In?'ok':'pendiente',Number.isFinite(Icc)?`Icc/poder de corte introducido: ${Icc} A.`:'Falta Icc/poder de corte.', 'ITC-BT-17 / ITC-BT-22');
-      const tierraOk=Number.isFinite(RA)&&Number.isFinite(Idn)&&Number.isFinite(UL)&&RA*Idn<=UL;
-      add('tierra','Puesta a tierra: RA · IΔn ≤ UL',tierraOk?'ok':'fail',`RA·IΔn=${Number.isFinite(RA*Idn)?(RA*Idn).toFixed(3):'—'} V · UL=${UL||0} V`, 'ITC-BT-18');
-      add('caida','Caída de tensión',Number.isFinite(dv)&&dv<=6.5?'ok':'pendiente',Number.isFinite(dv)?`Caída introducida: ${dv} %. El límite definitivo depende del circuito, uso y esquema.`:'Falta caída de tensión.', 'ITC-BT-19 y tramo aplicable');
+      const tierraCompleta=[RA,Idn,UL].every(Number.isFinite);
+      const tierraOk=tierraCompleta&&RA*Idn<=UL;
+      add('tierra','Puesta a tierra: RA · IΔn ≤ UL',!tierraCompleta?'pendiente':tierraOk?'ok':'fail',`RA·IΔn=${Number.isFinite(RA*Idn)?(RA*Idn).toFixed(3):'—'} V · UL=${Number.isFinite(UL)?UL:'—'} V`, 'ITC-BT-18');
+      add('caida','Caída de tensión',Number.isFinite(dv)&&dv>=0&&dv<=6.5?'ok':Number.isFinite(dv)?'fail':'pendiente',Number.isFinite(dv)?`Caída introducida: ${dv} %. El límite definitivo depende del circuito, uso y esquema.`:'Falta caída de tensión.', 'ITC-BT-19 y tramo aplicable');
       ['conf-visual','conf-continuidad','conf-aislamiento','conf-diferencial','conf-sobretension','conf-unifilar'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const v=e.value;const titulo=e.parentElement?.querySelector('label')?.textContent||id;add(id,titulo,v==='si'?'ok':v==='no'?'fail':'pendiente',v==='si'?'Marcado conforme/disponible.':v==='no'?'Marcado NO conforme.':'Pendiente de verificar.','ITC-BT-05 / ITC aplicable');});
       const observ=confV('conf-observaciones').trim(); if(observ)add('obs','Deficiencias/observaciones','pendiente',observ,'Registro de incidencias');
       const fallos=checks.filter(x=>x.estado==='fail').length, pendientes=checks.filter(x=>x.estado==='pendiente').length;
