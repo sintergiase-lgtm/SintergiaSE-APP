@@ -18,5 +18,5 @@ Fecha: 2026-10-13
 
 ## Estado
 
-- CI pendiente de ejecución para esta rama.
+- CI verificado en verde: [run 38450457805](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38450457805). Pasaron tests portables de recibos/correo, invariantes de candidatos y simulaciones de CORS/HMAC para los tres candidatos.
 - No se modifica `main`, producción, Supabase ni secrets.
