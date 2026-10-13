@@ -23,6 +23,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check candidate
+        run: deno check sync-operations-v13-candidate.ts
       - name: Check contract test syntax
         run: node --check test-contract.cjs
       - name: Run candidate contract invariants
