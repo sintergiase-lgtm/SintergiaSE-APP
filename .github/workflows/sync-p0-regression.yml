@@ -5,6 +5,7 @@ on:
     branches:
       - fix/sync-p0-ack-and-durability-20261013
       - fix/sync-fallback-full-snapshot-20261013
+      - fix/backend-allowlist-test-20261013
   pull_request:
     branches:
       - main
@@ -30,5 +31,9 @@ jobs:
         run: node --check test-sync-p0-client-rules.cjs
       - name: Run sync P0 regression tests
         run: node test-sync-p0-client-rules.cjs
+      - name: Check backend allowlist test syntax
+        run: node --check test-backend-allowlist.cjs
+      - name: Run backend allowlist dynamic test
+        run: node test-backend-allowlist.cjs
       - name: Parse all inline JavaScript blocks
         run: node test-inline-script-syntax.cjs
