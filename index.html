@@ -3489,7 +3489,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     filtered.push(entry);
     const pending=filtered.filter(x=>x.status==='pending');
     const resolved=filtered.filter(x=>x.status!=='pending');
-    const keepResolved=resolved.slice(-Math.max(0,MAX_CONFLICTS-pending.length));
+    const resolvedLimit=Math.max(0,MAX_CONFLICTS-pending.length);
+    const keepResolved=resolvedLimit?resolved.slice(-resolvedLimit):[];
     const preserved=[...keepResolved,...pending];
     if(pending.length>MAX_CONFLICTS)toast('⚠️ Hay más conflictos pendientes que el umbral recomendado; se conservan todos.');
     if(!putQ(LS.conflicts,preserved)){
