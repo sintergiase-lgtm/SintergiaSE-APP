@@ -3654,7 +3654,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             lastAttemptAt:now()
           });
           if(e&&e.permanent){
-            toast('⚠️ Operación rechazada por backend: '+(e.message||e));
+            toast('⚠️ Operación rechazada por backend; se intentará persistir el estado mediante snapshot: '+(e.message||e));
+            /* No descartar una operación solo por un 4xx permanente. Intentar
+               guardar el estado completo; la cola solo se limpiará tras ACK. */
+            operationEndpointUnsupported=true;
+            operationFallbackReason='operation-rejected-permanent';
+            opKeep=oq.slice();
+            break;
           }else if(e&&e.conflict){
             next.conflict=true;
             try{
