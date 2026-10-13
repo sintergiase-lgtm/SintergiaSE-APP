@@ -34,3 +34,5 @@ jobs:
         run: node test-inline-script-syntax.cjs
       - name: Run async runtime-error containment regressions
         run: node test-security-async-containment.cjs
+      - name: Run service-worker cache-failure regressions
+        run: node test-sw-guard.cjs
