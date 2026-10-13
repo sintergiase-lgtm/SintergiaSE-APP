@@ -7317,9 +7317,14 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         // El botón "Atender" de APARCADO equivale a pulsar
         // "Inicio de trabajo" en la pestaña Parte.
         setTimeout(async () => {
-            await iniciarTrabajo();
-            guardarEstadoStorage();
-            renderizarPendientes();
+            try {
+                await iniciarTrabajo();
+                guardarEstadoStorage();
+                renderizarPendientes();
+            } catch (error) {
+                window.__sgIgn && window.__sgIgn(error);
+                mostrarToast('⚠️ No se pudo iniciar el trabajo. Compruebe la ubicación e inténtelo de nuevo.');
+            }
         }, 120);
     }
 
@@ -13280,6 +13285,9 @@ RutasIA.sincronizarRespuestas=async function(manual){
             renderSelected();
             if(manual) toast('🔄 Sincronización realizada.');
         }
+    } catch(e) {
+        window.__sgIgn&&window.__sgIgn(e);
+        if(manual) toast('⚠️ No se pudo completar la sincronización de citas. Se reintentará automáticamente.');
     } finally { syncBusy=false; }
 };
 RutasIA.__syncReset=function(){syncFallos=0;syncProximo=0;};

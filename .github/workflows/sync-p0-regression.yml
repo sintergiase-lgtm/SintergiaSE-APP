@@ -36,3 +36,5 @@ jobs:
         run: node test-security-async-containment.cjs
       - name: Run service-worker cache-failure regressions
         run: node test-sw-guard.cjs
+      - name: Run async entrypoint failure regressions
+        run: node test-async-entrypoint-containment.cjs
