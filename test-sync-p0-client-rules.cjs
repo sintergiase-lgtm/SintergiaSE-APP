@@ -85,3 +85,28 @@ const operation = {
   console.error(error);
   process.exitCode = 1;
 });
+
+
+/* Regression tests for destructive queue caps discovered in follow-up audit. */
+assert.ok(!source.includes('q=q.slice(-MAX_TOMBSTONES)'), 'unacknowledged deletion tombstones must never be truncated');
+const tombstoneStart = source.indexOf('function putTombstones(q)');
+const tombstoneEnd = source.indexOf('function rememberTombstone', tombstoneStart);
+assert.ok(tombstoneStart >= 0 && tombstoneEnd > tombstoneStart, 'tombstone persistence helpers must exist');
+const tombstoneBlock = source.slice(tombstoneStart, tombstoneEnd);
+assert.match(tombstoneBlock, /return putQ\(LS\.tombstones,q\)/, 'tombstone persistence result must be checked by callers');
+assert.match(source, /if\(!rememberTombstone\(collection,key,before,revision,sourceId,createdAt\)\)[\s\S]{0,200}throw error;/, 'delete operations must not queue without durable tombstones');
+assert.match(source, /typeof window\.mergeTombstones!=='function'\|\|window\.mergeTombstones\(snapshot\.tombstones\)===false\)return false/, 'snapshot application must stop when tombstones cannot be persisted');
+
+const conflictStart = source.indexOf('function queueConflict(item,remote,reason)');
+const conflictEnd = source.indexOf('function threeWayMerge', conflictStart);
+assert.ok(conflictStart >= 0 && conflictEnd > conflictStart, 'conflict persistence function must exist');
+const conflictBlock = source.slice(conflictStart, conflictEnd);
+assert.ok(!conflictBlock.includes('filtered.splice(0,filtered.length-MAX_CONFLICTS)'), 'pending conflicts must not be deleted to fit a cap');
+assert.match(conflictBlock, /const pending=filtered\.filter\(x=>x\.status==='pending'\)/, 'pending conflicts must be preserved separately');
+assert.match(conflictBlock, /if\(!putQ\(LS\.conflicts,preserved\)\)[\s\S]{0,200}throw new Error\('conflict_not_durable'\)/, 'failed conflict persistence must prevent a false successful reconciliation');
+
+const uncertainStart = source.indexOf('function markUncertain(operationId,meta)');
+const uncertainEnd = source.indexOf('function clearUncertain', uncertainStart);
+assert.ok(uncertainStart >= 0 && uncertainEnd > uncertainStart, 'uncertain-operation helper must exist');
+assert.ok(!source.slice(uncertainStart, uncertainEnd).includes('q.splice(0,q.length-MAX_OPERATIONS)'), 'uncertain operation references must not be truncated');
+
