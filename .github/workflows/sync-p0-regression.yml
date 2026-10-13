@@ -1,0 +1,33 @@
+name: Sync P0 regression tests
+
+on:
+  push:
+    branches:
+      - fix/sync-p0-ack-and-durability-20261013
+      - fix/sync-fallback-full-snapshot-20261013
+  pull_request:
+    branches:
+      - main
+      - fix/sync-p0-ack-and-durability-20261013
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-p0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check regression test syntax
+        run: node --check test-sync-p0-client-rules.cjs
+      - name: Run sync P0 regression tests
+        run: node test-sync-p0-client-rules.cjs
+      - name: Parse all inline JavaScript blocks
+        run: node test-inline-script-syntax.cjs
