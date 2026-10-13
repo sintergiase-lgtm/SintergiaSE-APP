@@ -7,6 +7,7 @@ on:
       - fix/sync-fallback-full-snapshot-20261013
       - fix/backend-allowlist-test-20261013
       - fix/sync-state-merge-inventory-20261013
+      - fix/sync-p0-failure-simulations-20261013
   pull_request:
     branches:
       - main
@@ -14,6 +15,7 @@ on:
       - fix/sync-fallback-full-snapshot-20261013
       - fix/backend-allowlist-test-20261013
       - fix/sync-state-merge-inventory-20261013
+      - fix/sync-p0-failure-simulations-20261013
   workflow_dispatch:
 
 permissions:
@@ -42,5 +44,9 @@ jobs:
         run: node --check test-sync-state-merge.cjs
       - name: Run state merge regression tests
         run: node test-sync-state-merge.cjs
+      - name: Check P0 failure simulation test syntax
+        run: node --check test-sync-p0-failure-simulations.cjs
+      - name: Run P0 failure simulations
+        run: node test-sync-p0-failure-simulations.cjs
       - name: Parse all inline JavaScript blocks
         run: node test-inline-script-syntax.cjs
