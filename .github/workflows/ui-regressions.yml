@@ -1,0 +1,29 @@
+name: UI status and action regression tests
+
+on:
+  push:
+    branches:
+      - fix/ui-guardar-label-20261013
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check regression test syntax
+        run: node --check test-status-action-labels.cjs
+      - name: Run UI status and action regressions
+        run: node test-status-action-labels.cjs
