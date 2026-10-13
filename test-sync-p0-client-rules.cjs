@@ -15,6 +15,8 @@ assert.match(source, /operation_incomplete/);
 assert.match(source, /return \{fallbackSnapshot:true,reason:recoveryError\|\|'snapshot-fallback-required'\};/);
 assert.match(source, /const confirmed=published&&snapshotCoincideConRemoto\(snap,remote\);/);
 assert.match(source, /snapshotCoincideConRemoto\(local,remote\)/);
+assert.match(source, /remoteRevision===localRevision/);
+assert.ok(!source.includes('remoteRevision>=localRevision'), 'a newer remote revision must not falsely confirm this snapshot');
 assert.match(source, /SINTERGIA_BACKEND_ORIGIN/);
 assert.match(source, /headers=typeof window\.authHeadersSintergia==='function'\?window\.authHeadersSintergia\(\):\{\}/);
 
