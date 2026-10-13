@@ -32,3 +32,5 @@ jobs:
         run: node test-sync-p0-client-rules.cjs
       - name: Parse all inline JavaScript blocks
         run: node test-inline-script-syntax.cjs
+      - name: Run async runtime-error containment regressions
+        run: node test-security-async-containment.cjs
