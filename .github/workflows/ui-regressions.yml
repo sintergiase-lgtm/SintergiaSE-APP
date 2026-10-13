@@ -27,3 +27,5 @@ jobs:
         run: node --check test-status-action-labels.cjs
       - name: Run UI status and action regressions
         run: node test-status-action-labels.cjs
+      - name: Parse all inline JavaScript blocks
+        run: node test-inline-script-syntax.cjs
