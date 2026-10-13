@@ -83,7 +83,7 @@ const operation = {
   }, URL);
   await checkedFetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot', { method: 'GET' });
   assert.equal(fetchCalls.length, 1, 'configured Supabase Edge Function origin must be accepted');
-  assert.match(fetchCalls[0].url, /^https:\\/\\/bgjicsowspppsjzigazb\\.supabase\\.co\\/functions\\/v1\\//);
+  assert.ok(fetchCalls[0].url.startsWith('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/'), 'request must target the configured Edge Function URL');
   assert.throws(() => checkedFetch('https://evil.example/functions/v1/realtime-snapshot'), /Endpoint de backend no permitido/,
     'an untrusted origin must be rejected even when it uses an Edge Function path');
   assert.throws(() => checkedFetch('https://bgjicsowspppsjzigazb.supabase.co/rest/v1/users'), /Endpoint de backend no permitido/,
