@@ -224,3 +224,17 @@ Cada iteración debe cerrar con evidencia reproducible y actualizar este informe
 ### Rectificación de revisión posterior (13-10-2026)
 
 Una revisión del blob completo de `index.html` en la rama de la PR #2 confirmó que `window.SINTERGIA_BACKEND_ORIGIN` sí se inicializa antes del bloque de sincronización, en el script `sintergia-supabase-github-bridge-v2`, con el origen Supabase `https://bgjicsowspppsjzigazb.supabase.co`. Por ello, una nota provisional que cuestionaba la ausencia de esa variable era un falso positivo y queda retirada como bloqueo confirmado. No obstante, las pruebas estáticas no demuestran por sí solas el comportamiento dinámico de la allowlist; queda pendiente probar que se acepta el endpoint esperado y se rechaza un origen ajeno, además de verificar el flujo con sesión autenticada en navegador/entorno de prueba.
+
+
+## 8. Validación automatizada añadida durante la revisión (13-10-2026)
+
+Se añadieron workflows de GitHub Actions con Node.js 20, limitados a las ramas de reparación y sus PR; no despliegan la aplicación ni acceden a secretos.
+
+- **Sincronización P0 (#2 y #6):** `node --check test-sync-p0-client-rules.cjs`, ejecución del test de sincronización y análisis sintáctico de todos los scripts inline de `index.html`. Los runs más recientes de push y pull_request terminaron en **success**: [PR #2 — CI](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38398653711), [PR #6 — CI](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38398662316).
+- **Acciones de interfaz (#3):** el test de etiquetas, estados operativos, restauración y parpadeo de botones/avisos pasó en las ejecuciones anteriores. Se amplió después para comprobar también CSS de parpadeo y parsing de scripts inline; la nueva ejecución está en curso al redactar esta actualización: [CI interfaz](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38398763502).
+- **Portabilidad de test (#5):** `node --check test-sync-operations-rules.cjs` y `node test-sync-operations-rules.cjs` terminaron en **success** en push y pull_request: [CI PR #5](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38398491638).
+- **CORS del candidato no desplegado (#9):** se corrigió el comportamiento que reflejaba cualquier origen cuando `ALLOWED_ORIGINS` estaba vacío; ahora el origen solo se refleja si aparece explícitamente en la lista. Se añadieron una regresión y CI; ambos runs terminaron en **success**: [CI PR #9](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38398580881).
+
+### Alcance de estas pruebas
+
+Estas pruebas validan invariantes de código, sintaxis de JavaScript inline, etiquetas/acciones de UI y reglas estáticas del candidato de sincronización. **No equivalen** a una prueba visual de navegador, una sesión autenticada real, una prueba con dos dispositivos ni una validación del esquema/estado actual de Supabase. El candidato `sync-operations-v13-candidate.ts` sigue sin desplegarse. Ninguna PR se ha fusionado y `main`/producción no se han modificado.
