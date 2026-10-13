@@ -8177,7 +8177,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 if (estadoParte === 'aparcado' || estadoParte === 'realizándose') {
                     accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : 'realización'}" aria-label="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : 'realización'}">👷🏻‍♂️🛠️</button>`;
                 } else if (estadoParte === 'firmado') {
-                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDA⚠️</button>`;
+                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`;
                 } else if (estadoParte === 'terminado sin firma') {
                     /*
                      * Cuando aparece ✒️ no se muestra 🪛, tal como en los
@@ -8200,7 +8200,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 const estadoNormalizado = estadoVisualNormalizado;
 
                 if (parteVinculado?.firma && estadoNormalizado !== 'cobrado' && estadoNormalizado !== 'anulado' && estadoNormalizado !== 'factura anulada') {
-                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDA⚠️</button>`;
+                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`;
                 } else if (estadoNormalizado === 'aparcado' || estadoNormalizado === 'en trayecto' || estadoNormalizado === 'realizándose') {
                     accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoNormalizado === 'aparcado' ? 'aparcado' : (estadoNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}" aria-label="Abrir Parte en ${estadoNormalizado === 'aparcado' ? 'aparcado' : (estadoNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}">👷🏻‍♂️🛠️</button>`;
                 } else if (estadoNormalizado === 'pospuesto') {
@@ -10191,7 +10191,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             const accionesHistorial = estadoHistorialNormalizado === 'aparcado' || estadoHistorialNormalizado === 'realizándose' || estadoHistorialNormalizado === 'en trayecto'
                 ? `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [idx])} title="Abrir Parte en ${estadoHistorialNormalizado === 'aparcado' ? 'aparcado' : (estadoHistorialNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}" aria-label="Abrir Parte en ${estadoHistorialNormalizado === 'aparcado' ? 'aparcado' : (estadoHistorialNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}">👷🏻‍♂️🛠️</button>`
                  : estadoHistorialNormalizado === 'firmado'
-                     ? `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [idx])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDA⚠️</button>`
+                     ? `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [idx])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`
                  : estadoHistorialNormalizado === 'anulado'
                      ? `<button type="button" class="btn-icon btn-restaurar-anulado" ${sgAction("restaurarParte", [idx])} title="Restaurar estado anterior" aria-label="Restaurar estado anterior">♻️</button>`
                  : (estadoHistorialNormalizado === 'realizado' || estadoHistorialNormalizado === 'terminado sin firma')
