@@ -17,4 +17,7 @@ assert.match(html, /sgAction\("restaurarFactura", \[facturaIdx\]\)/, 'annulled i
 assert.match(html, /estadoNormalizado === 'terminado' \|\| estadoNormalizado === 'cobrado'\)/, 'annulled invoices must not fall through to the email action');
 assert.equal(html.split('<span class="estado-realizado-alarma" aria-label="Terminado SIN firma"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado SIN ✒️</span>').length - 1, 2, 'both unsigned-completed status badges must wrap the warning in the blinking icon class');
 assert.equal(html.split('<span class="estado-realizado-alarma" aria-label="Terminado SIN firma">⚠️Terminado SIN ✒️</span>').length - 1, 0, 'raw warning symbols must not bypass the blink class');
+assert.match(html, /\.btn-parte-en-realizacion\s*\{[\s\S]*?animation:\s*boton-parte-realizando-parpadeo/, 'operational action must blink');
+assert.match(html, /\.btn-guardar-advertencia\s*\{[\s\S]*?animation:\s*boton-parte-realizando-parpadeo/, '⚠️GUARDAR⚠️ action must blink');
+assert.match(html, /\.alarma-icono\s*\{[^}]*animation:\s*alarma-parpadeo/, 'warning icon class must animate');
 console.log('PASS: all 3 signed-part save actions display ⚠️GUARDAR⚠️');
