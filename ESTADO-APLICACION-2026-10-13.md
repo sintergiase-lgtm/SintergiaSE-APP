@@ -22,7 +22,7 @@ Hay dos líneas principales de reparación abiertas y una corrección incrementa
 
 Ninguna de estas propuestas está fusionada ni desplegada. Las pruebas estáticas no sustituyen las pruebas de navegador, de dos dispositivos o contra Supabase.
 
-**Hallazgo incremental en PR #6 — fallback de snapshot completo:** al revisar el flujo de la PR #2 se detectó que solo se generaba un snapshot de fallback si la cola de snapshots estaba vacía. Con snapshots antiguos ya pendientes, no se garantizaba que el estado completo actual quedara incluido antes de retirar operaciones de la tanda original. La [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6), basada en la rama de la PR #2, siempre encola un snapshot completo actual y condiciona la retirada de operaciones a que ese encolado haya tenido éxito y todos los snapshots pendientes reciban confirmación. Está en borrador, no fusionada ni desplegada. Su prueba Node sigue pendiente de ejecución en un checkout limpio. Además, la revisión detectó que los rechazos permanentes del endpoint de operaciones se notificaban pero no se retenían en `opKeep`; la PR #6 ahora los encamina al mismo fallback completo y conserva las operaciones hasta la confirmación del snapshot.
+**Hallazgo incremental en PR #6 — fallback de snapshot completo:** al revisar el flujo de la PR #2 se detectó que solo se generaba un snapshot de fallback si la cola de snapshots estaba vacía. Con snapshots antiguos ya pendientes, no se garantizaba que el estado completo actual quedara incluido antes de retirar operaciones de la tanda original. La [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6), basada en la rama de la PR #2, siempre encola un snapshot completo actual y condiciona la retirada de operaciones a que ese encolado haya tenido éxito y todos los snapshots pendientes reciban confirmación. Está en borrador, no fusionada ni desplegada. Su prueba Node sigue pendiente de ejecución en un checkout limpio. Además, la revisión detectó que los rechazos permanentes del endpoint de operaciones se notificaban pero no se retenían en `opKeep`; la PR #6 ahora los encamina al mismo fallback completo y conserva las operaciones hasta la confirmación del snapshot. En esta revisión se comprobaron 11 invariantes estáticos y se simularon 3 respuestas de recuperación más un 503 genérico reintentable. Estas comprobaciones se ejecutaron en el entorno de herramientas, no como el script Node completo; el test Node sigue pendiente.
 
 ## 2. Qué existe y se ha realizado
 
@@ -84,6 +84,8 @@ Validación estática de la rama:
 - prueba de regresión añadida.
 
 La PR #3 está en borrador, no está fusionada y su prueba Node debe ejecutarse en un checkout real. Tampoco se ha validado aún el comportamiento del botón en un navegador.
+
+**Estado de CI comprobado el 13 de octubre:** los estados combinados consultados para los commits de PR #2, #3, #5 y #6 devolvieron listas vacías; tampoco se encontraron ejecuciones de workflow asociadas a esos commits. Por tanto, no se puede afirmar que GitHub Actions haya ejecutado las pruebas. La validación disponible es revisión de diff, invariantes estáticos y simulaciones aisladas; siguen pendientes las pruebas Node en checkout limpio y las pruebas integradas reales.
 
 ## 3. Qué está a medias o requiere reconciliación
 
