@@ -28,6 +28,13 @@ assert.match(fallbackBlock, /fallbackSnapshotQueued=!!\(fallback&&addChange\(fal
 assert.ok(!fallbackBlock.includes('getQ(LS.changes).length===0'), 'fallback snapshot must be queued even when older snapshots are pending');
 assert.match(source, /if\(operationEndpointUnsupported&&fallbackSnapshotQueued&&okAll&&keep\.length===0\)/, 'operations may be cleared only after a fallback snapshot was queued and all snapshots were acknowledged');
 
+const permanentReject = source.indexOf("operationFallbackReason='operation-rejected-permanent';");
+assert.ok(permanentReject >= 0, 'permanent operation rejection must enter snapshot fallback rather than disappear');
+const permanentBlock = source.slice(source.lastIndexOf('if(e&&e.permanent){', permanentReject), permanentReject + 100);
+assert.match(permanentBlock, /operationEndpointUnsupported=true;/);
+assert.match(permanentBlock, /opKeep=oq\\.slice\\(\\);/);
+assert.match(permanentBlock, /break;/);
+
 const start = source.indexOf('  async function postOperation(item){');
 const end = source.indexOf('  async function postSnapshot(item){', start);
 assert.ok(start >= 0 && end > start, 'postOperation block must exist');
