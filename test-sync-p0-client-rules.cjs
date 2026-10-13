@@ -37,6 +37,7 @@ assert.match(permanentBlock, /operationEndpointUnsupported=true;/);
 assert.ok(permanentBlock.includes('opKeep=oq.slice();'), 'all original operations remain queued until snapshot ACK');
 assert.match(permanentBlock, /break;/);
 
+
 const start = source.indexOf('  async function postOperation(item){');
 const end = source.indexOf('  async function postSnapshot(item){', start);
 assert.ok(start >= 0 && end > start, 'postOperation block must exist');
