@@ -20,3 +20,14 @@ Fecha: 2026-10-13
 1. Verificar CI de esta rama y corregir cualquier fallo antes de avanzar.
 2. Después, crear la siguiente rama P0 para simular POST/GET autenticado, respuesta perdida, cuota agotada y cambios concurrentes entre dos dispositivos.
 3. Mantener las pruebas que requieren Supabase real como bloqueos explícitos hasta que exista un proyecto de pruebas autorizado.
+
+
+## Ciclo P0-3 a P0-5 — simulaciones locales
+
+- Rama: `fix/sync-p0-failure-simulations-20261013`, basada en `9b43d8e21b0f6596b3e9d3dc76350ea64f19a75c`.
+- Añade `test-sync-p0-failure-simulations.cjs` para ejecutar helpers reales de POST snapshot y GET remoto con transportes simulados autenticados.
+- Simula el servidor aceptando un POST y perdiéndose la respuesta; comprueba que el snapshot original sigue pendiente y que otra operación encolada durante la petición no desaparece.
+- Simula cuota agotada en localStorage y comprueba que la API de cola devuelve fallo sin reemplazar la cola durable anterior.
+- Simula merge de dos dispositivos para entidades con revisión distinta.
+- La validación real contra Supabase, tokens HMAC emitidos por el backend, políticas SQL/RLS y dos navegadores/dispositivos reales continúa bloqueada por falta de un proyecto de pruebas autorizado. No se declara validada por las simulaciones.
+- Estado de CI de este ciclo: pendiente de ejecución.
