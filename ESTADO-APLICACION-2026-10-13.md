@@ -236,7 +236,7 @@ Se añadieron workflows de GitHub Actions con Node.js 20, limitados a las ramas 
 - **CORS del candidato no desplegado (#9):** se corrigió el comportamiento que reflejaba cualquier origen cuando `ALLOWED_ORIGINS` estaba vacío; ahora el origen solo se refleja si aparece explícitamente en la lista. Se añadieron una regresión y CI; ambos runs terminaron en **success**: [CI PR #9](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38398580881).
 
 - **Tombstones y conflictos pendientes (#7):** la prueba ampliada y el parsing de scripts inline pasaron en Node 20: [CI PR #7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38399045627). Se sincronizó la prueba con los checks recientes de la rama base y se resolvió el estado mergeable.
-- **Contrato del candidato de sincronización (#8):** 18 invariantes del candidato pasan en push y pull_request: [CI PR #8](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38399082905). Sigue pendiente `deno check` y una integración autenticada aislada.
+- **Contrato del candidato de sincronización (#8):** 18 invariantes del candidato y `deno check sync-operations-v13-candidate.ts` pasan en push y pull_request: [CI PR #8 actualizado](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38399221540). Sigue pendiente una integración autenticada aislada en proyecto Supabase de prueba.
 - **PR #9:** se cerró como duplicada de #8 tras confirmar que #8 incluye una allowlist HTTPS exacta, validación HMAC y pruebas de contrato más completas. Su rama se conserva para trazabilidad; no se fusionó.
 
 ### Alcance de estas pruebas
