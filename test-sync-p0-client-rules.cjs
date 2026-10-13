@@ -114,6 +114,12 @@ const operation = {
   assert.throws(() => checkedFetch('https://['), /Endpoint de backend no permitido/,
     'malformed URLs must fail with the safe endpoint error');
 
+  const manifestLinks = source.match(/<link\b(?=[^>]*\brel=["']manifest["'])[^>]*>/gi) || [];
+  assert.equal(manifestLinks.length, 1, 'exactly one PWA manifest link must be present');
+  const headEnd = source.indexOf('</head>');
+  assert.ok(headEnd >= 0 && source.indexOf(manifestLinks[0]) < headEnd,
+    'PWA manifest metadata must remain inside the document head');
+
   console.log('PASS: sync P0 durability, fallback, and round-trip invariants');
 })().catch(error => {
   console.error(error);
