@@ -13835,7 +13835,7 @@ window.sgKmTrayecto=async function(ini,fin){
  return {km:Math.round(km*100)/100,fuente:fuente};
 };
 
-window.obtenerSnapshotSincronizacion=function(){try{const st=window.appState||{};const now=new Date().toISOString();let rev=parseInt(localStorage.getItem('sintergia_sync_revision')||'0',10);if(!Number.isFinite(rev)||rev<0)rev=0;/* Reading/building a snapshot must not mutate the local revision. Only a successful local save advances it. */let sourceId=sessionStorage.getItem('sintergia_device_id');if(!sourceId){sourceId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();sessionStorage.setItem('sintergia_device_id',sourceId);}const snapshot={version:7,updatedAt:now,clientUpdatedAt:now,revision:rev,sourceId,deviceId:sourceId,clientes:st.clientes||[],partes:st.partes||[],facturas:st.facturas||[],pendientes:st.pendientes||[],stock:st.stock||[],stockListas:st.stockListas||[],partCounter:st.partCounter,facCounter:st.facCounter,horario:st.horario||null,compras:st.compras||[],tombstones:getTombstones(),entityVersioning:true};const raw=JSON.stringify(snapshot);if(raw.length>MAX_SYNC_BYTES)throw new Error('El estado supera el límite de sincronización de 5 MB.');return JSON.parse(raw);}catch(e){if(window.__mostrarErrorApp)window.__mostrarErrorApp('Sincronización: '+(e.message||e));return null;}};
+window.obtenerSnapshotSincronizacion=function(){try{const st=window.appState||{};const now=new Date().toISOString();let rev=parseInt(localStorage.getItem('sintergia_sync_revision')||'0',10);if(!Number.isFinite(rev)||rev<0)rev=0;/* Reading/building a snapshot must not mutate the local revision. Only a successful local save advances it. */let sourceId=sessionStorage.getItem('sintergia_device_id');if(!sourceId){sourceId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();sessionStorage.setItem('sintergia_device_id',sourceId);}const routeSync=window.RutasIA&&typeof window.RutasIA.snapshotForSync==='function'?window.RutasIA.snapshotForSync():null;const snapshot={version:7,updatedAt:now,clientUpdatedAt:now,revision:rev,sourceId,deviceId:sourceId,clientes:st.clientes||[],partes:st.partes||[],facturas:st.facturas||[],pendientes:st.pendientes||[],stock:st.stock||[],stockListas:st.stockListas||[],partCounter:st.partCounter,facCounter:st.facCounter,horario:st.horario||null,compras:st.compras||[],rutas:routeSync?routeSync.rutas:undefined,citas:routeSync?routeSync.citas:undefined,tombstones:getTombstones(),entityVersioning:true};const raw=JSON.stringify(snapshot);if(raw.length>MAX_SYNC_BYTES)throw new Error('El estado supera el límite de sincronización de 5 MB.');return JSON.parse(raw);}catch(e){if(window.__mostrarErrorApp)window.__mostrarErrorApp('Sincronización: '+(e.message||e));return null;}};
 /* P13: healthcheck runtime no invasivo para Supabase/PWA. */
 window.SintergiaRuntimeHealth=function(){
   const checks={};
@@ -13853,7 +13853,7 @@ async function obtenerRemoto(){
   return d.snapshot||d.state||d;
 }
 function mergeEntityArrays(local,incoming,collection){const a=Array.isArray(local)?local:[],b=Array.isArray(incoming)?incoming:[],m=new Map();const key=x=>String(x?.id??x?.uid??x?.ref??x?.referencia??x?.numero??x?.codigo??'');const ts=x=>{const t=Date.parse(x?.updatedAt||x?.clientUpdatedAt||x?.createdAt||x?.fechaModificacion||x?.fechaCreacion||'');return Number.isFinite(t)?t:0};const rev=x=>Number.isFinite(Number(x?.entityRevision))?Number(x.entityRevision):Number.isFinite(Number(x?.revision))?Number(x.revision):0;const src=x=>String(x?.sourceId??x?.deviceId??'');const rank=x=>[rev(x),ts(x),src(x)];const newer=(x,y)=>{const a1=rank(x),b1=rank(y);for(let i=0;i<a1.length;i++){if(a1[i]>b1[i])return true;if(a1[i]<b1[i])return false;}return false;};a.forEach(x=>{const k=key(x);if(k)m.set(k,x)});b.forEach(x=>{const k=key(x);if(!k||tombstoneBlocksEntity(collection,x))return;const o=m.get(k);if(!o||newer(x,o))m.set(k,x)});return [...m.values()];}
-window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
+window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;if((Array.isArray(snapshot.rutas)||(snapshot.citas&&typeof snapshot.citas==='object'&&!Array.isArray(snapshot.citas)))&&(!window.RutasIA||typeof window.RutasIA.mergeSnapshotFromSync!=='function'||window.RutasIA.mergeSnapshotFromSync({rutas:snapshot.rutas,citas:snapshot.citas})===false))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
 window.probarSincronizacionMultidispositivo=async function(){
   const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');
   if(st){st.className='sync-ai-status';st.textContent='Probando publicación y lectura…';}
@@ -15309,7 +15309,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     state.nube = state.nube || [];
     state.ultimoConsejo = state.ultimoConsejo || '';
 
-    function save() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* cuota */ } }
+    function save() { try { localStorage.setItem(LS, JSON.stringify(state)); return true; } catch (e) { window.__sgIgn&&window.__sgIgn(e); /* cuota */ return false; } }
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
     function toast(t) { if (typeof window.mostrarToast === 'function') window.mostrarToast(t); else console.log(t); }
     function st() { return window.appState || { clientes: [], pendientes: [], facturas: [], partes: [] }; }
@@ -16336,6 +16336,81 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
         setInterval(function () { RutasIA.sincronizarRespuestas(false); }, 120000);
     }
+
+    /* Contrato de sincronización explícito para rutas y citas persistidas fuera de appState. */
+    function syncClone(value, fallback) {
+        try { return JSON.parse(JSON.stringify(value == null ? fallback : value)); }
+        catch (_) { return JSON.parse(JSON.stringify(fallback)); }
+    }
+    function syncTimestamp(record) {
+        if (!record || typeof record !== 'object') return 0;
+        var fields = ['syncUpdatedAt','updatedAt','clientUpdatedAt','modifiedAt','updatedAtMs','respuestaAt','confirmadaAt','enviadoAt','sentAt','confirmationSentAt','recordatorioEnviadoAt','recordatorioAt'];
+        for (var i = 0; i < fields.length; i++) {
+            var value = record[fields[i]];
+            if (value == null || value === '') continue;
+            var n = typeof value === 'number' ? value : Date.parse(value);
+            if (Number.isFinite(n) && n > 0) return n;
+        }
+        return 0;
+    }
+    function syncMergeRecord(local, incoming) {
+        var localTime = syncTimestamp(local), incomingTime = syncTimestamp(incoming);
+        /* A record without a provably newer timestamp must not overwrite local fields.
+           Non-conflicting remote fields are still retained. */
+        return incomingTime > localTime
+            ? Object.assign({}, local || {}, incoming || {})
+            : Object.assign({}, incoming || {}, local || {});
+    }
+    function syncMergeRoutes(local, incoming) {
+        var result = Array.isArray(local) ? local.map(function (x) { return syncClone(x, {}); }) : [];
+        var index = new Map();
+        result.forEach(function (route, i) {
+            var id = route && (route.id != null ? route.id : route.uid);
+            if (id != null && String(id)) index.set(String(id), i);
+        });
+        (Array.isArray(incoming) ? incoming : []).forEach(function (route) {
+            if (!route || typeof route !== 'object' || Array.isArray(route)) return;
+            var rawId = route.id != null ? route.id : route.uid;
+            if (rawId == null || !String(rawId)) return;
+            var id = String(rawId), at = index.get(id);
+            if (at == null) { index.set(id, result.length); result.push(syncClone(route, {})); }
+            else result[at] = syncMergeRecord(result[at], route);
+        });
+        return result;
+    }
+    function syncMergeCitas(local, incoming) {
+        var result = syncClone(local && typeof local === 'object' && !Array.isArray(local) ? local : {}, {});
+        if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return result;
+        Object.keys(incoming).forEach(function (id) {
+            var remote = incoming[id];
+            if (!remote || typeof remote !== 'object' || Array.isArray(remote)) return;
+            if (!Object.prototype.hasOwnProperty.call(result, id)) result[id] = syncClone(remote, {});
+            else result[id] = syncMergeRecord(result[id], remote);
+        });
+        return result;
+    }
+    RutasIA.snapshotForSync = function () {
+        return {
+            rutas: syncClone(Array.isArray(state.rutas) ? state.rutas : [], []),
+            citas: syncMergeCitas(state.citas, window.appState && window.appState.citas)
+        };
+    };
+    RutasIA.mergeSnapshotFromSync = function (snapshot) {
+        if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return false;
+        var previousRoutes = state.rutas, previousCitas = state.citas;
+        var nextRoutes = Array.isArray(snapshot.rutas) ? syncMergeRoutes(state.rutas, snapshot.rutas) : syncClone(state.rutas || [], []);
+        var localCitas = syncMergeCitas(state.citas, window.appState && window.appState.citas);
+        var nextCitas = syncMergeCitas(localCitas, snapshot.citas);
+        state.rutas = nextRoutes;
+        state.citas = nextCitas;
+        if (save() === false) {
+            state.rutas = previousRoutes;
+            state.citas = previousCitas;
+            return false;
+        }
+        if (window.appState) window.appState.citas = syncClone(nextCitas, {});
+        return true;
+    };
 
     window.FacturasIA = FacturasIA;
     window.RutasIA = RutasIA;
