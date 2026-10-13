@@ -8112,7 +8112,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             const estadoVisualNormalizado = String(estadoVisual || '').toLowerCase().trim();
             const textoEstado = textoEstadoCapitalizado(estadoVisual);
             const textoEstadoHtml = (estadoVisualNormalizado === 'realizado' || estadoVisualNormalizado === 'terminado sin firma')
-                ? `<span class="estado-realizado-alarma" aria-label="Terminado SIN firma">⚠️Terminado SIN ✒️</span>`
+                ? `<span class="estado-realizado-alarma" aria-label="Terminado SIN firma"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado SIN ✒️</span>`
                 : estadoVisualNormalizado === 'firmado'
                     ? `<span class="estado-realizado-alarma" aria-label="Terminado firmado sin guardar"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado✒️ SIN GUARDAR<span class="alarma-icono" aria-hidden="true">⚠️</span></span>`
                     : estadoVisualNormalizado === 'factura anulada'
@@ -10216,7 +10216,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 <td>${escapeHTML(p.clienteNombre || '')}</td>
                 <td>${(Number(p.base) || 0).toFixed(2)} €</td>
                 <td>${sgGarantiaHTML(sgGarantiaParte(p))}</td>
-                <td class="historial-estado-cell"><span class="badge historial-estado-badge ${claseBadgeEstado(p.estadoParte)}">${(() => { const estadoHistorial = String(p.estadoParte || '').toLowerCase().trim(); return (estadoHistorial === 'realizado' || estadoHistorial === 'terminado sin firma') ? '<span class="estado-realizado-alarma" aria-label="Terminado SIN firma">⚠️Terminado SIN ✒️</span>' : (estadoHistorial === 'firmado' ? '<span class="estado-realizado-alarma" aria-label="Terminado firmado sin guardar"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado✒️ SIN GUARDAR<span class="alarma-icono" aria-hidden="true">⚠️</span></span>' : (estadoHistorial === 'facturado' ? 'Factura emitida pendiente cobro' : (estadoHistorial === 'factura anulada' ? estadoFacAnuladaHTML() : textoEstadoCapitalizado(p.estadoParte)))); })()}</span></td>
+                <td class="historial-estado-cell"><span class="badge historial-estado-badge ${claseBadgeEstado(p.estadoParte)}">${(() => { const estadoHistorial = String(p.estadoParte || '').toLowerCase().trim(); return (estadoHistorial === 'realizado' || estadoHistorial === 'terminado sin firma') ? '<span class="estado-realizado-alarma" aria-label="Terminado SIN firma"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado SIN ✒️</span>' : (estadoHistorial === 'firmado' ? '<span class="estado-realizado-alarma" aria-label="Terminado firmado sin guardar"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado✒️ SIN GUARDAR<span class="alarma-icono" aria-hidden="true">⚠️</span></span>' : (estadoHistorial === 'facturado' ? 'Factura emitida pendiente cobro' : (estadoHistorial === 'factura anulada' ? estadoFacAnuladaHTML() : textoEstadoCapitalizado(p.estadoParte)))); })()}</span></td>
                 <td class="acciones-cell">
                     <div class="acciones-fixed">
                         ${accionesHistorial}
