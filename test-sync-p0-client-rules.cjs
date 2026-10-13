@@ -20,6 +20,14 @@ assert.ok(!source.includes('remoteRevision>=localRevision'), 'a newer remote rev
 assert.match(source, /SINTERGIA_BACKEND_ORIGIN/);
 assert.match(source, /headers=typeof window\.authHeadersSintergia==='function'\?window\.authHeadersSintergia\(\):\{\}/);
 
+const fallbackStart = source.indexOf('let fallbackSnapshotQueued=false;');
+const fallbackEnd = source.indexOf('mergeQueueAfterFlush(LS.operations,oq,opKeep);', fallbackStart);
+assert.ok(fallbackStart >= 0 && fallbackEnd > fallbackStart, 'unsupported operation fallback block must exist');
+const fallbackBlock = source.slice(fallbackStart, fallbackEnd);
+assert.match(fallbackBlock, /fallbackSnapshotQueued=!!\(fallback&&addChange\(fallback,'operations-endpoint-unsupported-fallback'\)\)/);
+assert.ok(!fallbackBlock.includes('getQ(LS.changes).length===0'), 'fallback snapshot must be queued even when older snapshots are pending');
+assert.match(source, /if\(operationEndpointUnsupported&&fallbackSnapshotQueued&&okAll&&keep\.length===0\)/, 'operations may be cleared only after a fallback snapshot was queued and all snapshots were acknowledged');
+
 const start = source.indexOf('  async function postOperation(item){');
 const end = source.indexOf('  async function postSnapshot(item){', start);
 assert.ok(start >= 0 && end > start, 'postOperation block must exist');
