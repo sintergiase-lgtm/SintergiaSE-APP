@@ -8174,8 +8174,8 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
 
             let accionesHTML = '';
             if (esParteDirecto) {
-                if (estadoParte === 'aparcado' || estadoParte === 'realizándose') {
-                    accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : 'realización'}" aria-label="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : 'realización'}">👷🏻‍♂️🛠️</button>`;
+                if (estadoParte === 'aparcado' || estadoParte === 'en trayecto' || estadoParte === 'realizándose') {
+                    accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : (estadoParte === 'en trayecto' ? 'trayecto' : 'realización')}" aria-label="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : (estadoParte === 'en trayecto' ? 'trayecto' : 'realización')}">👷🏻‍♂️🛠️</button>`;
                 } else if (estadoParte === 'firmado') {
                     accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`;
                 } else if (estadoParte === 'terminado sin firma') {
