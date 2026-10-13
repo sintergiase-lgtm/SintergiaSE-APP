@@ -30,4 +30,4 @@ Fecha: 2026-10-13
 - Simula cuota agotada en localStorage y comprueba que la API de cola devuelve fallo sin reemplazar la cola durable anterior.
 - Simula merge de dos dispositivos para entidades con revisión distinta.
 - La validación real contra Supabase, tokens HMAC emitidos por el backend, políticas SQL/RLS y dos navegadores/dispositivos reales continúa bloqueada por falta de un proyecto de pruebas autorizado. No se declara validada por las simulaciones.
-- Estado de CI de este ciclo: pendiente de ejecución.
+- CI verificado en verde: [run 38449442695](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38449442695). Pasaron pruebas de POST/GET autenticado simulado, respuesta perdida con cola concurrente, cuota agotada, merge de dos dispositivos, P0-6 y parsing de scripts inline.
