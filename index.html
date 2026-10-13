@@ -2805,21 +2805,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
   }
   function storageSize(s){try{return new Blob([String(s)]).size;}catch(_){return String(s).length*2;}}
-  function isCriticalQueue(k){return [LS.operations,LS.api,LS.conflicts,LS.tombstones].includes(k);}
+  /* Todas estas colas contienen trabajo recuperable. Ante falta de espacio se
+     bloquea la escritura y se informa al usuario: jamás se purga una cola para
+     hacer sitio a otra sin un acuse persistido del servidor. */
+  function isCriticalQueue(k){return [LS.changes,LS.operations,LS.api,LS.deferred,LS.conflicts,LS.tombstones].includes(k);}
   function pruneForQuota(excludeKey){
-    const candidates=[LS.changes,LS.deferred];
-    let freed=0;
-    for(const k of candidates){
-      if(k===excludeKey)continue;
-      const q=getQ(k);
-      if(q.length){
-        const keep=Math.max(0,Math.floor(q.length*0.25));
-        const next=q.slice(-keep);
-        freed+=Math.max(0,storageSize(JSON.stringify(q))-storageSize(JSON.stringify(next)));
-        write(k,next);
-      }
-    }
-    return freed;
+    void excludeKey;
+    return 0;
   }
   function write(k,v){
     const payload=JSON.stringify(v);
@@ -2857,10 +2849,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function getQ(k){const q=read(k,[]);return Array.isArray(q)?q:[];}
   function putQ(k,q){
     if(!Array.isArray(q))q=[];
-    if(q.length>MAX_ITEMS){
-      const limit=isCriticalQueue(k)?MAX_ITEMS:Math.floor(MAX_ITEMS*0.5);
-      q=q.slice(-limit);
-    }
+    /* MAX_ITEMS es solo un umbral de observación. Recortar aquí eliminaba
+       operaciones, snapshots y tombstones aún no confirmados. */
+    const softLimit=k===LS.operations?MAX_OPERATIONS:MAX_ITEMS;
+    if(q.length>softLimit)toast('⚠️ La cola de sincronización supera el umbral; conserva todos los cambios pendientes.');
     const ok=write(k,q);
     if(!ok)return false;
     try{
@@ -2943,18 +2935,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return ops;
   }
   function addChange(snapshot,reason){
-    if(!snapshot)return;
+    if(!snapshot)return false;
     const previous=read(LS.snapshot,null);
     const item={id:uuid(),deviceId:DEVICE,createdAt:now(),reason:reason||'state-change',snapshot:snapshot};
     const ops=buildOperations(previous,snapshot,reason);
-    const q=getQ(LS.changes); q.push(item); putQ(LS.changes,q);
+    const changes=getQ(LS.changes); changes.push(item);
+    if(!putQ(LS.changes,changes)){
+      toast('⚠️ El cambio sigue local, pero la cola de sincronización no pudo guardarse. Libera espacio antes de continuar.');
+      return false;
+    }
     if(ops.length){
       const oq=pruneAckedOperations(getQ(LS.operations)), seen=new Set(oq.map(x=>String(x.operationId||'')));
       for(const op of ops)if(op&&op.operationId&&!seen.has(String(op.operationId))){oq.push(op);seen.add(String(op.operationId));}
-      if(oq.length>MAX_OPERATIONS)oq.splice(0,oq.length-MAX_OPERATIONS);
-      putQ(LS.operations,oq);
+      if(!putQ(LS.operations,oq)){
+        /* El snapshot ya permanece en LS.changes; no se elimina ni se afirma
+           que esté confirmado. El siguiente flush podrá reconstruir el delta. */
+        toast('⚠️ La operación queda pendiente: no se pudo guardar su cola durable.');
+        return false;
+      }
     }
-    write(LS.snapshot,snapshot);
+    if(!write(LS.snapshot,snapshot)){
+      toast('⚠️ No se pudo actualizar la referencia local de sincronización.');
+      return false;
+    }
+    return true;
   }
   function enqueueApi(url,options,reason){
     const method=String(options&&options.method||'GET').toUpperCase();
@@ -3561,8 +3565,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       deviceId:DEVICE
     };
     const r=await rawFetch(endpoint,{method:'POST',headers,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
-    if(r.status===404||r.status===405)return {unsupported:true};
     let data=null; try{data=await r.json();}catch(_){}
+    if(r.status===404||r.status===405)return {unsupported:true};
+    const recoveryError=data&&String(data.error||'');
+    if(r.status===503&&(data&&data.fallback==='snapshot'||['legacy_sync_record_requires_reconciliation','operation_incomplete','snapshot_payload_required'].includes(recoveryError))){
+      /* Un registro legado/incompleto no es un error reintentable ciego:
+         conservar la operación y pasar al snapshot autenticado. */
+      return {fallbackSnapshot:true,reason:recoveryError||'snapshot-fallback-required'};
+    }
     if(r.status===401||r.status===403)throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true});
     if(r.status===408||r.status===425||r.status===429||r.status>=500)throw new Error('HTTP '+r.status);
     if(r.status===409)throw Object.assign(new Error('HTTP 409 — conflicto de revisión'),{conflict:true});
@@ -3629,13 +3639,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       mergeQueueAfterFlush(LS.api,aq,remain);
       /* P41: operaciones idempotentes. Si el endpoint aún no existe, el snapshot
          completo actúa como fallback y conserva la compatibilidad con Supabase. */
-      let oq=getQ(LS.operations), opKeep=[], operationEndpointUnsupported=false;
+      let oq=getQ(LS.operations), opKeep=[], operationEndpointUnsupported=false, operationFallbackReason='';
       const operationIdsAtStart=new Set(oq.map(queueIdentity));
       for(let opIndex=0;opIndex<oq.length;opIndex++){
         const item=oq[opIndex];
         try{
           const result=await postOperation(item);
-          if(result&&result.unsupported){operationEndpointUnsupported=true;break;}
+          if(result&&result.unsupported){operationEndpointUnsupported=true;operationFallbackReason='operation-endpoint-unsupported';break;}
+          if(result&&result.fallbackSnapshot){operationEndpointUnsupported=true;operationFallbackReason=result.reason||'snapshot-fallback-required';break;}
         }catch(e){
           const next=Object.assign(item,{
             attempts:(item.attempts||0)+1,
@@ -3706,7 +3717,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       }
       const conflictQueue=getQ(LS.conflicts);
       const pendingConflicts=conflictQueue.filter(x=>x.status==='pending').length;
-      const meta={lastFlushAt:now(),ok:okAll,pendingApi:remain.length,pendingOperations:opKeep.length,pendingSnapshots:keep.length,pendingConflicts,operationEndpointUnsupported};write(LS.meta,meta);
+      const meta={lastFlushAt:now(),ok:okAll,pendingApi:remain.length,pendingOperations:opKeep.length,pendingSnapshots:keep.length,pendingConflicts,operationEndpointUnsupported,operationFallbackReason};write(LS.meta,meta);
       if(okAll&&(remain.length||opKeep.length||keep.length)===0)toast(operationEndpointUnsupported?'☁️ Sincronización completada mediante snapshot.':'☁️ Sincronización completada.');
     if(okAll) clearSyncRetry();
     else scheduleSyncRetry('flush-incomplete');
@@ -13488,9 +13499,42 @@ document.addEventListener('DOMContentLoaded',function(){
 const SYNC_CHANNEL=(window.SINTERGIA_BACKEND&&window.SINTERGIA_BACKEND.realtime&&window.SINTERGIA_BACKEND.realtime.channel)||'sintergia-realtime';
 const SYNC_API='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
 const MAX_SYNC_BYTES=5*1024*1024;
-function backendFetch(url,options){const u=new URL(url,window.location.origin);if(u.origin!==window.location.origin)throw new Error('Endpoint de backend no permitido.');return fetch(u.toString(),options);}
+function backendFetch(url,options){
+  const u=new URL(url,window.location.origin);
+  const origin=String(window.SINTERGIA_BACKEND_ORIGIN||'').replace(/\/$/,'');
+  const permitted=new Set([window.location.origin,origin].filter(Boolean));
+  if(!permitted.has(u.origin)||(u.origin!==window.location.origin&&!/^\/functions\/v1\//.test(u.pathname)))throw new Error('Endpoint de backend no permitido.');
+  return fetch(u.toString(),options);
+}
 function syncToast(msg){if(typeof window.mostrarToast==='function')window.mostrarToast(msg);else if(window.__mostrarErrorApp)window.__mostrarErrorApp(msg);}
-window.activarModoFlujoRealMultidispositivo=async function(){try{localStorage.setItem('sintergia_modo_flujo_real','1');const snap=window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion();if(window.SintergiaRealtime&&snap)await window.SintergiaRealtime.publish(snap);syncToast('🌐 Flujo real multidispositivo activado. Estado publicado en el servidor.');const tab=document.querySelector('.tab-link[data-tab="tab-sync-ai"]');if(tab)tab.click();}catch(e){syncToast('⚠️ No se pudo activar el flujo multidispositivo: '+(e.message||e));}};
+function snapshotCoincideConRemoto(local,remote){
+  if(!local||!remote||typeof remote!=='object')return false;
+  const localSource=String(local.sourceId||local.deviceId||'');
+  const remoteSource=String(remote.sourceId||remote.deviceId||'');
+  const localRevision=Number(local.revision);
+  const remoteRevision=Number(remote.revision);
+  return !!localSource&&localSource===remoteSource&&Number.isFinite(localRevision)&&Number.isFinite(remoteRevision)&&remoteRevision>=localRevision;
+}
+window.activarModoFlujoRealMultidispositivo=async function(){
+  try{
+    const snap=window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion();
+    if(!snap)throw new Error('No se pudo crear el snapshot local.');
+    const published=!!(window.SintergiaRealtime&&await window.SintergiaRealtime.publish(snap));
+    let remote=null;
+    if(published)remote=await obtenerRemoto();
+    if(!published||!snapshotCoincideConRemoto(snap,remote)){
+      localStorage.setItem('sintergia_modo_flujo_real','pending');
+      syncToast('⚠️ Flujo local preparado, pero el servidor no ha confirmado escritura y lectura coincidentes.');
+    }else{
+      localStorage.setItem('sintergia_modo_flujo_real','1');
+      syncToast('🌐 Flujo multidispositivo confirmado por escritura y lectura remota.');
+    }
+    const tab=document.querySelector('.tab-link[data-tab="tab-sync-ai"]');if(tab)tab.click();
+  }catch(e){
+    localStorage.setItem('sintergia_modo_flujo_real','pending');
+    syncToast('⚠️ No se pudo confirmar el flujo multidispositivo: '+(e.message||e));
+  }
+};
 /* ===== SintergiaSE · Dirección postal por coordenadas (calle + nº más cercano) ===== */
 var SG_PROV={'ES-C':'A Coruña','ES-VI':'Álava','ES-AB':'Albacete','ES-A':'Alicante','ES-AL':'Almería','ES-O':'Asturias','ES-AV':'Ávila','ES-BA':'Badajoz','ES-PM':'Islas Baleares','ES-B':'Barcelona','ES-BU':'Burgos','ES-CC':'Cáceres','ES-CA':'Cádiz','ES-S':'Cantabria','ES-CS':'Castellón','ES-CR':'Ciudad Real','ES-CO':'Córdoba','ES-CU':'Cuenca','ES-GI':'Girona','ES-GR':'Granada','ES-GU':'Guadalajara','ES-SS':'Guipúzcoa','ES-H':'Huelva','ES-HU':'Huesca','ES-J':'Jaén','ES-LO':'La Rioja','ES-GC':'Las Palmas','ES-LE':'León','ES-L':'Lleida','ES-LU':'Lugo','ES-M':'Madrid','ES-MA':'Málaga','ES-MU':'Murcia','ES-NA':'Navarra','ES-OR':'Ourense','ES-P':'Palencia','ES-PO':'Pontevedra','ES-SA':'Salamanca','ES-TF':'Santa Cruz de Tenerife','ES-SG':'Segovia','ES-SE':'Sevilla','ES-SO':'Soria','ES-T':'Tarragona','ES-TE':'Teruel','ES-TO':'Toledo','ES-V':'Valencia','ES-VA':'Valladolid','ES-BI':'Vizcaya','ES-ZA':'Zamora','ES-Z':'Zaragoza','ES-CE':'Ceuta','ES-ML':'Melilla'};
 var _sgCache={};
@@ -13801,10 +13845,45 @@ window.SintergiaRuntimeHealth=function(){
 
 /* P10: SintergiaRealtime conserva una única implementación canónica. */
 
-async function obtenerRemoto(){const r=await backendFetch(SYNC_API+'?channel='+encodeURIComponent(SYNC_CHANNEL),{credentials:'omit',cache:'no-store',headers:{}});if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);const d=await r.json();return d.snapshot||d.state||d;}
+async function obtenerRemoto(){
+  const headers=typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{};
+  const r=await backendFetch(SYNC_API+'?channel='+encodeURIComponent(SYNC_CHANNEL),{credentials:'omit',cache:'no-store',headers});
+  if(!r.ok)throw new Error('GET sincronización HTTP '+r.status);
+  const d=await r.json();
+  return d.snapshot||d.state||d;
+}
 function mergeEntityArrays(local,incoming,collection){const a=Array.isArray(local)?local:[],b=Array.isArray(incoming)?incoming:[],m=new Map();const key=x=>String(x?.id??x?.uid??x?.ref??x?.referencia??x?.numero??x?.codigo??'');const ts=x=>{const t=Date.parse(x?.updatedAt||x?.clientUpdatedAt||x?.createdAt||x?.fechaModificacion||x?.fechaCreacion||'');return Number.isFinite(t)?t:0};const rev=x=>Number.isFinite(Number(x?.entityRevision))?Number(x.entityRevision):Number.isFinite(Number(x?.revision))?Number(x.revision):0;const src=x=>String(x?.sourceId??x?.deviceId??'');const rank=x=>[rev(x),ts(x),src(x)];const newer=(x,y)=>{const a1=rank(x),b1=rank(y);for(let i=0;i<a1.length;i++){if(a1[i]>b1[i])return true;if(a1[i]<b1[i])return false;}return false;};a.forEach(x=>{const k=key(x);if(k)m.set(k,x)});b.forEach(x=>{const k=key(x);if(!k||tombstoneBlocksEntity(collection,x))return;const o=m.get(k);if(!o||newer(x,o))m.set(k,x)});return [...m.values()];}
 window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
-window.probarSincronizacionMultidispositivo=async function(){const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');if(st){st.className='sync-ai-status';st.textContent='Probando publicación y lectura…';}if(log){log.style.display='block';log.textContent='';}const lines=[],snap=window.obtenerSnapshotSincronizacion();if(!snap){lines.push('❌ No se pudo crear el snapshot local.');if(log)log.textContent=lines.join('\n');if(st){st.className='sync-ai-status error';st.textContent='Snapshot local no disponible.';}return;}lines.push('1. Snapshot local creado: '+snap.clientes.length+' clientes · '+snap.partes.length+' partes · '+snap.facturas.length+' facturas.');const published=await window.SintergiaRealtime.publish(snap);lines.push(published?'2. ✅ Publicación en servidor OK.':'2. ⚠️ Publicación en servidor no confirmada.');try{const remote=await obtenerRemoto();lines.push(remote?'3. ✅ Lectura remota OK.':'3. ⚠️ El servidor no devolvió snapshot.');}catch(e){lines.push('3. ⚠️ Lectura remota falló: '+(e.message||e));}if(log)log.textContent=lines.join('\n');if(st){st.className=published?'sync-ai-status ok':'sync-ai-status error';st.textContent=published?'Flujo de publicación comprobado.':'No se pudo confirmar la publicación remota.';}};
+window.probarSincronizacionMultidispositivo=async function(){
+  const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');
+  if(st){st.className='sync-ai-status';st.textContent='Probando publicación y lectura…';}
+  if(log){log.style.display='block';log.textContent='';}
+  const lines=[],snap=window.obtenerSnapshotSincronizacion();
+  if(!snap){
+    lines.push('❌ No se pudo crear el snapshot local.');
+    if(log)log.textContent=lines.join('\n');
+    if(st){st.className='sync-ai-status error';st.textContent='Snapshot local no disponible.';}
+    return false;
+  }
+  lines.push('1. Snapshot local creado: '+snap.clientes.length+' clientes · '+snap.partes.length+' partes · '+snap.facturas.length+' facturas.');
+  const published=!!(window.SintergiaRealtime&&await window.SintergiaRealtime.publish(snap));
+  lines.push(published?'2. ✅ Publicación HTTP aceptada.':'2. ⚠️ Publicación HTTP no confirmada.');
+  let remote=null;
+  try{
+    remote=await obtenerRemoto();
+    lines.push(remote?'3. ✅ Lectura remota recibida.':'3. ⚠️ El servidor no devolvió snapshot.');
+  }catch(e){
+    lines.push('3. ⚠️ Lectura remota falló: '+(e.message||e));
+  }
+  const confirmed=published&&snapshotCoincideConRemoto(snap,remote);
+  lines.push(confirmed?'4. ✅ ID de origen y revisión coinciden.':'4. ⚠️ No hay confirmación de que el estado leído sea el recién publicado.');
+  if(log)log.textContent=lines.join('\n');
+  if(st){
+    st.className=confirmed?'sync-ai-status ok':'sync-ai-status error';
+    st.textContent=confirmed?'Escritura y lectura remotas confirmadas.':'Sincronización no confirmada; se conservan los cambios pendientes.';
+  }
+  return confirmed;
+};
 /* Sincronización manual de cabecera: dos pulsaciones sobre el logotipo dentro de 2 s.
  * Publica el estado local y comprueba inmediatamente el estado remoto. No sustituye
  * silenciosamente los datos locales: si el servidor contiene una revisión distinta,
