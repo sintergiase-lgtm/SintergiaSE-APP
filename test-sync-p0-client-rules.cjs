@@ -80,6 +80,32 @@ const operation = {
   );
   await assert.rejects(() => postOperation(operation), /HTTP 503/);
 
+  // Exercise the actual backend allowlist helper extracted from index.html (not just a text match).
+  const bridgeOriginIndex = source.indexOf("window.SINTERGIA_BACKEND_ORIGIN=BASE");
+  const backendFetchStart = source.indexOf("function backendFetch(url,options){");
+  const backendFetchEnd = source.indexOf("\nfunction syncToast", backendFetchStart);
+  assert.ok(bridgeOriginIndex >= 0 && backendFetchStart > bridgeOriginIndex,
+    'Supabase backend origin must be configured before the sync helper runs');
+  assert.ok(backendFetchEnd > backendFetchStart, 'backendFetch helper must be extractable for a runtime allowlist test');
+  const backendFetchFactory = new Function('window', 'fetch', 'URL',
+    source.slice(backendFetchStart, backendFetchEnd) + '; return backendFetch;');
+  const fetchCalls = [];
+  const backendWindow = {
+    location: { origin: 'https://sintergiase-lgtm.github.io' },
+    SINTERGIA_BACKEND_ORIGIN: 'https://bgjicsowspppsjzigazb.supabase.co',
+  };
+  const checkedFetch = backendFetchFactory(backendWindow, async (url, options) => {
+    fetchCalls.push({ url, options });
+    return { ok: true, status: 200 };
+  }, URL);
+  await checkedFetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot', { method: 'GET' });
+  assert.equal(fetchCalls.length, 1, 'configured Supabase Edge Function origin must be accepted');
+  assert.ok(fetchCalls[0].url.startsWith('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/'), 'request must target the configured Edge Function URL');
+  assert.throws(() => checkedFetch('https://evil.example/functions/v1/realtime-snapshot'), /Endpoint de backend no permitido/,
+    'an untrusted origin must be rejected even when it uses an Edge Function path');
+  assert.throws(() => checkedFetch('https://bgjicsowspppsjzigazb.supabase.co/rest/v1/users'), /Endpoint de backend no permitido/,
+    'the configured backend origin must not allow arbitrary non-Edge-Function paths');
+
   console.log('PASS: sync P0 durability, fallback, and round-trip invariants');
 })().catch(error => {
   console.error(error);
