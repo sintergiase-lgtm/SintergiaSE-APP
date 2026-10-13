@@ -1,0 +1,29 @@
+name: Sync operations candidate security tests
+
+on:
+  push:
+    branches:
+      - fix/sync-candidate-cors-fail-closed-20261013
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check test syntax
+        run: node --check test-sync-operations-rules.cjs
+      - name: Run candidate security and idempotency checks
+        run: node test-sync-operations-rules.cjs
