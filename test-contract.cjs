@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 /* Run from any working directory after checkout: all sources are repository-relative. */
 const source = fs.readFileSync(path.join(__dirname, 'sync-operations-v13-candidate.ts'), 'utf8');
 const checks = [
-  ['custom HMAC session token required', /authorization\.startsWith\('Bearer '\)/],
+  ['custom HMAC session token required', /h\.startsWith\('Bearer '\)/],
   ['HMAC token is cryptographically verified', /crypto\.subtle\.verify\('HMAC'/],
   ['secret/database failures are reported as retryable infrastructure errors', /catch \{\s*return json\(req, 503, \{ ok: false, error: 'auth_verification_unavailable' \}\)\s*\}/],
   ['the default production origin is exact and HTTPS', /DEFAULT_ALLOWED_ORIGINS = \['https:\/\/sintergiase-lgtm\.github\.io'\]/],
