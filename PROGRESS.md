@@ -12,7 +12,7 @@ Fecha: 2026-10-13
 - Fuera de appState: `horario` y `compras` ya están en el snapshot; `rutas` y `citas` se han añadido. `geo`, `flota`, `base`, `riaFin`, `riaObjetivoHoras`, `riaVelocidad`, `riaColchonMin`, `riesgos`, `nube` y `ultimoConsejo` permanecen locales por ahora; revisar política compartida por separado.
 - Seguridad: `emailApi`, contexto de firma, coordenadas y timers no se sincronizan como datos de estado común.
 - Límite abierto: las eliminaciones de rutas todavía no tienen tombstones distribuidos. El merge por unión evita pérdida de rutas, pero no propaga una eliminación de ruta entre dispositivos. Requiere un siguiente cambio específico con pruebas.
-- Validación pendiente de CI: el workflow de GitHub Actions ejecutará inventario, merge de rutas/citas, fallo de cuota/rollback y análisis sintáctico de scripts inline.
+- CI verificado en verde: [run 38448692475](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38448692475). Pasaron inventario de claves, merge de rutas/citas, rollback por fallo de persistencia, pruebas P0 anteriores y análisis sintáctico de scripts inline.
 - Bloqueo de integración: no se ha probado contra un Supabase de pruebas ni en navegador real. No tocar producción, `main`, datos o secrets.
 
 ## Siguiente acción exacta
