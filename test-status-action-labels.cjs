@@ -15,4 +15,6 @@ assert.equal(html.split("estadoParte === 'en trayecto' ? 'trayecto'").length - 1
 assert.match(html, /const facturasAnuladasVinculadas = appState\.facturas/);
 assert.match(html, /sgAction\("restaurarFactura", \[facturaIdx\]\)/, 'annulled invoices in Seguimiento must offer restore');
 assert.match(html, /estadoNormalizado === 'terminado' \|\| estadoNormalizado === 'cobrado'\)/, 'annulled invoices must not fall through to the email action');
+assert.equal(html.split('<span class="estado-realizado-alarma" aria-label="Terminado SIN firma"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado SIN ✒️</span>').length - 1, 2, 'both unsigned-completed status badges must wrap the warning in the blinking icon class');
+assert.equal(html.split('<span class="estado-realizado-alarma" aria-label="Terminado SIN firma">⚠️Terminado SIN ✒️</span>').length - 1, 0, 'raw warning symbols must not bypass the blink class');
 console.log('PASS: all 3 signed-part save actions display ⚠️GUARDAR⚠️');
