@@ -15,12 +15,14 @@ La aplicación es un frontend web grande concentrado principalmente en `index.ht
 
 El riesgo más importante documentado es la **confirmación de sincronización sin evidencia suficiente de persistencia real**. La auditoría histórica del 12 de octubre registró 0 filas en `sintergia.app_state` y 71 filas en `sintergia.sync_operations`; las 71 aparecían como `applied`, pero `payload` y `result` estaban guardados como escalares JSONB de tipo cadena, no como objetos. Esos datos no demuestran que el estado funcional se hubiera persistido. Esta observación procede del informe previo; no se ha repetido una consulta de base de datos en esta revisión.
 
-Hay dos reparaciones de frontend abiertas en propuestas separadas:
+Hay dos líneas principales de reparación abiertas y una corrección incremental identificada durante esta revisión:
 
 - **PR #2 — sincronización:** [Fix P0 de sincronización](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2). Preserva las colas pendientes, maneja operaciones antiguas/incompletas mediante fallback a snapshot y exige coincidencia exacta de `sourceId` y `revision` al confirmar el estado remoto. Las comprobaciones estáticas y las simulaciones locales al análisis pasan; faltan Node en un checkout limpio y el round-trip autenticado real.
 - **PR #3 — acciones de partes:** [Corregir etiquetas y estados operativos](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/3). Sustituye las tres etiquetas `⚠️GUARDA⚠️` por `⚠️GUARDAR⚠️`, añade `en trayecto` a la condición de acción única `👷🏻‍♂️🛠️` para partes directos e incorpora restauración `♻️` de facturas anuladas vinculadas desde Seguimiento de Avisos. Añade pruebas de regresión estáticas. Está en borrador y pendiente de revisión.
 
 Ninguna de estas propuestas está fusionada ni desplegada. Las pruebas estáticas no sustituyen las pruebas de navegador, de dos dispositivos o contra Supabase.
+
+**Hallazgo incremental en PR #6 — fallback de snapshot completo:** al revisar el flujo de la PR #2 se detectó que solo se generaba un snapshot de fallback si la cola de snapshots estaba vacía. Con snapshots antiguos ya pendientes, no se garantizaba que el estado completo actual quedara incluido antes de retirar operaciones de la tanda original. La [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6), basada en la rama de la PR #2, siempre encola un snapshot completo actual y condiciona la retirada de operaciones a que ese encolado haya tenido éxito y todos los snapshots pendientes reciban confirmación. Está en borrador, no fusionada ni desplegada. Su prueba Node sigue pendiente de ejecución en un checkout limpio.
 
 ## 2. Qué existe y se ha realizado
 
@@ -206,7 +208,9 @@ Cada iteración debe cerrar con evidencia reproducible y actualizar este informe
 ## 7. Referencias del repositorio
 
 - [PR #2 — sincronización](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)
-- [PR #3 — etiqueta de guardado](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/3)
+- [PR #3 — etiqueta de guardado y acciones](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/3)
+- [PR #5 — portabilidad de prueba de sync-operations](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/5)
+- [PR #6 — snapshot completo en fallback](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)
 - [Informe de hallazgos de la iteración 7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/blob/main/ITERACION-7-HALLAZGOS.md)
 - [Candidatos de reparación](https://github.com/sintergiase-lgtm/SintergiaSE-APP/blob/main/README-SintergiaSE-reparaciones-candidatas.md)
 - [Auditoría incremental del 9 de octubre](https://github.com/sintergiase-lgtm/SintergiaSE-APP/blob/main/SintergiaSE-auditoria-2026-10-09.md)
