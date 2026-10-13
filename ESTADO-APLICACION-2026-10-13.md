@@ -18,7 +18,7 @@ El riesgo más importante documentado es la **confirmación de sincronización s
 Hay dos reparaciones de frontend abiertas en propuestas separadas:
 
 - **PR #2 — sincronización:** [Fix P0 de sincronización](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2). Preserva las colas pendientes, maneja operaciones antiguas/incompletas mediante fallback a snapshot y exige coincidencia exacta de `sourceId` y `revision` al confirmar el estado remoto. Las comprobaciones estáticas y las simulaciones locales al análisis pasan; faltan Node en un checkout limpio y el round-trip autenticado real.
-- **PR #3 — etiqueta de guardado:** [Corregir botón de guardado](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/3). Sustituye las tres etiquetas `⚠️GUARDA⚠️` por `⚠️GUARDAR⚠️` y añade una prueba de regresión. Está en borrador y pendiente de revisión.
+- **PR #3 — acciones de partes:** [Corregir etiquetas y estados operativos](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/3). Sustituye las tres etiquetas `⚠️GUARDA⚠️` por `⚠️GUARDAR⚠️` y añade `en trayecto` a la condición de acción única `👷🏻‍♂️🛠️` para partes directos, incluyendo etiquetas accesibles correctas. Añade pruebas de regresión estáticas. Está en borrador y pendiente de revisión.
 
 Ninguna de estas propuestas está fusionada ni desplegada. Las pruebas estáticas no sustituyen las pruebas de navegador, de dos dispositivos o contra Supabase.
 
@@ -69,11 +69,11 @@ La rama de reparación propone:
 
 **No equivale a una prueba completa:** no se ejecutó `node test-sync-p0-client-rules.cjs` en un checkout real, ni se hizo un POST/GET autenticado contra Supabase, ni una prueba con dos dispositivos. La PR #2 sigue abierta.
 
-### 2.4 Corrección de la etiqueta de guardado propuesta en PR #3
+### 2.4 Corrección de acciones de partes propuesta en PR #3
 
 Archivo: `index.html`; prueba añadida: `test-status-action-labels.cjs`.
 
-En `main` se localizaron tres etiquetas visibles `⚠️GUARDA⚠️` en acciones asociadas al guardado de partes firmados. El requisito solicitado es `⚠️GUARDAR⚠️`. La rama propuesta cambia exactamente esas tres apariciones.
+En `main` se localizaron tres etiquetas visibles `⚠️GUARDA⚠️` en acciones asociadas al guardado de partes firmados. El requisito solicitado es `⚠️GUARDAR⚠️`. Además, la rama `esParteDirecto` no incluía `en trayecto` en la condición de acción única para los estados operativos. La rama propuesta corrige las tres etiquetas, añade `en trayecto` y ajusta `title`/`aria-label` para que describan correctamente el trayecto.
 
 Validación estática de la rama:
 - tres etiquetas correctas;
