@@ -13513,7 +13513,7 @@ function snapshotCoincideConRemoto(local,remote){
   const remoteSource=String(remote.sourceId||remote.deviceId||'');
   const localRevision=Number(local.revision);
   const remoteRevision=Number(remote.revision);
-  return !!localSource&&localSource===remoteSource&&Number.isFinite(localRevision)&&Number.isFinite(remoteRevision)&&remoteRevision>=localRevision;
+  return !!localSource&&localSource===remoteSource&&Number.isFinite(localRevision)&&Number.isFinite(remoteRevision)&&remoteRevision===localRevision;
 }
 window.activarModoFlujoRealMultidispositivo=async function(){
   try{
