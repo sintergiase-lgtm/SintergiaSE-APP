@@ -103,6 +103,7 @@ assert.ok(conflictStart >= 0 && conflictEnd > conflictStart, 'conflict persisten
 const conflictBlock = source.slice(conflictStart, conflictEnd);
 assert.ok(!conflictBlock.includes('filtered.splice(0,filtered.length-MAX_CONFLICTS)'), 'pending conflicts must not be deleted to fit a cap');
 assert.match(conflictBlock, /const pending=filtered\.filter\(x=>x\.status==='pending'\)/, 'pending conflicts must be preserved separately');
+assert.match(conflictBlock, /const resolvedLimit=Math\.max\(0,MAX_CONFLICTS-pending\.length\);[\s\S]*const keepResolved=resolvedLimit\?resolved\.slice\(-resolvedLimit\):\[\]/, 'resolved history must be capped without using slice(-0), which keeps everything');
 assert.match(conflictBlock, /if\(!putQ\(LS\.conflicts,preserved\)\)[\s\S]{0,200}throw new Error\('conflict_not_durable'\)/, 'failed conflict persistence must prevent a false successful reconciliation');
 
 const uncertainStart = source.indexOf('function markUncertain(operationId,meta)');
