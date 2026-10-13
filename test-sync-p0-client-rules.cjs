@@ -66,7 +66,7 @@ const operation = {
   // Exercise the actual backend allowlist helper extracted from index.html (not just a text match).
   const bridgeOriginIndex = source.indexOf("window.SINTERGIA_BACKEND_ORIGIN=BASE");
   const backendFetchStart = source.indexOf("function backendFetch(url,options){");
-  const backendFetchEnd = source.indexOf("\\nfunction syncToast", backendFetchStart);
+  const backendFetchEnd = source.indexOf("\nfunction syncToast", backendFetchStart);
   assert.ok(bridgeOriginIndex >= 0 && backendFetchStart > bridgeOriginIndex,
     'Supabase backend origin must be configured before the sync helper runs');
   assert.ok(backendFetchEnd > backendFetchStart, 'backendFetch helper must be extractable for a runtime allowlist test');
