@@ -29,3 +29,5 @@ jobs:
         run: node --check test-sync-p0-client-rules.cjs
       - name: Run sync P0 regression tests
         run: node test-sync-p0-client-rules.cjs
+      - name: Parse all inline JavaScript blocks
+        run: node test-inline-script-syntax.cjs
