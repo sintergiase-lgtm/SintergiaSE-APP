@@ -76,8 +76,8 @@ const postSnapshot = makePostSnapshot(async (url, options) => {
   const loopEnd = html.indexOf('      /* Unsupported operation endpoint:', loopStart);
   assert.ok(loopStart >= 0 && loopEnd > loopStart, 'actual snapshot retry loop must be extractable');
   const loopCode = html.slice(loopStart, loopEnd);
-  const loop = new Function('getQ', 'LS', 'postSnapshot', 'navigator', 'mergeQueueAfterFlush', 'now', 'okAll',
-    loopCode + '; return { okAll, keep };')(
+  const loop = await new Function('getQ', 'LS', 'postSnapshot', 'navigator', 'mergeQueueAfterFlush', 'now', 'okAll',
+    'return (async () => { ' + loopCode + '; return { okAll, keep }; })();')(
       getQ, { changes: 'changes' }, lostResponsePost,
       { onLine: true }, mergeQueueAfterFlush, () => '2026-10-13T10:01:00.000Z', true
     );
