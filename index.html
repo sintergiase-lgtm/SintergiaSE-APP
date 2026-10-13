@@ -10959,21 +10959,24 @@ function instalarEventosStockDelegados(){
         if (!itc) return;
 
         const url = urlITCREBT(codigo);
-        const ventana = window.open(url, '_blank', 'noopener,noreferrer');
+        const ventana = window.open(url, '_blank');
 
-        // Si el navegador bloquea la nueva pestaña, mantenemos la navegación
-        // funcional en la misma pestaña.
+        // Con noopener se recibe null incluso si la pestaña se abrió.
         if (!ventana) {
             window.location.href = url;
+            return;
         }
+        try { ventana.opener = null; } catch (error) { window.__sgIgn && window.__sgIgn(error); }
     }
 
     // Único botón de la interfaz para abrir el texto completo oficial del REBT.
     function abrirREBTCompleto() {
-        const ventana = window.open(REBT_BOE_URL, '_blank', 'noopener,noreferrer');
+        const ventana = window.open(REBT_BOE_URL, '_blank');
         if (!ventana) {
             window.location.href = REBT_BOE_URL;
+            return;
         }
+        try { ventana.opener = null; } catch (error) { window.__sgIgn && window.__sgIgn(error); }
     }
 
     // -- GUÍA TÉCNICA ENDESA / E-DISTRIBUCIÓN --
@@ -11508,8 +11511,9 @@ function instalarEventosStockDelegados(){
 
     function abrirPortalNormasEndesa() {
         const url = 'https://www.edistribucion.com/es/conocenos/instalaciones-distribucion-red/materiales-electricos-normas/materialesMTBT.html';
-        const ventana = window.open(url, '_blank', 'noopener,noreferrer');
-        if (!ventana) window.location.href = url;
+        const ventana = window.open(url, '_blank');
+        if (!ventana) { window.location.href = url; return; }
+        try { ventana.opener = null; } catch (error) { window.__sgIgn && window.__sgIgn(error); }
     }
 
     // -- CENTRO DE CÁLCULOS ASOCIADOS A LAS ITC --
@@ -12249,8 +12253,9 @@ G('ne555',['R1','C']);G('db',['x1','x2']);G('bateria',['V','P','eta','Ic'],['eta
     function abrirNormativaPV(indice){
         const item=PV_REGLAMENTO[Number(indice)];
         if(!item||!item.url) return;
-        const ventana=window.open(item.url,'_blank','noopener,noreferrer');
-        if(!ventana) window.location.href=item.url;
+        const ventana=window.open(item.url,'_blank');
+        if(!ventana){window.location.href=item.url;return;}
+        try{ventana.opener=null;}catch(error){window.__sgIgn&&window.__sgIgn(error);}
     }
 
     function toggleGlosarioPV(id){
@@ -13021,7 +13026,7 @@ VERIFICACIONES FINALES
     }
 
     function generarMemoriaTecnicaREBT(){const m=construirMemoriaREBT();const el=document.getElementById('conf-memoria');el.innerHTML=m;el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'start'});}
-    function imprimirMemoriaREBT(){const m=construirMemoriaREBT();const w=window.open('','_blank','noopener,noreferrer');if(!w){alert('El navegador ha bloqueado la ventana de impresión.');return;}try{w.opener=null;}catch(_){window.__sgIgn&&window.__sgIgn(_);}w.document.write(documentoCorporativoSintergiaHTML('Memoria técnica / informe REBT','Borrador técnico',m));w.document.close();w.focus();setTimeout(()=>w.print(),250);}
+    function imprimirMemoriaREBT(){const m=construirMemoriaREBT();const w=window.open('','_blank');if(!w){alert('El navegador ha bloqueado la ventana de impresión.');return;}try{w.opener=null;}catch(_){window.__sgIgn&&window.__sgIgn(_);}w.document.write(documentoCorporativoSintergiaHTML('Memoria técnica / informe REBT','Borrador técnico',m));w.document.close();w.focus();setTimeout(()=>w.print(),250);}
 
     /* ===== SINCRONIZACIÓN MULTIDISPOSITIVO: backend + Supabase Realtime ===== */
     (function instalarRealtimeSintergia(){
@@ -13385,7 +13390,7 @@ window.ocaEliminarAdjunto=function(i,j){const arr=window._ocaActual?.adjuntos?.[
 
 window.recogerChecklistOCA=function(){const c=window._ocaActual?.checklist;if(!c)return null;return {titulo:c.titulo,refs:c.refs,fecha:new Date().toISOString(),titular:document.getElementById('oca-titular')?.value||'',emplazamiento:document.getElementById('oca-emplazamiento')?.value||'',expediente:document.getElementById('oca-expediente')?.value||'',inspector:document.getElementById('oca-inspector')?.value||'',items:c.items.map((x,i)=>({punto:x,estado:document.getElementById('oca-e-'+i)?.value||'pendiente',evidencia:document.getElementById('oca-m-'+i)?.value||'',adjuntos:(window._ocaActual?.adjuntos?.[i]||[]).map(a=>({name:a.name,originalName:a.originalName,size:a.size,type:a.type,kind:a.kind,observaciones:a.observaciones||'',fecha:a.fecha}))})),observaciones:document.getElementById('oca-observaciones')?.value||'',instrumentos:document.getElementById('oca-instrumentos')?.value||''};};
 window.guardarChecklistOCAEnParte=function(){const d=recogerChecklistOCA();if(!d){alert('Selecciona primero un checklist O.C.A.');return;}const campo=document.getElementById('parte-desc');if(!campo){alert('No se encontró el campo de descripción del parte.');return;}const resumen=d.items.map((x,i)=>{const adj=(x.adjuntos||[]).map(a=>a.name+(a.observaciones?' — '+a.observaciones:'')).join(' | ');return `${i+1}. ${x.estado.toUpperCase()} — ${x.punto}${x.evidencia?' | '+x.evidencia:''}${adj?' | Evidencias: '+adj:''}`;}).join('\n');const texto=`\n\n[CHECKLIST TÉCNICO O.C.A. — PREPARACIÓN/ACOMPAÑAMIENTO]\n${d.titulo}\nBase reglamentaria: ${d.refs}\nTitular: ${d.titular}\nEmplazamiento: ${d.emplazamiento}\nExpediente/parte: ${d.expediente}\nFecha: ${new Date(d.fecha).toLocaleString('es-ES')}\n\n${resumen}\n\nObservaciones: ${d.observaciones||'Sin observaciones'}\nInstrumentos/evidencias: ${d.instrumentos||'No consignados'}\nESTADO JURÍDICO: documento interno de preparación; no sustituye el certificado emitido por el Organismo de Control.`;campo.value=(campo.value||'')+texto;campo.dispatchEvent(new Event('input',{bubbles:true}));mostrarToast('✅ Checklist O.C.A. añadido al parte.');};
-window.generarDocumentoOCA=function(){const d=recogerChecklistOCA();if(!d){alert('Selecciona primero un checklist O.C.A.');return;}const w=window.open('','_blank','noopener,noreferrer');if(!w){alert('El navegador ha bloqueado la ventana de impresión.');return;}try{w.opener=null;}catch(_){window.__sgIgn&&window.__sgIgn(_);}const rows=d.items.map((x,i)=>{const adj=(x.adjuntos||[]).map(a=>`<div><b>${esc(a.name)}</b>${a.observaciones?` — ${esc(a.observaciones)}`:''}${a.originalName&&a.originalName!==a.name?`<br><small>Archivo: ${esc(a.originalName)}</small>`:''}</div>`).join('');return `<tr><td>${i+1}</td><td>${esc(x.punto)}</td><td>${esc(x.estado)}</td><td>${esc(x.evidencia)}${adj?'<br><b>Adjuntos:</b><br>'+adj:''}</td></tr>`;}).join('');w.document.write(documentoCorporativoSintergiaHTML('Hoja técnica de preparación O.C.A.',d.titulo,`<h2>${esc(d.titulo)}</h2><p><b>Base reglamentaria:</b> ${esc(d.refs)}</p><p><b>Titular:</b> ${esc(d.titular)} · <b>Emplazamiento:</b> ${esc(d.emplazamiento)} · <b>Expediente:</b> ${esc(d.expediente)}</p><table><thead><tr><th>#</th><th>Punto</th><th>Estado</th><th>Evidencia / medición</th></tr></thead><tbody>${rows}</tbody></table><p><b>Observaciones:</b> ${esc(d.observaciones)}</p><p><b>Instrumentos:</b> ${esc(d.instrumentos)}</p><div class="doc-note"><b>DECLARACIÓN DOCUMENTAL:</b> esta hoja es un documento técnico interno de preparación/acompañamiento. No constituye el certificado de inspección O.C.A., no acredita por sí sola la realización de una inspección reglamentaria y no sustituye el documento emitido por el Organismo de Control acreditado.</div><p>Fecha de generación: ${esc(new Date(d.fecha).toLocaleString('es-ES'))}</p>`));w.document.close();};
+window.generarDocumentoOCA=function(){const d=recogerChecklistOCA();if(!d){alert('Selecciona primero un checklist O.C.A.');return;}const w=window.open('','_blank');if(!w){alert('El navegador ha bloqueado la ventana de impresión.');return;}try{w.opener=null;}catch(_){window.__sgIgn&&window.__sgIgn(_);}const rows=d.items.map((x,i)=>{const adj=(x.adjuntos||[]).map(a=>`<div><b>${esc(a.name)}</b>${a.observaciones?` — ${esc(a.observaciones)}`:''}${a.originalName&&a.originalName!==a.name?`<br><small>Archivo: ${esc(a.originalName)}</small>`:''}</div>`).join('');return `<tr><td>${i+1}</td><td>${esc(x.punto)}</td><td>${esc(x.estado)}</td><td>${esc(x.evidencia)}${adj?'<br><b>Adjuntos:</b><br>'+adj:''}</td></tr>`;}).join('');w.document.write(documentoCorporativoSintergiaHTML('Hoja técnica de preparación O.C.A.',d.titulo,`<h2>${esc(d.titulo)}</h2><p><b>Base reglamentaria:</b> ${esc(d.refs)}</p><p><b>Titular:</b> ${esc(d.titular)} · <b>Emplazamiento:</b> ${esc(d.emplazamiento)} · <b>Expediente:</b> ${esc(d.expediente)}</p><table><thead><tr><th>#</th><th>Punto</th><th>Estado</th><th>Evidencia / medición</th></tr></thead><tbody>${rows}</tbody></table><p><b>Observaciones:</b> ${esc(d.observaciones)}</p><p><b>Instrumentos:</b> ${esc(d.instrumentos)}</p><div class="doc-note"><b>DECLARACIÓN DOCUMENTAL:</b> esta hoja es un documento técnico interno de preparación/acompañamiento. No constituye el certificado de inspección O.C.A., no acredita por sí sola la realización de una inspección reglamentaria y no sustituye el documento emitido por el Organismo de Control acreditado.</div><p>Fecha de generación: ${esc(new Date(d.fecha).toLocaleString('es-ES'))}</p>`));w.document.close();};
 })();
 </script>
 <script id="sintergia-vencimientos-oca-2026">
