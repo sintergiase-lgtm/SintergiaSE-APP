@@ -32,7 +32,7 @@ const permanentReject = source.indexOf("operationFallbackReason='operation-rejec
 assert.ok(permanentReject >= 0, 'permanent operation rejection must enter snapshot fallback rather than disappear');
 const permanentBlock = source.slice(source.lastIndexOf('if(e&&e.permanent){', permanentReject), permanentReject + 100);
 assert.match(permanentBlock, /operationEndpointUnsupported=true;/);
-assert.match(permanentBlock, /opKeep=oq\\.slice\\(\\);/);
+assert.ok(permanentBlock.includes('opKeep=oq.slice();'), 'all original operations remain queued until snapshot ACK');
 assert.match(permanentBlock, /break;/);
 
 const start = source.indexOf('  async function postOperation(item){');
