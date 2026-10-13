@@ -111,3 +111,8 @@ const uncertainEnd = source.indexOf('function clearUncertain', uncertainStart);
 assert.ok(uncertainStart >= 0 && uncertainEnd > uncertainStart, 'uncertain-operation helper must exist');
 assert.ok(!source.slice(uncertainStart, uncertainEnd).includes('q.splice(0,q.length-MAX_OPERATIONS)'), 'uncertain operation references must not be truncated');
 
+
+/* Queue APIs must not report success after durable storage failed. */
+
+assert.match(source, /queueSnapshot:function\(reason,providedSnapshot\)\{[\s\S]{0,500}if\(!s\)return null;[\s\S]{0,120}return addChange\(s,reason\)\?s:null;/, 'queueSnapshot must report durable persistence failures instead of returning an unqueued snapshot');
+assert.match(source, /defer:function\(type,payload\)\{[^\n]*return putQ\(LS\.deferred,q\);\}/, 'deferred queue API must return whether persistence succeeded');
