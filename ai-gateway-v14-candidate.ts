@@ -21,14 +21,19 @@ async function session(req: Request): Promise<any | null> {
   if (!header.startsWith('Bearer ')) return null
   const parts = header.slice(7).split('.')
   if (parts.length !== 3 || parts[0] !== 'v1') return null
+
+  // Database failures/missing server secret are service failures, not bad credentials.
+  const rows = await db`select value from sintergia.server_secrets where name='session_hmac'`
+  if (!rows.length || !rows[0].value) throw new Error('auth_verification_unavailable')
+
   try {
-    const rows = await db`select value from sintergia.server_secrets where name='session_hmac'`
-    if (!rows.length) return null
     const key = await crypto.subtle.importKey('raw', enc.encode(String(rows[0].value)), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
     if (!await crypto.subtle.verify('HMAC', key, b64d(parts[2]), enc.encode(parts[1]))) return null
     const payload = JSON.parse(dec.decode(b64d(parts[1])))
     return Number(payload?.exp) > Date.now() / 1000 ? payload : null
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 async function configuredKey(): Promise<{ key: string; source: string } | null> {
   for (const name of KEY_NAMES) {
@@ -110,7 +115,9 @@ function buildInput(prompt: string, body: Record<string, unknown>): unknown {
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return preflight(req)
   if (req.method !== 'POST') return json(req, 405, { ok: false, error: 'method_not_allowed' })
-  if (!await session(req)) return json(req, 401, { ok: false, error: 'unauthorized' })
+  let authenticated: any | null
+  try { authenticated = await session(req) } catch { return json(req, 503, { ok: false, error: 'auth_verification_unavailable' }) }
+  if (!authenticated) return json(req, 401, { ok: false, error: 'unauthorized' })
   let body: Record<string, unknown>
   try { body = await readJsonLimited(req) }
   catch (error) {

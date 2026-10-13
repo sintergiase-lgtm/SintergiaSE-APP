@@ -1,10 +1,11 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
+const path = require('node:path');
 const assert = require('node:assert/strict');
-const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
-const emailSource = fs.readFileSync('/mnt/data/send-email-v14-candidate.ts', 'utf8');
-const aiSource = fs.readFileSync('/mnt/data/ai-gateway-v14-candidate.ts', 'utf8');
-const oauthSource = fs.readFileSync('/mnt/data/gmail-oauth-v11-candidate.ts', 'utf8');
+const ts = require('typescript');
+const emailSource = fs.readFileSync(path.join(__dirname, 'send-email-v14-candidate.ts'), 'utf8');
+const aiSource = fs.readFileSync(path.join(__dirname, 'ai-gateway-v14-candidate.ts'), 'utf8');
+const oauthSource = fs.readFileSync(path.join(__dirname, 'gmail-oauth-v11-candidate.ts'), 'utf8');
 function extract(source, name) {
   const m = source.match(new RegExp(`function ${name}\\b[\\s\\S]*?\\n}`));
   assert.ok(m, `Function ${name} must exist in candidate source`);

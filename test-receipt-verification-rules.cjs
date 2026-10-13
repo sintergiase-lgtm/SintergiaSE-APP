@@ -1,8 +1,9 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
+const path = require('node:path');
 const assert = require('node:assert/strict');
-const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
-const source = fs.readFileSync('/mnt/data/verify-receipt-v14-candidate.ts', 'utf8');
+const ts = require('typescript');
+const source = fs.readFileSync(path.join(__dirname, 'verify-receipt-v14-candidate.ts'), 'utf8');
 function extractFunction(name) {
   const match = source.match(new RegExp(`function ${name}\\b[\\s\\S]*?\\n}\\n`));
   assert.ok(match, `Could not find ${name} in the actual candidate source`);
@@ -28,4 +29,9 @@ assert.equal(evaluate({ ...good, importe: -1 }, 'FAC-2026-001', 123.45).valid, f
 assert.equal(evaluate({ ...good, valido: false }, 'FAC-2026-001', 123.45).valid, false, 'explicit rejection fails');
 assert.equal(evaluate(null, 'FAC-2026-001', 123.45).valid, false, 'malformed output fails');
 assert.equal(evaluate({ ...good, referencia: '' }, 'FAC-2026-001', 123.45).valid, false, 'empty reference fails');
-console.log('PASS: 9 tests run against helpers extracted from verify-receipt-v14-candidate.ts');
+assert.equal(evaluate({ ...good, referencia: ' fac 2026/001 ' }, 'FAC-2026-001', 123.45).valid, true, 'reference normalization tolerates formatting only');
+assert.equal(evaluate({ ...good, importe: 123.46 }, 'FAC-2026-001', 123.45).valid, true, 'amount difference at tolerance boundary is accepted');
+assert.equal(evaluate({ ...good, importe: Number.POSITIVE_INFINITY }, 'FAC-2026-001', 123.45).valid, false, 'infinite amount fails closed');
+assert.equal(evaluate({ ...good, importe: 'not-a-number' }, 'FAC-2026-001', 123.45).valid, false, 'non-numeric amount fails closed');
+assert.equal(evaluate({ ...good, referenciaCoincide: 1 }, 'FAC-2026-001', 123.45).valid, false, 'truthy non-boolean reference flag fails closed');
+console.log('PASS: 14 tests run against helpers extracted from verify-receipt-v14-candidate.ts');
