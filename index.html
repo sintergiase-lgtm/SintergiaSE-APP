@@ -4010,7 +4010,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
             <label for="sintergia-access-sse">Confirmar contraseña SSE</label>
             <input id="sintergia-access-sse" type="password" autocomplete="off" maxlength="128" required
                    placeholder="••••••••">
-            <div class="access-identity-note">El nombre completo y el DNI/NIE se comprueban (formato oficial y letra de control) para asegurar que corresponden a una persona real. Quedan asociados a tus partes y avisos.</div>
+            <div class="access-identity-note">Se valida el formato del nombre y la letra de control del DNI/NIE; esta comprobación no confirma la identidad contra un registro oficial. Estos datos quedan asociados a tus partes y avisos.</div>
             <div id="sintergia-identidad-error" class="access-error" role="alert"></div>
             <button type="submit">Validar identidad</button>
             <button type="button" class="access-biometric" id="sintergia-volver-pass">← Volver</button>
@@ -4384,7 +4384,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
         var nombre = normalizarNombre(document.getElementById('sintergia-access-name').value);
         var dni = normalizarDNI(document.getElementById('sintergia-access-dni').value);
         var sse = String(document.getElementById('sintergia-access-sse').value || '');
-        if (!nombreValido(nombre)) { errorId.textContent = 'Introduce un nombre y apellidos reales (mínimo dos palabras, solo letras).'; return; }
+        if (!nombreValido(nombre)) { errorId.textContent = 'Introduce un nombre y apellidos (mínimo dos palabras, solo letras).'; return; }
         if (!dniValido(dni)) { errorId.textContent = 'El DNI/NIE no es válido: la letra de control no corresponde.'; return; }
         /* La segunda casilla confirma exactamente la contraseña que ya validó Supabase. */
         if (!sse) { errorId.textContent = 'Confirma la contraseña SSE.'; return; }
@@ -4396,7 +4396,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
         document.getElementById('sintergia-access-sse').value = '';
         passPendiente = '';
         window.SintergiaTechnician = Object.freeze({
-            id: dni, nombre: nombre, dni: dni, verified: true, modo: modoPendiente, authenticatedAt: Date.now()
+            id: dni, nombre: nombre, dni: dni, verified: false, identityFormatValidated: true, modo: modoPendiente, authenticatedAt: Date.now()
         });
         try { sessionStorage.setItem('sintergia_technician', JSON.stringify(window.SintergiaTechnician)); } catch(_){window.__sgIgn&&window.__sgIgn(_);}
         await finalizarAcceso(modoPendiente);
@@ -4424,11 +4424,17 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
         ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#0F2B48';
         var drawing = false, hasInk = false, last = null;
         var pos = function (e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-        canvas.onpointerdown = function (e) { drawing = true; hasInk = true; last = pos(e); if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId); };
-        canvas.onpointermove = function (e) { if (!drawing) return; var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; };
-        canvas.onpointerup = canvas.onpointercancel = function () { drawing = false; };
+        canvas.onpointerdown = function (e) { drawing = true; last = pos(e); if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId); };
+        canvas.onpointermove = function (e) {
+            if (!drawing || !last) return;
+            var p = pos(e), dx = p.x - last.x, dy = p.y - last.y;
+            if (dx * dx + dy * dy < 1) return;
+            ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+            hasInk = true; last = p;
+        };
+        canvas.onpointerup = canvas.onpointercancel = function () { drawing = false; last = null; };
         var clearBtn = document.getElementById('technician-signature-clear');
-        if (clearBtn) clearBtn.onclick = function () { ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight); hasInk = false; };
+        if (clearBtn) clearBtn.onclick = function () { ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight); drawing = false; last = null; hasInk = false; };
         return new Promise(function (resolve) {
             var saveBtn = document.getElementById('technician-signature-save');
             var err = document.getElementById('technician-signature-error');
@@ -4441,9 +4447,15 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
                     nombre: tecnico.nombre || '', dni: tecnico.dni || '',
                     createdAt: new Date().toISOString()
                 };
-                try { localStorage.setItem('sintergia_tecnico_firma_dia_v1', JSON.stringify(data)); } catch(_){window.__sgIgn&&window.__sgIgn(_);}
+                try {
+                    localStorage.setItem('sintergia_tecnico_firma_dia_v1', JSON.stringify(data));
+                    sessionStorage.setItem('sintergia_horario_auth', '1');
+                } catch (storageError) {
+                    err.textContent = 'No se pudo guardar la firma en este dispositivo. Revisa el almacenamiento e inténtalo de nuevo.';
+                    window.__sgIgn && window.__sgIgn(storageError);
+                    return;
+                }
                 window.SintergiaTechnicianSignature = data;
-                try { sessionStorage.setItem('sintergia_horario_auth', '1'); } catch(_){window.__sgIgn&&window.__sgIgn(_);}
                 modal.style.display = 'none';
                 resolve(true);
             };
