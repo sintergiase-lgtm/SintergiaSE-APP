@@ -6597,6 +6597,12 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
      */
 const _ultimoEstadoGuardado = {};
 window.guardarEstadoStorage = function guardarEstadoStorage() {
+    const anteriores = Object.create(null);
+    const escritos = [];
+    const claveRevision = 'sintergia_sync_revision';
+    let revisionAnterior = null;
+    let revisionCapturada = false;
+    let rollbackOk = true;
     try {
         const datos = {
             sintergia_clientes: JSON.stringify(appState.clientes),
@@ -6615,27 +6621,58 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         if (Object.prototype.hasOwnProperty.call(appState, 'compras')) {
             datos.sintergia_compras_v2 = JSON.stringify(appState.compras || []);
         }
+        const claves = Object.keys(datos);
+        for (const clave of claves) anteriores[clave] = localStorage.getItem(clave);
+        revisionAnterior = localStorage.getItem(claveRevision);
+        revisionCapturada = true;
+
         let changed = false;
-        for (const clave in datos) {
-            if (_ultimoEstadoGuardado[clave] !== datos[clave]) {
+        for (const clave of claves) {
+            if (anteriores[clave] !== datos[clave]) {
                 localStorage.setItem(clave, datos[clave]);
-                _ultimoEstadoGuardado[clave] = datos[clave];
+                escritos.push(clave);
                 changed = true;
             }
         }
         if (changed) {
+            const prev = parseInt(revisionAnterior || '0', 10);
+            localStorage.setItem(claveRevision, String(Number.isFinite(prev) ? prev + 1 : 1));
+        }
+        for (const clave of claves) _ultimoEstadoGuardado[clave] = datos[clave];
+
+        if (changed) {
+            /* Advance revision before the synchronous event so the listener sees this save. */
             try {
                 if (!window.__sintergiaSuppressOfflineQueue) {
                     window.dispatchEvent(new CustomEvent('sintergia-state-saved', {detail:{reason:'guardarEstadoStorage'}}));
                 }
             } catch (_) { window.__sgIgn && window.__sgIgn(_); }
-            const prev = parseInt(localStorage.getItem('sintergia_sync_revision') || '0', 10);
-            localStorage.setItem('sintergia_sync_revision', String(Number.isFinite(prev) ? prev + 1 : 1));
         }
         return true;
     } catch (error) {
+        if (revisionCapturada) {
+            try {
+                if (localStorage.getItem(claveRevision) !== revisionAnterior) {
+                    if (revisionAnterior === null) localStorage.removeItem(claveRevision);
+                    else localStorage.setItem(claveRevision, revisionAnterior);
+                }
+            } catch (_) { rollbackOk = false; }
+        }
+        for (let i = escritos.length - 1; i >= 0; i--) {
+            const clave = escritos[i];
+            try {
+                if (anteriores[clave] === null) localStorage.removeItem(clave);
+                else localStorage.setItem(clave, anteriores[clave]);
+            } catch (_) { rollbackOk = false; }
+        }
+        for (const clave of Object.keys(anteriores)) {
+            if (rollbackOk && anteriores[clave] !== null) _ultimoEstadoGuardado[clave] = anteriores[clave];
+            else delete _ultimoEstadoGuardado[clave];
+        }
         console.error('No se pudo guardar el estado en LocalStorage:', error);
-        mostrarToast('⚠️ Cambios aplicados en pantalla, pero LocalStorage está lleno. Exporta un backup y elimina datos antiguos.');
+        mostrarToast(rollbackOk
+            ? '⚠️ No se guardaron los cambios; se recuperó el estado anterior de LocalStorage.'
+            : '⚠️ Falló el guardado y no se pudo confirmar la recuperación completa. Exporta un backup y revisa el almacenamiento.');
         return false;
     }
 }
