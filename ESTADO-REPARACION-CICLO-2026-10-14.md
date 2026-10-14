@@ -48,10 +48,14 @@ La revisión estática del flujo de acceso y firma encontró dos casos en ambas 
 - Los fallos al guardar la firma en localStorage o al establecer la autorización de jornada en sessionStorage se ignoraban y permitían continuar. Ahora el modal permanece abierto, no se habilita la firma en memoria y aparece un error recuperable.
 - Se añadió `test-technician-signature-durability.cjs`, que ejecuta el flujo extraído de ambas páginas con un trazo sintético y cubre clic en blanco, trazo, limpieza y fallos de almacenamiento.
 
+### Pasada adicional: afirmación de identidad
+
+La pantalla de acceso afirmaba que el formato del nombre y la letra de control del DNI/NIE aseguraban que la persona era real. El código solo valida esos formatos; no contrasta la identidad con un registro oficial. Se corrigió el texto y la sesión ahora marca `verified: false` junto a `identityFormatValidated: true`; los partes no se presentarán como identidad acreditada. `test-identity-claim-boundary.cjs` ejecuta el manejador real de ambas páginas con datos sintéticos y comprueba el estado y el texto.
+
 ### Validación local repetida
 
-- **21/21 suites CJS aprobadas:** incluye las regresiones de colas durables y firma del técnico.
-- **41/41 archivos JavaScript/TypeScript:** `node --check` sin errores.
+- **22/22 suites CJS aprobadas:** incluye las regresiones de colas durables, firma del técnico y límites de validación de identidad.
+- **20/20 archivos `.js`/`.ts`:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
 - **CI remoto observado en los heads consultados:** PR #2, ejecución 44, success; PR #3, ejecución 7, success; PR #6, ejecución 18, success. No aparece ejecución PR para el head actual de PR #7 (`99b72fa`); el success anterior de PR #7 corresponde a un head previo.
@@ -61,8 +65,9 @@ La revisión estática del flujo de acceso y firma encontró dos casos en ambas 
 - La PR #2 de sincronización está abierta, sin fusionar, con `mergeable=true`; head `90f4eb19fee8c11202de39447735492db8fd9b2b`. Su ejecución PR #44 terminó en success.
 - La PR #3 de acciones UI está abierta, en borrador, con `mergeable=true`; head `72891c240ba448087dc2bd33bb510971edf925a3`. Su ejecución PR #7 terminó en success.
 - La PR #4 documental está abierta, en borrador, con `mergeable=true`. Este informe se actualiza en su rama `docs/estado-aplicacion-2026-10-13`; main permanece intacta.
-- La PR #6 de fallback está abierta, en borrador, con `mergeable=false`; head `c13d1b39e9b58a89a62affce5bc6d75700ece294`. La comparación contra el SHA de base registrado devuelve 13 commits por delante; aunque su ejecución PR #18 terminó en success, hay que aclarar por qué GitHub no la considera integrable y resolver cualquier conflicto antes de integrar.
-- La PR #7 de retención está abierta, en borrador, con `mergeable=false`; head `99b72fac532bf43d93aa839322aab02f162e2156`. La comparación contra el SHA de base registrado devuelve 18 commits por delante. No aparece ejecución PR para este head; sigue pendiente comprobar su CI y aclarar la falta de mergeabilidad antes de integrar.
+- La PR #6 de fallback está abierta, en borrador, con `mergeable=false`; head `c13d1b39e9b58a89a62affce5bc6d75700ece294`. Comparada con el head actual de su base (PR #2, `90f4eb19fee8c11202de39447735492db8fd9b2b`), la historia está divergida: 13 commits por delante y 13 por detrás desde `edbb625b120ee9b8335ba9b8263a42d48f3d5d97`. Su ejecución PR #18 terminó en success; hay que integrar los cambios recientes de la base y resolver conflictos antes de integrar.
+- La PR #7 de retención está abierta, en borrador, con `mergeable=false`; head `99b72fac532bf43d93aa839322aab02f162e2156`. Comparada con el head actual de su base (PR #6, `c13d1b39e9b58a89a62affce5bc6d75700ece294`), está divergida: 18 commits por delante y 7 por detrás desde `344c2d59b7f7280e07e672f3c43df7206c208d0e`. No aparece ejecución PR para este head; falta integrar la base reciente, resolver conflictos y comprobar CI.
+- La PR #13, `Repara el flujo de identidad y firma del técnico`, está abierta en borrador contra `main` (`53c14f7`), en `fix/identity-signature-truthfulness-20261014`; compara 7 commits por delante y 0 por detrás (`main` no tiene divergencia respecto a su base). Corrige en ambas páginas el falso estado de identidad verificada y la aceptación de un clic vacío como firma; si falla el almacenamiento, la firma no se acepta. Añade pruebas de identidad, persistencia de firma y sintaxis inline. La ejecución CI #1 falló porque faltaba el archivo de la prueba inline; se añadió y la ejecución #2 (`38500335317`) terminó `success` en las tres comprobaciones. El conector aún devuelve `mergeable=false` pese a la comparación limpia; comprobar ese estado antes de integrar. La PR sigue sin fusionar.
 - La copia del ZIP no es idéntica a `main/index.html` (blobs Git: paquete `cae076a`, `main` `aaf3271`). La inspección del blob actual de `main` confirma que todavía contiene el recorte de tombstones, conflictos pendientes y referencias inciertas, además de informar éxito de `queueSnapshot()` sin confirmar el guardado. La segunda página en `main` conserva la versión sin estas salvaguardas (blob `3f22a0d`); la rama #7 ahora la contiene corregida (`d073824`). No se reemplazó ningún archivo de `main` con el ZIP.
 - Ninguna comprobación confirma que el ZIP completo esté desplegado. No se cambió Supabase, sus datos, secretos ni funciones activas.
 
@@ -97,6 +102,6 @@ La consulta que el informe histórico de iteración 7 atribuye a Supabase —71 
 
 ## 6. Trazabilidad de esta entrega
 
-Este informe se incorpora al ZIP de salida y se actualiza en la rama documental de PR #4. La salida incluye 56 archivos, ambas páginas reparadas y las suites de regresión; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
+Este informe se incorpora al ZIP de salida y se actualiza en la rama documental de PR #4. La salida incluye 58 archivos, ambas páginas reparadas, las suites de regresión y el workflow de firma/identidad; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
 
 
