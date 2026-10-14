@@ -52,9 +52,13 @@ La revisión estática del flujo de acceso y firma encontró dos casos en ambas 
 
 La pantalla de acceso afirmaba que el formato del nombre y la letra de control del DNI/NIE aseguraban que la persona era real. El código solo valida esos formatos; no contrasta la identidad con un registro oficial. Se corrigió el texto y la sesión ahora marca `verified: false` junto a `identityFormatValidated: true`; los partes no se presentarán como identidad acreditada. `test-identity-claim-boundary.cjs` ejecuta el manejador real de ambas páginas con datos sintéticos y comprueba el estado y el texto.
 
+### Pasada adicional: verificación de recibos
+
+La revisión del candidato `verify-receipt-v14` detectó que podía usar el importe enviado por el navegador cuando la factura no tenía importe registrado en el servidor, y que el objeto anidado de verificación siempre almacenaba `status: verified`, incluso para resultados rechazados. Ahora el importe de referencia solo se obtiene de `receipt_tokens.importe`; si falta, la verificación falla cerrada. El estado anidado se deriva del booleano validado. `test-receipt-verification-rules.cjs` cubre ambas reglas y suma 20 aserciones. La reparación está en la PR #14, abierta en borrador contra `main`; aún no se ha fusionado.
+
 ### Validación local repetida
 
-- **22/22 suites CJS aprobadas:** incluye las regresiones de colas durables, firma del técnico y límites de validación de identidad.
+- **22/22 suites CJS aprobadas:** incluye las regresiones de colas durables, firma del técnico, límites de validación de identidad y verificación de recibos.
 - **20/20 archivos `.js`/`.ts`:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
@@ -68,6 +72,7 @@ La pantalla de acceso afirmaba que el formato del nombre y la letra de control d
 - La PR #6 de fallback está abierta, en borrador, con `mergeable=true`; head `70aee80355c1188a3fbaa15a7c73b017739ecb16`. Se reconcilió con el head actual de su base (PR #2, `90f4eb19fee8c11202de39447735492db8fd9b2b`): 14 commits por delante y 0 por detrás. Actions #46 pasó tanto en `push` como en `pull_request`. PR #6 sigue apuntando a la rama de PR #2; se debe integrar primero esa base y luego retargetear #6 a `main`.
 - La PR #7 de retención está abierta, en borrador, con `mergeable=true`; head `0612db789fd734a79a1884c2fbbf4e5d783e1603`, basada en el nuevo head de PR #6 (`70aee80355c1188a3fbaa15a7c73b017739ecb16`). Está 19 commits por delante y 0 por detrás de esa base. Actions #48 (`38505127081`, `push`) y #49 (`38505131560`, `pull_request`) pasaron en ese mismo SHA; se ejecutaron las pruebas P0, la durabilidad de colas, sintaxis inline y regresiones de contención asíncrona y service worker. La secuencia de dependencias es PR #2 → PR #6 → PR #7.
 - La PR #13, `Repara el flujo de identidad y firma del técnico`, sigue abierta en borrador contra `main` (`53c14f7`), en `fix/identity-signature-truthfulness-20261014`; head `ad71a507`, 10 commits por delante y 0 por detrás. La API del PR confirma `mergeable=true`. Corrige afirmaciones de identidad y firma en ambas páginas, incluida la ausencia del UI de firma (se mantiene el acceso bloqueado y no comienza la jornada); añade tres pruebas/regresiones sintéticas y workflow. La ejecución #1 falló porque faltaba la prueba de sintaxis inline; la corrección quedó validada en CI #4 (`38501062535`), success en los tres pasos. No se fusionó.
+- La PR #14, sobre la fuente de importe y el estado de verificación de recibos, está abierta en borrador contra `main`; head `027ef96ae02685de5168ca2b9bd950dea534da62`, 4 commits por delante y 0 por detrás, `mergeable=true`. Actions #2 (`38506328190`, `push`) y #3 (`38506340457`, `pull_request`) pasaron con Node 20. Añade 20 aserciones y un workflow específico. No se ha fusionado ni desplegado.
 - La copia del ZIP no es idéntica a `main/index.html` (blobs Git: paquete `cae076a`, `main` `aaf3271`). La inspección del blob actual de `main` confirma que todavía contiene el recorte de tombstones, conflictos pendientes y referencias inciertas, además de informar éxito de `queueSnapshot()` sin confirmar el guardado. La segunda página en `main` conserva la versión sin estas salvaguardas (blob `3f22a0d`); la rama #7 ahora la contiene corregida (`d073824`). No se reemplazó ningún archivo de `main` con el ZIP.
 - Ninguna comprobación confirma que el ZIP completo esté desplegado. No se cambió Supabase, sus datos, secretos ni funciones activas.
 
@@ -91,17 +96,20 @@ Las siguientes áreas constan en Estado_SintergiaSE_ubicaciones.md como requisit
 
 La consulta que el informe histórico de iteración 7 atribuye a Supabase —71 filas con payload/result JSONB escalares y app_state vacío— no se repitió aquí; debe considerarse un dato histórico pendiente de verificación.
 
+El candidato de verificación de recibos todavía conserva el Base64 completo en JSONB. Antes de usarlo con documentos reales conviene migrar el binario a un objeto privado de Storage y dejar en la fila solo la referencia y el hash; esta iteración no cambió la persistencia de archivos ni ejecutó pruebas contra Storage.
+
 ## 5. Próximas acciones
 
 1. Repetir smoke test visual, revisión de consola y acceso/firma en un navegador/entorno de QA con backend de pruebas; la autenticación envía la contraseña al endpoint configurado.
 2. Hacer un round-trip autenticado POST/GET en Supabase de pruebas con datos sintéticos y verificar sourceId/revision exactos, CORS, reintentos e idempotencia.
 3. Probar en dos dispositivos la cola offline, reinicio, reconexión, tombstones, conflictos y cuota de almacenamiento.
 4. Recorrer los flujos de avisos, partes, facturas, recibos, correo, biometría, REBT, O.C.A. y stock; registrar cada resultado.
-5. Revisar los cambios reconciliados de PR #6 y #7 y, cuando se integren, respetar su dependencia de PR #2 → PR #6 → PR #7.
-6. Comparar el artefacto con la publicación real. No declarar la aplicación sin errores de producción hasta completar esas verificaciones.
+5. Completar la revisión del almacenamiento de recibos: el candidato todavía guarda Base64 en JSONB; evaluar el uso de Storage privado y validar permisos, idempotencia y recuperación antes de sustituirlo.
+6. Revisar los cambios de PR #6 y #7 y, cuando se integren, respetar la dependencia de PR #2 → PR #6 → PR #7; revisar por separado la PR #14 de recibos.
+7. Comparar el artefacto con la publicación real. No declarar la aplicación sin errores de producción hasta completar esas verificaciones.
 
 ## 6. Trazabilidad de esta entrega
 
-Este informe se incorpora al ZIP de salida y se actualiza en la rama documental de PR #4. La salida incluye 58 archivos, ambas páginas reparadas, las suites de regresión y el workflow de firma/identidad; el paquete de entrada de 53 archivos permanece intacto. La copia ZIP local es un candidato independiente y no se ha reconstruido desde los heads remotos reconciliados de PR #6 y #7. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
+Este informe se incorpora al ZIP de salida y se actualiza en la rama documental de PR #4. La salida incluye 59 archivos, ambas páginas reparadas, las suites de regresión y workflows de firma/identidad, recibos y sincronización; el paquete de entrada de 53 archivos permanece intacto. La copia ZIP local es un candidato independiente y no se ha reconstruido desde los heads remotos reconciliados de PR #6 y #7. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
 
 
