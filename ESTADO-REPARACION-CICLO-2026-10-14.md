@@ -54,15 +54,15 @@ La revisión estática del flujo de acceso y firma encontró dos casos en ambas 
 - **41/41 archivos JavaScript/TypeScript:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
-- **CI remoto observado:** PR #2, ejecución 44, y PR #3, ejecución 7, terminaron en success. La ejecución 21 de PR #7 también fue success para el head anterior `00a726c`; no se observó todavía una ejecución para el head actualizado de esta pasada.
+- **CI remoto observado en los heads consultados:** PR #2, ejecución 44, success; PR #3, ejecución 7, success; PR #6, ejecución 18, success. No aparece ejecución PR para el head actual de PR #7 (`99b72fa`); el success anterior de PR #7 corresponde a un head previo.
 
 ### Comprobación remota de GitHub
 
-- La PR #2 de sincronización sigue abierta, sin fusionar y mergeable; su rama es fix/sync-p0-ack-and-durability-20261013, con head 90f4eb19fee8c11202de39447735492db8fd9b2b.
-- La PR #3 de acciones UI sigue abierta y sin fusionar.
-- La PR #4 de documentación sigue abierta en la rama docs/estado-aplicacion-2026-10-13 e incluye el informe de la pasada anterior. Esta actualización de firma queda en el paquete local de salida; la rama remota no se volvió a modificar y main permanece intacta.
-- La PR #6 de fallback sigue abierta, en borrador y con `mergeable=false`. La comparación de ramas informa historias divergentes: 13 commits a cada lado desde `edbb625b120ee9b8335ba9b8263a42d48f3d5d97`. No se reescribió la rama.
-- La PR #7 sigue abierta, en borrador y sin fusionar. Se añadieron a su rama las salvaguardas para la página secundaria, la nueva suite y el paso de CI en los commits `c72a9fe`, `977eb33` y `99b72fa`. GitHub informa ahora `mergeable=false`; la comparación con la rama base indica 18 commits por delante y 7 por detrás desde `344c2d59b7f7280e07e672f3c43df7206c208d0e`. El CI verde anterior pertenece al head viejo; queda comprobar la nueva revisión y reconciliar la divergencia antes de integrar.
+- La PR #2 de sincronización está abierta, sin fusionar, con `mergeable=true`; head `90f4eb19fee8c11202de39447735492db8fd9b2b`. Su ejecución PR #44 terminó en success.
+- La PR #3 de acciones UI está abierta, en borrador, con `mergeable=true`; head `72891c240ba448087dc2bd33bb510971edf925a3`. Su ejecución PR #7 terminó en success.
+- La PR #4 documental está abierta, en borrador, con `mergeable=true`; head `28935ea69f9220c05316baba1e40c7943c1fff6a`. Este informe se actualiza en su rama `docs/estado-aplicacion-2026-10-13`; main permanece intacta.
+- La PR #6 de fallback está abierta, en borrador, con `mergeable=false`; head `c13d1b39e9b58a89a62affce5bc6d75700ece294`. La comparación contra el SHA de base registrado devuelve 13 commits por delante; aunque su ejecución PR #18 terminó en success, hay que aclarar por qué GitHub no la considera integrable y resolver cualquier conflicto antes de integrar.
+- La PR #7 de retención está abierta, en borrador, con `mergeable=false`; head `99b72fac532bf43d93aa839322aab02f162e2156`. La comparación contra el SHA de base registrado devuelve 18 commits por delante. No aparece ejecución PR para este head; sigue pendiente comprobar su CI y aclarar la falta de mergeabilidad antes de integrar.
 - La copia del ZIP no es idéntica a `main/index.html` (blobs Git: paquete `cae076a`, `main` `aaf3271`). La inspección del blob actual de `main` confirma que todavía contiene el recorte de tombstones, conflictos pendientes y referencias inciertas, además de informar éxito de `queueSnapshot()` sin confirmar el guardado. La segunda página en `main` conserva la versión sin estas salvaguardas (blob `3f22a0d`); la rama #7 ahora la contiene corregida (`d073824`). No se reemplazó ningún archivo de `main` con el ZIP.
 - Ninguna comprobación confirma que el ZIP completo esté desplegado. No se cambió Supabase, sus datos, secretos ni funciones activas.
 
@@ -88,15 +88,15 @@ La consulta que el informe histórico de iteración 7 atribuye a Supabase —71 
 
 ## 5. Próximas acciones
 
-1. Repetir smoke test visual, revisión de consola y acceso/firma en un navegador/entorno de QA con backend de pruebas.
+1. Repetir smoke test visual, revisión de consola y acceso/firma en un navegador/entorno de QA con backend de pruebas; la autenticación envía la contraseña al endpoint configurado.
 2. Hacer un round-trip autenticado POST/GET en Supabase de pruebas con datos sintéticos y verificar sourceId/revision exactos, CORS, reintentos e idempotencia.
 3. Probar en dos dispositivos la cola offline, reinicio, reconexión, tombstones, conflictos y cuota de almacenamiento.
 4. Recorrer los flujos de avisos, partes, facturas, recibos, correo, biometría, REBT, O.C.A. y stock; registrar cada resultado.
-5. Reconciliar y revisar la divergencia de la PR #6 con la rama actual de la PR #2; después, revisar los conflictos de #7 contra el head actual de #6 antes de integrar.
+5. Resolver la falta de mergeabilidad de PR #6 y #7, revisar sus bases actuales y ejecutar CI en el head actual de #7 antes de integrar.
 6. Comparar el artefacto con la publicación real. No declarar la aplicación sin errores de producción hasta completar esas verificaciones.
 
 ## 6. Trazabilidad de esta entrega
 
-Este informe se incorpora al ZIP de salida. La salida incluye ambas páginas reparadas, las suites de regresión y este registro; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
+Este informe se incorpora al ZIP de salida y se actualiza en la rama documental de PR #4. La salida incluye 56 archivos, ambas páginas reparadas y las suites de regresión; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
 
 
