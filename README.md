@@ -4,40 +4,50 @@ Frontend estático preparado para Cloudflare Pages o GitHub Pages.
 
 Backend: Supabase.
 
-## Cloudflare Pages
-- Production branch: `main`
-- Build command: `exit 0`
-- Build output directory: `.`
+## Publicación estática
 
-## GitHub Pages
-- Publicar desde `main` / root
-- `.nojekyll` included
+- Cloudflare Pages: rama de producción `main`, comando de build `exit 0`, directorio de salida `.`.
+- GitHub Pages: publicar desde `main` / raíz; se incluye `.nojekyll`.
+- La configuración del repositorio no acredita por sí sola que exista un despliegue público activo. Falta anotar y probar la URL real del sitio.
 
-## Estado de reparación y progreso — 14 de octubre de 2026
+## Estado de revisión de la aplicación — 14 de octubre de 2026
 
-### Corregido y validado en el cliente
-- La carga de recibos admite únicamente JPEG, PNG, WEBP, HEIC y PDF; normaliza el MIME por extensión cuando el navegador no lo proporciona y rechaza otros tipos.
-- Al rechazar un recibo se recupera el estado anterior no terminal de la factura. La aprobación manual limpia marcas de rechazo obsoletas.
-- La importación de copia cifrada informa que fusiona datos, toma la revisión y el dispositivo actuales, conserva los registros locales más recientes o ausentes en la copia y no anuncia éxito si falla el guardado.
-- El aplicador de snapshots propaga errores de persistencia. La resolución local de conflictos y la sincronización periódica respetan el resultado y permiten reintentar después de un fallo.
+Esta actualización registra el estado de las ramas candidatas revisadas. Las PR indicadas siguen sin fusionar y sus cambios no se consideran desplegados en producción.
 
-### A medias y sin validar contra servicios reales
-- `localStorage` guarda varias claves por separado. Ahora se informa del fallo, pero una cuota agotada aún puede dejar algunas claves escritas; falta una estrategia transaccional y recuperable.
-- La importación del backup es una fusión según las reglas de sincronización, no una restauración exacta: conserva registros locales más recientes y los que no aparezcan en la copia.
-- La verificación de recibos con Supabase Storage sigue como candidata en [PR #14](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/14). El bucket `sintergia-docs`, sus políticas, la tabla de metadatos y la recuperación real del archivo requieren QA en un proyecto de pruebas. No se consideran desplegados.
-- Las pruebas ejecutadas son regresiones automatizadas con datos sintéticos. Falta QA visual en navegador e integración autenticada de extremo a extremo.
+### Reparaciones preparadas
 
-### Por hacer
-1. En Supabase de pruebas, validar carga, lectura, reemplazo, reintentos, errores compensatorios y permisos privados de Storage para JPEG, PNG, WEBP, HEIC y PDF.
-2. Probar sincronización autenticada entre dos dispositivos, incluidos modo offline, reinicio, reintentos, tombstones, conflictos y cuota local.
-3. Completar la matriz funcional y visual de avisos, partes, facturas, recibos, correo/citas, biometría y acceso offline.
-4. Revisar e integrar en orden los candidatos pendientes de sincronización y acciones de interfaz; confirmar versiones activas y esquema antes de cualquier despliegue.
-5. Revisar privacidad y recuperación: los datos activos de clientes, partes y facturas permanecen en texto claro en `localStorage`; definir ciclo de claves y migración antes de cifrar ese almacenamiento.
-6. Comparar el contenido de `main` con la URL y el artefacto realmente publicados. No se ha certificado que producción esté libre de errores.
+- **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, head `8660aef062a2c7e09d41d66b327db34477a560ae`, abierta y mergeable. Ante 401/403 se conserva la operación y la cola pendiente y se detienen los reintentos automáticos hasta reautenticar. Los POST diferidos usan la sesión actual. La rama se reconcilió con `main`.
+- **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, head `f35223ecb9e095cfdb82e9a9634ad48e4c075872`, abierta, en borrador y mergeable. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.
+- **Tombstones y conflictos — [PR #7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7)**, head `10248b98b986f044db40e7828bd9948bcd3b7928`, abierta, en borrador y mergeable. Conserva eliminaciones y conflictos sin resolver, y verifica la persistencia antes de aplicar snapshots.
+- **Recibos y copias — [PR #14](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/14)**, head `b44c070ac8088883c792ab8f9b4a517d638d335f`, abierta, en borrador y mergeable. Verifica usando el importe registrado, guarda el archivo en Storage y conserva su referencia/hash. El guardado multiclave de `localStorage` intenta restaurar los valores anteriores si una escritura falla; sigue sin ser transaccional ni cifrado.
 
-### Validación de cliente
-Las regresiones ejecutan ambos HTML completos con datos sintéticos:
+### Validación automatizada
 
-- `node test-client-receipt-state.cjs`: 16 rechazos y 2 aprobaciones manuales en las dos páginas.
-- `node test-encrypted-backup-merge.cjs`: importación por fusión, resultado durable y manejo del fallo de persistencia.
-- El workflow [Client receipt and backup regression tests](.github/workflows/client-receipt-backup-regression.yml) repite estas suites en Node 20.
+Los workflows de GitHub Actions terminaron correctamente en los heads indicados:
+
+- PR #2: [regresión de sincronización — pull request](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521912083), [push](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521906081) y [recibos/copias del cliente](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521912084).
+- PR #6: [pull request](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521919182) y [push](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521912721).
+- PR #7: [pull request](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38522029840) y [push](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38522025234).
+- PR #14: [verificación de recibos](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38517102009) y [recibos/copias del cliente](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38517102055).
+
+Esto acredita las suites automatizadas de esos workflows. No sustituye una prueba manual/local ni una integración real con Supabase, Storage y dos dispositivos.
+
+### Estado de backend y límites conocidos
+
+- Solo está conectado el proyecto Supabase de producción; no se usó para pruebas de escritura ni se modificaron funciones, datos, políticas, secretos o configuración.
+- En el bucket privado `sintergia-docs`, el límite es 25 MiB y la allowlist actual no incluye `image/heic`. El cliente acepta HEIC; hay que decidir y validar el formato en un proyecto QA antes de alinear la configuración.
+- Se observaron rechazos 401 y errores 503 en el endpoint de snapshots. La PR #2 corrige los reintentos ante 401/403, pero la causa de las sesiones rechazadas y de los 503 no quedó determinada.
+- Las tablas señaladas por RLS sin políticas no conceden privilegios directos de tabla a `anon` ni `authenticated`. Las Edge Functions usan `verify_jwt=false`; la revisión estática encontró validación propia en rutas autenticadas, pero sus contratos requieren pruebas en QA.
+- Los datos operativos existentes siguen en texto claro en `localStorage`. Hace falta definir recuperación y ciclo de claves antes de planificar una migración de cifrado.
+- La animación atómica independiente citada en el informe no está identificada como archivo independiente en la raíz. Su carga, visualización y rendimiento en navegador siguen sin verificar.
+
+## Pendiente para cerrar la revisión
+
+1. Facilitar un proyecto Supabase QA aislado (o su `project_ref`) para probar autenticación, snapshots, colas, recibos y Storage con datos sintéticos.
+2. Facilitar la URL pública real del frontend y el detalle de las dos advertencias actuales del diagnóstico, sin tokens ni datos personales.
+3. Probar desde navegador las funciones críticas, los flujos de ruta y geocodificación, normativa, gasolineras, diseño adaptable y animación; registrar errores de consola/red.
+4. Ejecutar el round-trip autenticado y la prueba entre dos dispositivos, incluyendo desconexión, reinicio, reintentos, tombstones, conflictos y cuota local.
+5. Revisar e integrar las PR en orden: #2, #6 y #7; revisar por separado #14 antes de cualquier despliegue.
+6. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
+
+No se han fusionado PR ni desplegado cambios de esta revisión. La aplicación no está certificada como publicada ni libre de errores hasta completar las pruebas con la URL y el entorno QA reales.
