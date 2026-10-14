@@ -5,7 +5,7 @@
 ## Archivos incluidos
 
 1. `sync-operations-v13-candidate.ts`: transacción e idempotencia de snapshots, casts explícitos a JSONB y rechazo `405` para operaciones `upsert/delete` que el endpoint actual no aplica; fuerza el fallback de snapshot del cliente en vez de confirmar cambios que no se guardaron.
-2. `verify-receipt-v14-candidate.ts`: verificación de recibos en modo *fail closed*; exige flags explícitas, referencia concordante e importe dentro de tolerancia; limita cuerpo y tiempo de proveedor.
+2. `verify-receipt-v14-candidate.ts`: verificación de recibos en modo *fail closed*; exige flags explícitas, referencia concordante e importe dentro de tolerancia; usa el importe registrado en la factura y guarda un estado acorde al resultado.
 3. `receipt-register-v13-candidate.ts`: impide reasignar un token a otra factura/importe; el reintento idéntico es idempotente.
 4. `upload-receipt-v12-candidate.ts`: limita el cuerpo antes del parseo, valida Base64 y elimina el archivo de Storage si falla el registro en BD.
 5. `upload-doc-v12-candidate.ts`: límites de petición y limpieza compensatoria de Storage si falla la inserción de metadatos.
@@ -29,7 +29,7 @@
 - TypeScript estático `tsc --noEmit` para los quince candidatos de función y archivos asociados: sin errores.
 - `node test-candidate-invariants.cjs`: 13 grupos de invariantes aprobados.
 - `node test-sync-operations-rules.cjs`: 7 invariantes de sincronización aprobados.
-- `node test-receipt-verification-rules.cjs`: 9 pruebas unitarias extraídas del propio candidato de recibos aprobadas.
+- `node test-receipt-verification-rules.cjs`: 20 aserciones de recibos extraídas del candidato aprobadas, sin depender de la API experimental `stripTypeScriptTypes`.
 - `node test-email-security-rules.cjs`: 10 pruebas unitarias extraídas de los candidatos de correo, IA y OAuth aprobadas.
 - `node test-appointment-html-rules.cjs`: 7 pruebas de escape HTML para mensajes de citas aprobadas.
 - HTML consolidado v4: los 46 scripts inline extraídos pasan `node --check`; el HTML original permanece sin modificar.
