@@ -10454,20 +10454,20 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
 
     // -- LÓGICA DE RECIBOS Y PREVISUALIZACIÓN --
     /* P64-D1: el recibo solo se admite en facturas vivas no cobradas; tipo imagen/PDF y máx. 8 MB. */
-    function sgReciboArchivoAdmitido(file){if(!file)return false;const mime=String(file.type||'').split(';')[0].trim().toLowerCase();if(mime)return ['image/jpeg','image/png','image/webp','image/heic','application/pdf'].includes(mime);return /\.(?:pdf|jpe?g|png|webp|heic)$/i.test(String(file.name||''));}
+    function sgReciboContentType(file){if(!file)return '';const mime=String(file.type||'').split(';')[0].trim().toLowerCase(),extension=String(file.name||'').trim().toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]||'',byExtension={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',pdf:'application/pdf'},type=mime||byExtension[extension]||'';return ['image/jpeg','image/png','image/webp','image/heic','application/pdf'].includes(type)?type:'';}
     function sgFacturaAdmiteRecibo(f){ if(!f||sgEsRectificativa(f)) return false; const e=String(f.estado||'').toLowerCase().trim(); return !(e==='anulado'||e==='cobrado'||e==='rectificativa'); }
     function abrirSubidaRecibo(idx){const f0=appState.facturas[idx];if(!sgFacturaAdmiteRecibo(f0)){mostrarToast('🔒 Esta factura ('+(f0?f0.estado:'?')+') no admite recibo.');return;}appState.facturaActualSubiendoReciboIdx=idx;const input=document.getElementById('inputSubirReciboFactura');if(input)input.click();}
     function procesarSubidaReciboFactura(event){
         const file=event.target.files&&event.target.files[0],idx=appState.facturaActualSubiendoReciboIdx,f=idx!=null?appState.facturas[idx]:null;
         if(!file||!f){if(event?.target)event.target.value='';return;}
         if(!sgFacturaAdmiteRecibo(f)){mostrarToast('🔒 La factura '+f.idDoc+' ya no admite recibo ('+f.estado+').');appState.facturaActualSubiendoReciboIdx=null;event.target.value='';return;}
-        if(!sgReciboArchivoAdmitido(file)){mostrarToast('❌ El recibo debe ser JPG, PNG, WEBP, HEIC o PDF.');appState.facturaActualSubiendoReciboIdx=null;event.target.value='';return;}
+        const receiptContentType=sgReciboContentType(file);if(!receiptContentType){mostrarToast('❌ El recibo debe ser JPG, PNG, WEBP, HEIC o PDF.');appState.facturaActualSubiendoReciboIdx=null;event.target.value='';return;}
         if(file.size>8*1024*1024){mostrarToast('❌ El recibo supera 8 MB. Reduzca la foto o el PDF.');appState.facturaActualSubiendoReciboIdx=null;event.target.value='';return;}
         const reader=new FileReader();
         reader.onload=async()=>{
             try{
                 f.reciboDataUrl=reader.result;
-                f.reciboFileType=file.type||'';
+                f.reciboFileType=receiptContentType;
                 f.reciboNombreArchivo=file.name||'';
                 f.reciboRecibidoAt=new Date().toISOString();
                 if(!/^cobrado pendiente validacion$/i.test(String(f.estado||'').trim())) f.estadoAntesDeRecibo=f.estado; /* P64-D3: para poder rechazar el recibo */
