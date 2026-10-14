@@ -4336,7 +4336,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
         var modal = document.getElementById('modal-firma-tecnico');
         var canvas = document.getElementById('technician-signature-pad');
         var info = document.getElementById('tecnico-identidad-resumen');
-        if (!modal || !canvas) return Promise.resolve(true);
+        if (!modal || !canvas) return Promise.resolve(false);
         var tecnico = window.SintergiaTechnician || {};
         if (info) {
             info.innerHTML = '<b>Técnico:</b> <span class="tecnico-name-fit">' + esc(tecnico.nombre) +
@@ -4453,7 +4453,16 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
         if (typeof window.aplicarModoSintergia === 'function') window.aplicarModoSintergia(modo);
         prepararEntorno(modo);
 
-        await abrirFirmaTecnicoDelDia();
+        var firmaTecnicoCompletada = false;
+        try { firmaTecnicoCompletada = await abrirFirmaTecnicoDelDia(); }
+        catch (firmaError) { window.__sgIgn && window.__sgIgn(firmaError); }
+        if (firmaTecnicoCompletada !== true) {
+            document.body.classList.add('sintergia-locked');
+            if (gate) { gate.style.display = 'flex'; gate.setAttribute('aria-hidden', 'false'); }
+            if (errorId) errorId.textContent = 'La firma obligatoria no está disponible. Vuelve al acceso e inténtalo otra vez.';
+            else if (window.__mostrarErrorApp) window.__mostrarErrorApp('La firma obligatoria no está disponible.');
+            return false;
+        }
         await exigirInicioJornada();
 
         if (typeof window.SintergiaGeo === 'object' && window.SintergiaGeo.iniciar) window.SintergiaGeo.iniciar();
