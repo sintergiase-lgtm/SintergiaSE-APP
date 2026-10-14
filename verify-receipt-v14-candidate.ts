@@ -1,13 +1,19 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 import postgres from 'npm:postgres@3.4.3'
 
 const databaseUrl = Deno.env.get('SUPABASE_DB_URL')
-if (!databaseUrl) throw new Error('missing_db_url')
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+if (!databaseUrl || !supabaseUrl || !serviceRoleKey) throw new Error('storage_or_database_configuration_missing')
 const db = postgres(databaseUrl, { max: 1, prepare: false, idle_timeout: 20, connect_timeout: 10 })
+const storage = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
 const enc = new TextEncoder()
 const dec = new TextDecoder()
-const MAX_REQUEST_BYTES = 10_000_000
-const MAX_FILE_BASE64_CHARS = 8_000_000
-const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MAX_FILE_BYTES = 8 * 1024 * 1024
+const MAX_FILE_BASE64_CHARS = Math.ceil(MAX_FILE_BYTES / 3) * 4
+const MAX_REQUEST_BYTES = 12_000_000
+const RECEIPT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'])
+const AI_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 type JsonBody = Record<string, unknown>
 
@@ -106,6 +112,30 @@ function expectedAmountFromInvoice(value: unknown): number | null {
 function receiptVerificationStatus(valid: boolean): 'verified' | 'rejected' {
   return valid ? 'verified' : 'rejected'
 }
+function normalizeReceiptContentType(value: unknown, filename: unknown): string | null {
+  const type = String(value ?? '').split(';')[0].trim().toLowerCase()
+  const extension = String(filename ?? '').trim().toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || ''
+  const byExtension: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', pdf: 'application/pdf' }
+  const resolved = type || byExtension[extension] || ''
+  return RECEIPT_TYPES.has(resolved) ? resolved : null
+}
+function receiptFileExtension(contentType: string): string {
+  const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'application/pdf': 'pdf' }
+  return extensions[contentType] || ''
+}
+function receiptObjectPath(token: string, digest: string, contentType: string): string | null {
+  const safeToken = String(token ?? '').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 100)
+  const extension = receiptFileExtension(contentType)
+  if (!safeToken || !/^[a-f0-9]{64}$/.test(digest) || !extension) return null
+  return `receipts/${safeToken}/${digest}.${extension}`
+}
+function receiptEvidenceMetadata(path: string, digest: string, contentType: string, sizeBytes: number, filename: string) {
+  return { bucket: 'sintergia-docs', storage_path: path, sha256: digest, content_type: contentType, size_bytes: sizeBytes, filename: String(filename || 'recibo').slice(0, 180) }
+}
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return Array.from(digest, byte => byte.toString(16).padStart(2, '0')).join('')
+}
 function evaluateModelVerification(parsed: any, expectedReference: string, expectedAmount: number) {
   const recognizedReference = String(parsed?.referencia ?? '').trim()
   const recognizedAmount = finiteNonNegative(parsed?.importe)
@@ -148,12 +178,19 @@ Deno.serve(async req => {
   const facturaId = String(body.facturaId ?? '').trim().slice(0, 160)
   if (!facturaId) return json(req, 400, { ok: false, error: 'invalid_request' })
 
-  const rawBase64 = String(body.fileBase64 ?? '').replace(/^data:[^,]+,/, '').trim()
-  const contentType = String(body.contentType || 'image/jpeg').split(';')[0].trim().toLowerCase()
-  if (!rawBase64) return json(req, 400, { ok: false, error: 'receipt_image_required' })
+  const filename = String(body.filename || 'recibo').trim().slice(0, 180)
+  const rawFile = String(body.fileBase64 ?? '').trim()
+  const dataUrlType = rawFile.match(/^data:([^;,]+)(?:;base64)?,/i)?.[1]
+  const rawBase64 = rawFile.replace(/^data:[^,]+,/, '').trim()
+  const contentType = normalizeReceiptContentType(body.contentType || dataUrlType, filename)
+  if (!rawBase64) return json(req, 400, { ok: false, error: 'receipt_file_required' })
   if (rawBase64.length > MAX_FILE_BASE64_CHARS) return json(req, 413, { ok: false, error: 'file_too_large' })
-  if (!IMAGE_TYPES.has(contentType)) return json(req, 415, { ok: false, error: 'unsupported_image_type' })
+  if (!contentType) return json(req, 415, { ok: false, error: 'unsupported_receipt_type' })
   if (!/^[A-Za-z0-9+/=_-]+$/.test(rawBase64) || rawBase64.length % 4 === 1) return json(req, 400, { ok: false, error: 'invalid_image_encoding' })
+  let fileBytes: Uint8Array
+  try { fileBytes = b64d(rawBase64) }
+  catch { return json(req, 400, { ok: false, error: 'invalid_image_encoding' }) }
+  if (fileBytes.byteLength > MAX_FILE_BYTES) return json(req, 413, { ok: false, error: 'file_too_large' })
 
   try {
     const rows = await db`
@@ -165,8 +202,51 @@ Deno.serve(async req => {
     `
     if (!rows.length) return json(req, 404, { ok: false, error: 'receipt_not_registered' })
     const row = rows[0]
+    const digest = await sha256Hex(fileBytes)
+    const storagePath = receiptObjectPath(String(row.token), digest, contentType)
+    if (!storagePath) return json(req, 400, { ok: false, error: 'invalid_receipt_metadata' })
+    const evidence = receiptEvidenceMetadata(storagePath, digest, contentType, fileBytes.byteLength, filename)
+    const uploaded = await storage.storage.from('sintergia-docs').upload(storagePath, fileBytes, { contentType, upsert: true })
+    if (uploaded.error) {
+      console.error('verify_receipt_storage_error', uploaded.error.message)
+      return json(req, 502, { ok: false, error: 'receipt_storage_unavailable', pending: true })
+    }
+    try {
+      await db.begin(async (tx: any) => {
+        await tx`
+          insert into sintergia.document_uploads(id,kind,token,original_name,mime_type,size_bytes,storage_path)
+          select ${crypto.randomUUID()},'receipt',${row.token},${filename},${contentType},${fileBytes.byteLength},${storagePath}
+          where not exists (
+            select 1 from sintergia.document_uploads
+            where token=${row.token} and storage_path=${storagePath}
+          )
+        `
+        await tx`
+          update sintergia.receipt_tokens
+          set status='received',
+              payload=((case when jsonb_typeof(payload)='object' then payload else '{}'::jsonb end) - 'file_base64' - 'verification')
+                || jsonb_build_object('uploaded',true,'receipt_file',${JSON.stringify(evidence)}::jsonb),
+              updated_at=now()
+          where token=${row.token}
+        `
+      })
+    } catch (error) {
+      const referenced = await db`
+        select 1 from sintergia.document_uploads
+        where token=${row.token} and storage_path=${storagePath} limit 1
+      `.catch(() => [])
+      if (!referenced.length) await storage.storage.from('sintergia-docs').remove([storagePath]).catch(() => undefined)
+      throw error
+    }
+
+    if (!AI_IMAGE_TYPES.has(contentType)) {
+      return json(req, 200, {
+        ok: true, valido: false, pending: true, receiptStored: true,
+        motivo: 'El archivo se ha conservado; este formato requiere revisión manual para validar el pago.',
+      })
+    }
     const configured = await configuredKey()
-    if (!configured) return json(req, 503, { ok: false, error: 'ai_not_configured', pending: true, token: row.token, factura_id: facturaId })
+    if (!configured) return json(req, 503, { ok: false, error: 'ai_not_configured', pending: true, receiptStored: true, token: row.token, factura_id: facturaId })
 
     const invoicePayload = row.payload && typeof row.payload === 'object' ? row.payload : {}
     const expectedReference = String(invoicePayload.reference || invoicePayload.referencia || facturaId).trim().slice(0, 200)
@@ -175,7 +255,6 @@ Deno.serve(async req => {
       return json(req, 422, { ok: false, error: 'invoice_reference_or_amount_missing', pending: true })
     }
 
-    const filename = String(body.filename || '').slice(0, 180)
     const customer = String(body.cliente || row.cliente || '').slice(0, 200)
     const model = Deno.env.get('OPENAI_RECEIPT_MODEL') || Deno.env.get('OPENAI_MODEL') || 'gpt-6-luna'
     const input = {
@@ -233,19 +312,21 @@ Deno.serve(async req => {
     const metadata = {
       facturaId, referenciaEsperada: expectedReference, importeFactura: expectedAmount,
       cliente: customer, filename, content_type: contentType,
-      received_at: verifiedAt, verification,
-      file_base64: rawBase64,
+      received_at: verifiedAt, receipt_file: evidence, verification,
     }
 
-    await db.begin(async (tx: any) => {
-      await tx`
+    const updated = await db.begin(async (tx: any) => {
+      return await tx`
         update sintergia.receipt_tokens
         set status = ${valid ? 'verified' : 'rejected'},
-            payload = coalesce(payload, '{}'::jsonb) || ${JSON.stringify(metadata)}::jsonb,
+            payload = ((case when jsonb_typeof(payload) = 'object' then payload else '{}'::jsonb end) - 'file_base64') || ${JSON.stringify(metadata)}::jsonb,
             updated_at = now()
         where token = ${row.token}
+          and payload->'receipt_file'->>'sha256' = ${digest}
+        returning token
       `
     })
+    if (!updated.length) return json(req, 409, { ok: false, error: 'receipt_superseded', pending: true })
     return json(req, 200, {
       ok: true, valido: valid, token: row.token, factura_id: facturaId,
       referencia: verification.referencia, importe: verification.importe,
