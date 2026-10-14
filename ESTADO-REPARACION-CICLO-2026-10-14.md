@@ -51,7 +51,7 @@ La revisión estática del flujo de acceso y firma encontró dos casos en ambas 
 ### Validación local repetida
 
 - **21/21 suites CJS aprobadas:** incluye las regresiones de colas durables y firma del técnico.
-- **40/40 archivos JavaScript/TypeScript:** `node --check` sin errores.
+- **41/41 archivos JavaScript/TypeScript:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
 - **CI remoto observado:** PR #2, ejecución 44, y PR #3, ejecución 7, terminaron en success. La ejecución 21 de PR #7 también fue success para el head anterior `00a726c`; no se observó todavía una ejecución para el head actualizado de esta pasada.
