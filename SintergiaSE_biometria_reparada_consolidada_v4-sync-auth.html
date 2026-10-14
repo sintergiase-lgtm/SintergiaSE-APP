@@ -3529,7 +3529,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const r=await rawFetch(endpoint,{method:'POST',headers,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
     if(r.status===404||r.status===405)return {unsupported:true};
     let data=null; try{data=await r.json();}catch(_){}
-    if(r.status===401||r.status===403)throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true});
+    if(r.status===401||r.status===403)throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true,status:r.status});
     if(r.status===408||r.status===425||r.status===429||r.status>=500)throw new Error('HTTP '+r.status);
     if(r.status===409)throw Object.assign(new Error('HTTP 409 — conflicto de revisión'),{conflict:true});
     if(r.status===422)throw Object.assign(new Error('HTTP 422 — operación rechazada por validación'),{permanent:true});
@@ -3541,20 +3541,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   async function postSnapshot(item){
     const endpoint='https://bgjicsowspppsjzigazb.supabase.co/functions/v1/realtime-snapshot';
     const payload={channel:CHANNEL,snapshot:item.snapshot,deviceId:DEVICE,clientChangeId:item.id,clientUpdatedAt:item.snapshot&&item.snapshot.clientUpdatedAt||item.createdAt};
-    /* realtime-snapshot valida el token Bearer personalizado igual que sync-operations.
-       Reutilizar las cabeceras de sesión evita que el fallback reciba 401 por omitirlas. */
     const hdr=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{});
     const headers=new Headers(hdr);
     headers.set('Content-Type','application/json');
     headers.set('X-Sintergia-Request-ID',String(item.id||''));
     const r=await rawFetch(endpoint,{method:'POST',headers,credentials:'omit',cache:'no-store',body:JSON.stringify(payload)});
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok){
+      if(r.status===401||r.status===403){
+        pauseSyncForAuth(r.status===403?'forbidden':'expired');
+        throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true,status:r.status});
+      }
+      throw Object.assign(new Error('HTTP '+r.status),{status:r.status});
+    }
     return true;
   }
   async function postApi(item){
-    const headers=Object.assign({},item.headers,{'X-Sintergia-Request-ID':item.requestId});
+    const auth=(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{});
+    const headers=Object.assign({},item.headers||{},auth,{'X-Sintergia-Request-ID':item.requestId});
     const r=await rawFetch(item.url,{method:'POST',headers:headers,credentials:'omit',cache:'no-store',body:item.body});
-    if(!r.ok){if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429)throw Object.assign(new Error('HTTP '+r.status),{permanent:true});throw new Error('HTTP '+r.status);}
+    if(!r.ok){
+      if(r.status===401||r.status===403){
+        pauseSyncForAuth(r.status===403?'forbidden':'expired');
+        throw Object.assign(new Error('HTTP '+r.status+' — autenticación requerida'),{authRequired:true,status:r.status});
+      }
+      if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429)throw Object.assign(new Error('HTTP '+r.status),{permanent:true,status:r.status});
+      throw Object.assign(new Error('HTTP '+r.status),{status:r.status});
+    }
     return true;
   }
   async function flush(){
@@ -3570,25 +3582,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     flushing=true;
     appendJournal('flush-start',{});
 
-    if(flushing||!navigator.onLine)return false;
-    flushing=true;
     let okAll=true;
     try{
+      if(!navigator.onLine){setSyncState('offline',{reason:'connection-lost-before-flush'});return false;}
       /* Primero operaciones API diferidas: email/citas/rutas/IA/documentos. */
       let aq=getQ(LS.api);
       const remain=[];
-      for(const item of aq){
+      for(let apiIndex=0;apiIndex<aq.length;apiIndex++){
+        const item=aq[apiIndex];
         try{await postApi(item);}catch(e){
-          if(!e.permanent)remain.push(Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e),lastAttemptAt:now()}));
+          const failed=Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e),lastAttemptAt:now()});
+          if(e.authRequired||Number(e.status)===401||Number(e.status)===403){
+            remain.push(failed,...aq.slice(apiIndex+1));
+            okAll=false;
+            break;
+          }
+          if(!e.permanent)remain.push(failed);
           else toast('⚠️ Operación rechazada por backend: '+(e.message||e));
-          okAll=false;if(!navigator.onLine)break;
+          okAll=false;
+          if(!navigator.onLine){remain.push(...aq.slice(apiIndex+1));break;}
         }
       }
       putQ(LS.api,remain);
+      if(authBlocksFlush()){setSyncState('paused',{reason:authResumeState().reason||'auth-required'});return false;}
       /* P41: operaciones idempotentes. Si el endpoint aún no existe, el snapshot
          completo actúa como fallback y conserva la compatibilidad con Supabase. */
       let oq=getQ(LS.operations), opKeep=[], operationEndpointUnsupported=false;
-      for(const item of oq){
+      for(let opIndex=0;opIndex<oq.length;opIndex++){
+        const item=oq[opIndex];
         try{
           const result=await postOperation(item);
           if(result&&result.unsupported){operationEndpointUnsupported=true;break;}
@@ -3598,6 +3619,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             lastError:String(e.message||e),
             lastAttemptAt:now()
           });
+          if(e&&e.authRequired){
+            pauseSyncForAuth(Number(e.status)===403?'forbidden':'expired');
+            opKeep.push(next,...oq.slice(opIndex+1));
+            okAll=false;
+            break;
+          }
           if(e&&e.permanent){
             toast('⚠️ Operación rechazada por backend: '+(e.message||e));
           }else if(e&&e.conflict){
@@ -3627,26 +3654,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         opKeep=[];
       }
       putQ(LS.operations,opKeep);
+      if(authBlocksFlush()){setSyncState('paused',{reason:authResumeState().reason||'auth-required'});return false;}
       let cq=getQ(LS.changes), keep=[];
-      for(const item of cq){
-        try{await postSnapshot(item);}catch(e){keep.push(Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e)}));okAll=false;if(!navigator.onLine)break;}
+      for(let changeIndex=0;changeIndex<cq.length;changeIndex++){
+        const item=cq[changeIndex];
+        try{await postSnapshot(item);}catch(e){
+          keep.push(Object.assign(item,{attempts:(item.attempts||0)+1,lastError:String(e.message||e)}));
+          okAll=false;
+          if(e.authRequired||Number(e.status)===401||Number(e.status)===403||!navigator.onLine){
+            keep.push(...cq.slice(changeIndex+1));
+            break;
+          }
+        }
       }
       putQ(LS.changes,keep);
       const conflictQueue=getQ(LS.conflicts);
       const pendingConflicts=conflictQueue.filter(x=>x.status==='pending').length;
       const meta={lastFlushAt:now(),ok:okAll,pendingApi:remain.length,pendingOperations:opKeep.length,pendingSnapshots:keep.length,pendingConflicts,operationEndpointUnsupported};write(LS.meta,meta);
       if(okAll&&(remain.length||opKeep.length||keep.length)===0)toast(operationEndpointUnsupported?'☁️ Sincronización completada mediante snapshot.':'☁️ Sincronización completada.');
-    if(okAll) clearSyncRetry();
+    if(authBlocksFlush())setSyncState('paused',{reason:authResumeState().reason||'auth-required'});
+    else if(okAll) clearSyncRetry();
     else scheduleSyncRetry('flush-incomplete');
 
       return okAll;
-    }finally{flushing=false;}
-    refreshFlushLease();
-    flushing=false;
-    releaseFlushLease();
-    appendJournal('flush-end',{ok:okAll});
-
-
+    }finally{
+      flushing=false;
+      refreshFlushLease();
+      releaseFlushLease();
+      appendJournal('flush-end',{ok:okAll});
+    }
   }
 
   async function replayDeferred(){
