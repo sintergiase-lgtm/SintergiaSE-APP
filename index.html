@@ -3654,7 +3654,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             lastAttemptAt:now()
           });
           if(e&&e.permanent){
-            toast('⚠️ Operación rechazada por backend: '+(e.message||e));
+            toast('⚠️ Operación rechazada por backend; se intentará persistir el estado mediante snapshot: '+(e.message||e));
+            /* No descartar una operación solo por un 4xx permanente. Intentar
+               guardar el estado completo; la cola solo se limpiará tras ACK. */
+            operationEndpointUnsupported=true;
+            operationFallbackReason='operation-rejected-permanent';
+            opKeep=oq.slice();
+            break;
           }else if(e&&e.conflict){
             next.conflict=true;
             try{
@@ -3681,16 +3687,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
           }
         }
       }
+      let fallbackSnapshotQueued=false;
       if(operationEndpointUnsupported){
-        /* Keep operations until a full snapshot fallback is positively acknowledged. */
+        /* Siempre encolar un snapshot completo del estado actual, aunque ya haya
+           snapshots pendientes: estos pueden ser antiguos y no cubrir todas las
+           operaciones. No se vacía la cola de operaciones si no se pudo encolar. */
         opKeep=oq.slice();
-        if(getQ(LS.changes).length===0){
-          try{
-            const fallback=window.SintergiaOffline&&window.SintergiaOffline.snapshot
+        try{
+          const fallback=window.obtenerSnapshotSincronizacion
+            ?window.obtenerSnapshotSincronizacion()
+            :(window.SintergiaOffline&&window.SintergiaOffline.snapshot
               ?window.SintergiaOffline.snapshot('operations-endpoint-unsupported-fallback')
-              :(window.obtenerSnapshotSincronizacion&&window.obtenerSnapshotSincronizacion());
-            if(fallback)addChange(fallback,'operations-endpoint-unsupported-fallback');
-          }catch(e){window.__sgIgn&&window.__sgIgn(e);}
+              :null);
+          fallbackSnapshotQueued=!!(fallback&&addChange(fallback,'operations-endpoint-unsupported-fallback'));
+          if(!fallbackSnapshotQueued){
+            okAll=false;
+            toast('⚠️ No se pudo encolar el snapshot completo; se conservan las operaciones pendientes.');
+          }
+        }catch(e){
+          okAll=false;
+          window.__sgIgn&&window.__sgIgn(e);
+          toast('⚠️ Falló la preparación del snapshot completo; se conservan las operaciones pendientes.');
         }
       }
       mergeQueueAfterFlush(LS.operations,oq,opKeep);
@@ -3709,7 +3726,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       }
       mergeQueueAfterFlush(LS.changes,cq,keep);
       /* Unsupported operation endpoint: clear only operations that existed at flush start, and only after every fallback snapshot was acknowledged. Preserve operations added during the request. */
-      if(operationEndpointUnsupported&&okAll&&keep.length===0){
+      if(operationEndpointUnsupported&&fallbackSnapshotQueued&&okAll&&keep.length===0){
         const pendingNow=getQ(LS.operations).filter(item=>!operationIdsAtStart.has(queueIdentity(item)));
         const cleared=putQ(LS.operations,pendingNow);
         if(cleared)opKeep=pendingNow;
