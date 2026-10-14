@@ -9,17 +9,24 @@ function extractFunction(name) {
   return match[0];
 }
 const helperSource = [
+  "const RECEIPT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf']);",
   extractFunction('normalizeReference'),
   extractFunction('finiteNonNegative'),
   extractFunction('expectedAmountFromInvoice'),
   extractFunction('receiptVerificationStatus'),
+  extractFunction('normalizeReceiptContentType'),
+  extractFunction('receiptFileExtension'),
+  extractFunction('receiptObjectPath'),
+  extractFunction('receiptEvidenceMetadata'),
   extractFunction('evaluateModelVerification'),
-  'globalThis.evaluateModelVerification = evaluateModelVerification; globalThis.expectedAmountFromInvoice = expectedAmountFromInvoice; globalThis.receiptVerificationStatus = receiptVerificationStatus;'
+  'globalThis.evaluateModelVerification = evaluateModelVerification; globalThis.expectedAmountFromInvoice = expectedAmountFromInvoice; globalThis.receiptVerificationStatus = receiptVerificationStatus; globalThis.normalizeReceiptContentType = normalizeReceiptContentType; globalThis.receiptObjectPath = receiptObjectPath; globalThis.receiptEvidenceMetadata = receiptEvidenceMetadata;'
 ].join('\n');
 const compiled = helperSource
   .replace(/: unknown/g, '')
   .replace(/: number \| null/g, '')
   .replace(/: number/g, '')
+  .replace(/: string \| null/g, '')
+  .replace(/: Record<string, string>/g, '')
   .replace(/: 'verified' \| 'rejected'/g, '')
   .replace(/: boolean/g, '')
   .replace(/: string/g, '')
@@ -48,5 +55,22 @@ assert.doesNotMatch(source, /finiteNonNegative\(body\.importe\)/, 'caller-suppli
 assert.match(source, /status: receiptVerificationStatus\(valid\), valido: valid/, 'stored status is derived from the verification result');
 assert.doesNotMatch(source, /status:\s*'verified'\s*,\s*valido:\s*valid/, 'rejected results are not stored as verified');
 assert.match(source, /if \(!expectedReference \|\| expectedAmount === null\)/, 'missing registered amount fails closed');
-console.log('PASS: 20 receipt-verification assertions run against candidate code');
+assert.equal(sandbox.normalizeReceiptContentType('image/jpeg', 'foto.jpg'), 'image/jpeg', 'supported image type is retained');
+assert.equal(sandbox.normalizeReceiptContentType('application/pdf', 'factura.pdf'), 'application/pdf', 'PDF is allowed for storage');
+assert.equal(sandbox.normalizeReceiptContentType('', 'factura.pdf'), 'application/pdf', 'missing MIME type falls back to a safe extension');
+assert.equal(sandbox.normalizeReceiptContentType('image/svg+xml', 'recibo.svg'), null, 'active SVG content is rejected');
+const objectPath = sandbox.receiptObjectPath('../token', 'a'.repeat(64), 'application/pdf');
+assert.match(objectPath, /^receipts\/[A-Za-z0-9_-]+\/[a-f0-9]{64}\.pdf$/, 'storage path sanitizes token and uses the file digest');
+assert.equal(sandbox.receiptObjectPath('token', 'not-a-digest', 'image/jpeg'), null, 'invalid digest cannot form a storage path');
+const evidence = sandbox.receiptEvidenceMetadata(objectPath, 'a'.repeat(64), 'application/pdf', 123, 'recibo.pdf');
+assert.equal(evidence.bucket, 'sintergia-docs', 'evidence points to the private receipt bucket');
+assert.equal(evidence.sha256, 'a'.repeat(64), 'stored evidence includes a digest');
+assert.equal(Object.hasOwn(evidence, 'file_base64'), false, 'evidence metadata never embeds the binary');
+assert.match(source, /storage\.storage\.from\('sintergia-docs'\)\.upload\(storagePath, fileBytes/, 'route uploads the binary to Storage');
+assert.doesNotMatch(source, /file_base64:\s*rawBase64/, 'JSONB metadata does not receive the Base64 file');
+assert.match(source, /- 'file_base64'/, 'legacy Base64 field is removed on update');
+assert.match(source, /jsonb_typeof\(payload\)\s*=\s*'object'\s+then payload else '\{\}'::jsonb end/i, 'legacy scalar JSONB payload is normalized before object merge');
+assert.match(source, /MAX_FILE_BYTES = 8 \* 1024 \* 1024/, 'decoded file size remains capped at the client limit');
+assert.match(source, /payload->'receipt_file'->>'sha256' = \$\{digest\}/, 'stale verification cannot overwrite a newer receipt');
+console.log('PASS: 34 receipt-verification assertions run against candidate code');
 
