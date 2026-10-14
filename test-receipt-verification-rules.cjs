@@ -1,8 +1,8 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
-const source = fs.readFileSync('/mnt/data/verify-receipt-v14-candidate.ts', 'utf8');
+const path = require('node:path');
+const source = fs.readFileSync(path.join(__dirname, 'verify-receipt-v14-candidate.ts'), 'utf8');
 function extractFunction(name) {
   const match = source.match(new RegExp(`function ${name}\\b[\\s\\S]*?\\n}\\n`));
   assert.ok(match, `Could not find ${name} in the actual candidate source`);
@@ -11,10 +11,19 @@ function extractFunction(name) {
 const helperSource = [
   extractFunction('normalizeReference'),
   extractFunction('finiteNonNegative'),
+  extractFunction('expectedAmountFromInvoice'),
+  extractFunction('receiptVerificationStatus'),
   extractFunction('evaluateModelVerification'),
-  'globalThis.evaluateModelVerification = evaluateModelVerification;'
+  'globalThis.evaluateModelVerification = evaluateModelVerification; globalThis.expectedAmountFromInvoice = expectedAmountFromInvoice; globalThis.receiptVerificationStatus = receiptVerificationStatus;'
 ].join('\n');
-const compiled = ts.transpileModule(helperSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+const compiled = helperSource
+  .replace(/: unknown/g, '')
+  .replace(/: number \| null/g, '')
+  .replace(/: number/g, '')
+  .replace(/: 'verified' \| 'rejected'/g, '')
+  .replace(/: boolean/g, '')
+  .replace(/: string/g, '')
+  .replace(/: any/g, '');
 const sandbox = {};
 vm.runInNewContext(compiled, sandbox);
 const evaluate = sandbox.evaluateModelVerification;
@@ -28,4 +37,16 @@ assert.equal(evaluate({ ...good, importe: -1 }, 'FAC-2026-001', 123.45).valid, f
 assert.equal(evaluate({ ...good, valido: false }, 'FAC-2026-001', 123.45).valid, false, 'explicit rejection fails');
 assert.equal(evaluate(null, 'FAC-2026-001', 123.45).valid, false, 'malformed output fails');
 assert.equal(evaluate({ ...good, referencia: '' }, 'FAC-2026-001', 123.45).valid, false, 'empty reference fails');
-console.log('PASS: 9 tests run against helpers extracted from verify-receipt-v14-candidate.ts');
+assert.equal(sandbox.expectedAmountFromInvoice('123.45'), 123.45, 'registered invoice amount is accepted');
+assert.equal(sandbox.expectedAmountFromInvoice(null), null, 'missing registered amount stays missing');
+assert.equal(sandbox.expectedAmountFromInvoice(-1), null, 'negative registered amount is rejected');
+assert.equal(sandbox.expectedAmountFromInvoice('not-an-amount'), null, 'malformed registered amount is rejected');
+assert.equal(sandbox.receiptVerificationStatus(true), 'verified', 'successful verification status matches its result');
+assert.equal(sandbox.receiptVerificationStatus(false), 'rejected', 'failed verification status is rejected');
+assert.match(source, /const expectedAmount = expectedAmountFromInvoice\(row\.importe\)/, 'route uses only the registered invoice amount');
+assert.doesNotMatch(source, /finiteNonNegative\(body\.importe\)/, 'caller-supplied amount cannot become the expected amount');
+assert.match(source, /status: receiptVerificationStatus\(valid\), valido: valid/, 'stored status is derived from the verification result');
+assert.doesNotMatch(source, /status:\s*'verified'\s*,\s*valido:\s*valid/, 'rejected results are not stored as verified');
+assert.match(source, /if \(!expectedReference \|\| expectedAmount === null\)/, 'missing registered amount fails closed');
+console.log('PASS: 20 receipt-verification assertions run against candidate code');
+
