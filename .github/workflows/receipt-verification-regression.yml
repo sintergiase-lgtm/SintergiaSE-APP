@@ -31,3 +31,7 @@ jobs:
         run: node --check test-client-receipt-state.cjs
       - name: Run client receipt-state regressions
         run: node test-client-receipt-state.cjs
+      - name: Check encrypted backup merge test syntax
+        run: node --check test-encrypted-backup-merge.cjs
+      - name: Run encrypted backup merge regressions
+        run: node test-encrypted-backup-merge.cjs
