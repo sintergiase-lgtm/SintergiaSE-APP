@@ -14,3 +14,5 @@ Cubre:
 No reproduce el esquema completo de producción ni sustituye una prueba manual en dos teléfonos/navegadores. La app usa una sesión HMAC propia, no Supabase Auth. No se hacen llamadas de escritura al proyecto alojado, no se crean ramas Supabase y no se necesitan secretos de CI.
 
 La función local usa explícitamente `postgresql://postgres:postgres@host.docker.internal:54322/postgres`; esa dirección solo llega al contenedor de la base desechable del runner.
+
+En el runner, la copia local expone solo un código diagnóstico normalizado ante fallos de conexión SQL; nunca devuelve el mensaje original de Postgres ni activa ese campo fuera del entorno de QA.
