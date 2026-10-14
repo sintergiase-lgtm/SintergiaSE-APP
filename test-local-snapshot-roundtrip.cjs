@@ -98,7 +98,9 @@ async function main() {
   const invalidSession = await fetch(localEndpoint, {
     headers: { Authorization: 'Bearer v1.e30.invalid' },
   });
-  assert.equal(invalidSession.status, 401, 'the local endpoint must reject an invalid signature');
+  const invalidBody = await invalidSession.text();
+  assert.equal(invalidSession.status, 401,
+    `the local endpoint must reject an invalid signature; got HTTP ${invalidSession.status}: ${invalidBody}`);
 
   const deviceA = makeDevice('qa-device-a');
   const snapshotA = {

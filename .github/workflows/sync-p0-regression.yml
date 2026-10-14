@@ -71,6 +71,9 @@ jobs:
           exit 1
       - name: Run authenticated two-device synthetic round-trip
         run: node test-local-snapshot-roundtrip.cjs
+      - name: Report safe local function errors on failure
+        if: failure()
+        run: grep -E 'realtime_snapshot_auth_unavailable|realtime_snapshot_error' "$RUNNER_TEMP/realtime-snapshot.log" || true
       - name: Stop disposable local Supabase stack
         if: always()
         run: npx --yes supabase@latest stop --no-backup || true
