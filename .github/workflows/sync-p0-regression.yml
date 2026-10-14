@@ -61,7 +61,7 @@ jobs:
         run: |
           db_container=$(docker ps --format '{{.Names}}' | grep -E '^supabase_db_' | head -n 1)
           if [ -z "$db_container" ]; then docker ps --format '{{.Names}}'; exit 1; fi
-          db_ip=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$db_container")
+          db_ip=$(docker inspect "$db_container" | jq -r '.[0].NetworkSettings.Networks | to_entries[0].value.IPAddress')
           test -n "$db_ip"
           printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\nSUPABASE_DB_URL=postgresql://postgres:postgres@%s:5432/postgres\nLOCAL_QA_DIAGNOSTICS=1\n' "$db_ip" > supabase/functions/.env
       - name: Apply synthetic local schema
