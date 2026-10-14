@@ -19,7 +19,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: Check signature durability
         run: node test-technician-signature-durability.cjs
       - name: Check identity claim boundary
