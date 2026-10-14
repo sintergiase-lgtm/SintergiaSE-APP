@@ -3,7 +3,7 @@
 **Fecha de corte:** 14 de octubre de 2026  
 **Paquete revisado:** SintergiaSE-APP-integral-corregido-2026-10-13-final.zip  
 **SHA-256 del paquete de entrada:** 36AB2BE9E2622158911BBE64F417CC2671CBBF32C80E2FF83271AC551BF8E574  
-**Archivos del ZIP:** 53  
+**Archivos del ZIP de entrada:** 53
 **Repositorio remoto:** [sintergiase-lgtm/SintergiaSE-APP](https://github.com/sintergiase-lgtm/SintergiaSE-APP)  
 **Base remota observada en las PR abiertas:** main, commit 53c14f72b439499470c7fd255e667cea70141ea8  
 **Runtime de validación:** Node v24.19.0
@@ -40,9 +40,17 @@ En la auditoría ampliada sí apareció un riesgo reproducible de pérdida de da
 - La aplicación de snapshots remotos se detiene antes de tocar el estado si no se pudieron persistir sus tombstones.
 - La nueva suite `test-critical-queue-durability.cjs` ejecuta los helpers reales extraídos de ambas páginas: fallos y éxitos de almacenamiento, límites de cola, conflictos repetidos, APIs de cola y aplicación de snapshots con y sin tombstones.
 
+### Pasada adicional: firma de técnico
+
+La revisión estática del flujo de acceso y firma encontró dos casos en ambas páginas HTML completas:
+
+- Un clic sin trazo ponía `hasInk=true` y podía aceptarse como firma. Ahora solo se considera firmada después de dibujar un segmento real; Limpiar también reinicia el estado del trazo.
+- Los fallos al guardar la firma en localStorage o al establecer la autorización de jornada en sessionStorage se ignoraban y permitían continuar. Ahora el modal permanece abierto, no se habilita la firma en memoria y aparece un error recuperable.
+- Se añadió `test-technician-signature-durability.cjs`, que ejecuta el flujo extraído de ambas páginas con un trazo sintético y cubre clic en blanco, trazo, limpieza y fallos de almacenamiento.
+
 ### Validación local repetida
 
-- **20/20 suites CJS aprobadas:** las 19 suites originales más `test-critical-queue-durability.cjs`.
+- **21/21 suites CJS aprobadas:** incluye las regresiones de colas durables y firma del técnico.
 - **40/40 archivos JavaScript/TypeScript:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
@@ -52,15 +60,17 @@ En la auditoría ampliada sí apareció un riesgo reproducible de pérdida de da
 
 - La PR #2 de sincronización sigue abierta, sin fusionar y mergeable; su rama es fix/sync-p0-ack-and-durability-20261013, con head 90f4eb19fee8c11202de39447735492db8fd9b2b.
 - La PR #3 de acciones UI sigue abierta y sin fusionar.
-- La PR #4 de documentación sigue abierta en la rama docs/estado-aplicacion-2026-10-13. Este informe se añade a esa rama; main no se modifica.
+- La PR #4 de documentación sigue abierta en la rama docs/estado-aplicacion-2026-10-13 e incluye el informe de la pasada anterior. Esta actualización de firma queda en el paquete local de salida; la rama remota no se volvió a modificar y main permanece intacta.
 - La PR #6 de fallback sigue abierta, en borrador y con `mergeable=false`. La comparación de ramas informa historias divergentes: 13 commits a cada lado desde `edbb625b120ee9b8335ba9b8263a42d48f3d5d97`. No se reescribió la rama.
 - La PR #7 sigue abierta, en borrador y sin fusionar. Se añadieron a su rama las salvaguardas para la página secundaria, la nueva suite y el paso de CI en los commits `c72a9fe`, `977eb33` y `99b72fa`. GitHub informa ahora `mergeable=false`; la comparación con la rama base indica 18 commits por delante y 7 por detrás desde `344c2d59b7f7280e07e672f3c43df7206c208d0e`. El CI verde anterior pertenece al head viejo; queda comprobar la nueva revisión y reconciliar la divergencia antes de integrar.
 - La copia del ZIP no es idéntica a `main/index.html` (blobs Git: paquete `cae076a`, `main` `aaf3271`). La inspección del blob actual de `main` confirma que todavía contiene el recorte de tombstones, conflictos pendientes y referencias inciertas, además de informar éxito de `queueSnapshot()` sin confirmar el guardado. La segunda página en `main` conserva la versión sin estas salvaguardas (blob `3f22a0d`); la rama #7 ahora la contiene corregida (`d073824`). No se reemplazó ningún archivo de `main` con el ZIP.
 - Ninguna comprobación confirma que el ZIP completo esté desplegado. No se cambió Supabase, sus datos, secretos ni funciones activas.
 
-### Límite de la comprobación en navegador
+### Límite de la comprobación en navegador y acceso
 
-Se intentó abrir la aplicación mediante el navegador de Codex desde un servidor local de revisión. El navegador devolvió ERR_BLOCKED_BY_CLIENT para 127.0.0.1. Se detuvo esa comprobación sin buscar una ruta indirecta. Por tanto, no se verificaron la consola, el render visual ni los flujos en un navegador real.
+Se intentó abrir la aplicación mediante el navegador de Codex desde un servidor local de revisión; devolvió ERR_BLOCKED_BY_CLIENT para 127.0.0.1. En esta pasada también se rechazó `file://` por la política de seguridad del navegador. Se detuvo la comprobación sin buscar una ruta indirecta. Por tanto, no se verificaron la consola, el render visual ni los flujos en un navegador real.
+
+El verificador de acceso envía la contraseña por POST a la función Supabase configurada. No se enviaron credenciales ni datos de identidad a ese servicio; tampoco se creó una firma real. Para completar la prueba de acceso/firma hace falta una URL de QA conectada a un backend de pruebas, y revisar allí el resultado con autorización sobre ese entorno. Las pruebas de firma de esta pasada son sintéticas y locales.
 
 ## 4. Trabajo a medias o aún no verificado
 
@@ -78,7 +88,7 @@ La consulta que el informe histórico de iteración 7 atribuye a Supabase —71 
 
 ## 5. Próximas acciones
 
-1. Repetir smoke test visual y revisión de consola en un navegador/entorno de QA que permita abrir la copia servida por HTTP.
+1. Repetir smoke test visual, revisión de consola y acceso/firma en un navegador/entorno de QA con backend de pruebas.
 2. Hacer un round-trip autenticado POST/GET en Supabase de pruebas con datos sintéticos y verificar sourceId/revision exactos, CORS, reintentos e idempotencia.
 3. Probar en dos dispositivos la cola offline, reinicio, reconexión, tombstones, conflictos y cuota de almacenamiento.
 4. Recorrer los flujos de avisos, partes, facturas, recibos, correo, biometría, REBT, O.C.A. y stock; registrar cada resultado.
@@ -87,6 +97,6 @@ La consulta que el informe histórico de iteración 7 atribuye a Supabase —71 
 
 ## 6. Trazabilidad de esta entrega
 
-Este mismo informe se incorpora al ZIP de salida y a la rama docs/estado-aplicacion-2026-10-13 de la PR #4. La salida contiene 55 archivos; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR ni se desplegó la aplicación.
+Este informe se incorpora al ZIP de salida. La salida incluye ambas páginas reparadas, las suites de regresión y este registro; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR, no se modificó main ni se desplegó la aplicación.
 
 
