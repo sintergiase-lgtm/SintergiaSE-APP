@@ -2884,15 +2884,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function stableJson(x){try{return JSON.stringify(x??null);}catch(_){return '';}}
   function tombstoneId(collection,key){return String(collection||'')+'::'+String(key||'');}
   function getTombstones(){const q=getQ(LS.tombstones);return q.filter(x=>x&&x.id);}
-  function putTombstones(q){q=q.slice(-MAX_TOMBSTONES);putQ(LS.tombstones,q);}
+  function putTombstones(q){
+    q=Array.isArray(q)?q:[];
+    if(q.length>MAX_TOMBSTONES)toast('⚠️ La cola de eliminaciones supera el umbral; se conservan todas hasta su confirmación.');
+    return putQ(LS.tombstones,q);
+  }
   function rememberTombstone(collection,key,before,revision,sourceId,createdAt){
     const id=tombstoneId(collection,key), q=getTombstones().filter(x=>x.id!==id);
     q.push({id,collection:String(collection),key:String(key),before:before||null,
       revision:Number(revision)||0,sourceId:String(sourceId||DEVICE),deletedAt:String(createdAt||now())});
-    putTombstones(q);
+    return putTombstones(q);
   }
   function mergeTombstones(incoming){
-    if(!Array.isArray(incoming))return;
+    if(!Array.isArray(incoming))return true;
     const q=getTombstones(), map=new Map(q.map(x=>[x.id,x]));
     for(const t of incoming){
       if(!t||!t.id)continue;
@@ -2901,7 +2905,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       const tt=Date.parse(t.deletedAt||'')||0, ct=Date.parse(cur?.deletedAt||'')||0;
       if(!cur||tr>cr||(tr===cr&&tt>ct))map.set(String(t.id),t);
     }
-    putTombstones([...map.values()]);
+    return putTombstones([...map.values()]);
   }
   function tombstoneBlocksEntity(collection,x){
     const id=tombstoneId(collection,entityKey(x)), t=getTombstones().find(v=>v.id===id);
@@ -2928,7 +2932,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       }
       for(const [key,before] of am)if(!bm.has(key)){
         const revision=Number(current.revision||0), sourceId=current.sourceId, createdAt=current.clientUpdatedAt||now();
-        rememberTombstone(collection,key,before,revision,sourceId,createdAt);
+        if(!rememberTombstone(collection,key,before,revision,sourceId,createdAt)){
+          const error=new Error('tombstone_not_durable');
+          error.durable=false;
+          throw error;
+        }
         ops.push({operationId:uuid(),op:'delete',collection,key,before,after:null,revision,sourceId,createdAt,reason:reason||'state-change'});
       }
     }
@@ -2938,7 +2946,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(!snapshot)return false;
     const previous=read(LS.snapshot,null);
     const item={id:uuid(),deviceId:DEVICE,createdAt:now(),reason:reason||'state-change',snapshot:snapshot};
-    const ops=buildOperations(previous,snapshot,reason);
+    let ops=[];
+    try{ops=buildOperations(previous,snapshot,reason);}
+    catch(e){
+      toast('⚠️ No se pudo guardar de forma duradera la cola de eliminaciones. El cambio permanece local; libera espacio y vuelve a sincronizar.');
+      window.__sgIgn&&window.__sgIgn(e);
+      return false;
+    }
     const changes=getQ(LS.changes); changes.push(item);
     if(!putQ(LS.changes,changes)){
       toast('⚠️ El cambio sigue local, pero la cola de sincronización no pudo guardarse. Libera espacio antes de continuar.');
@@ -3122,8 +3136,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const q=getQ(LS.uncertain).filter(x=>String(x.operationId)!==String(operationId));
     q.push({operationId:String(operationId),at:now(),attempts:Number(meta?.attempts)||0,
       reason:String(meta?.reason||'response-lost'),url:meta?.url||null});
-    if(q.length>MAX_OPERATIONS)q.splice(0,q.length-MAX_OPERATIONS);
-    putQ(LS.uncertain,q);
+    if(q.length>MAX_OPERATIONS)toast('⚠️ Las referencias inciertas superan el umbral; se conservan hasta reconciliarlas.');
+    return putQ(LS.uncertain,q);
   }
   function clearUncertain(operationId){
     putQ(LS.uncertain,getQ(LS.uncertain).filter(x=>String(x.operationId)!==String(operationId)));
@@ -3381,15 +3395,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     version:5,deviceId:DEVICE,
     status:function(){return {online:navigator.onLine,deviceId:DEVICE,snapshots:getQ(LS.changes).length,api:getQ(LS.api).length,deferred:getQ(LS.deferred).length,last:read(LS.meta,null)}},
     queueApi:function(url,body,reason){const headers={'Content-Type':'application/json','X-Sintergia-Request-ID':uuid()};return enqueueApi(url,{method:'POST',headers:headers,body:typeof body==='string'?body:JSON.stringify(body||{})},reason);},
-    defer:function(type,payload){const q=getQ(LS.deferred);q.push({id:uuid(),type:type,payload:payload||{},createdAt:now(),deviceId:DEVICE});putQ(LS.deferred,q);},
+    defer:function(type,payload){const q=getQ(LS.deferred);q.push({id:uuid(),type:type,payload:payload||{},createdAt:now(),deviceId:DEVICE});return putQ(LS.deferred,q);},
     snapshot:function(reason){try{if(typeof window.obtenerSnapshotSincronizacion!=='function')return null;const s=window.obtenerSnapshotSincronizacion();if(!s)return null;s.version=Math.max(Number(s.version)||0,6);s.deviceId=DEVICE;s.clientUpdatedAt=now();s.syncReason=reason||'local-change';const raw=JSON.stringify(s);if(raw.length>MAX_BYTES)throw new Error('Estado local demasiado grande para sincronizar.');return s;}catch(e){return null;}},
     queueSnapshot:function(reason,providedSnapshot){
       let s=null;
       if(providedSnapshot&&typeof providedSnapshot==='object'&&!Array.isArray(providedSnapshot)){
         try{s=JSON.parse(JSON.stringify(providedSnapshot));if(!s.deviceId)s.deviceId=DEVICE;}catch(_){s=null;}
       }else s=this.snapshot(reason);
-      if(s)addChange(s,reason);
-      return s;
+      /* Never report a snapshot as queued when local durable persistence failed. */
+      if(!s)return null;
+      return addChange(s,reason)?s:null;
     },
     flush:async function(){return flush();},
     conflicts:function(){return getQ(LS.conflicts);},
@@ -3461,17 +3476,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function queueConflict(item,remote,reason){
     const q=getQ(LS.conflicts);
     const key=conflictKey(item);
+    const previous=q.find(x=>x.status==='pending'&&String(x.operationId)===String(item.operationId));
     const entry={
-      id:uuid(), operationId:String(item.operationId), key:key,
+      id:previous?previous.id:uuid(), operationId:String(item.operationId), key:key,
       collection:String(item.collection), entityKey:String(item.key),
       base:item.before||null, local:item.after||null, remote:remote||null,
       revision:Number(item.revision)||0, sourceId:String(item.sourceId||DEVICE),
       detectedAt:now(), reason:reason||'revision-conflict', status:'pending'
     };
-    const filtered=q.filter(x=>conflictKey(x)!==key||x.status!=='pending');
+    /* Reintentos del mismo request actualizan su conflicto. Conflictos pendientes
+       de otras operaciones/entidades nunca se sustituyen silenciosamente. */
+    const filtered=q.filter(x=>!(x.status==='pending'&&String(x.operationId)===String(item.operationId)));
     filtered.push(entry);
-    if(filtered.length>MAX_CONFLICTS)filtered.splice(0,filtered.length-MAX_CONFLICTS);
-    putQ(LS.conflicts,filtered);
+    const pending=filtered.filter(x=>x.status==='pending');
+    const resolved=filtered.filter(x=>x.status!=='pending');
+    const resolvedLimit=Math.max(0,MAX_CONFLICTS-pending.length);
+    const keepResolved=resolvedLimit?resolved.slice(-resolvedLimit):[];
+    const preserved=[...keepResolved,...pending];
+    if(pending.length>MAX_CONFLICTS)toast('⚠️ Hay más conflictos pendientes que el umbral recomendado; se conservan todos.');
+    if(!putQ(LS.conflicts,preserved)){
+      toast('⚠️ No se pudo guardar el conflicto de sincronización; se conserva la operación original pendiente.');
+      throw new Error('conflict_not_durable');
+    }
     return entry;
   }
   function threeWayMerge(base,local,remote){
@@ -3513,7 +3539,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     conflict.remoteRevision=Number(remoteSnapshot?.revision||0);
     const q=getQ(LS.conflicts);
     const idx=q.findIndex(x=>x.id===conflict.id);
-    if(idx>=0){q[idx]=conflict;putQ(LS.conflicts,q);}
+    if(idx>=0){q[idx]=conflict;if(!putQ(LS.conflicts,q))throw new Error('conflict_details_not_durable');}
     if(merged.conflicts.length===0){
       const next=Object.assign({},item,{
         operationId:uuid(),before:remote,after:merged.value,
@@ -13883,7 +13909,7 @@ async function obtenerRemoto(){
   return d.snapshot||d.state||d;
 }
 function mergeEntityArrays(local,incoming,collection){const a=Array.isArray(local)?local:[],b=Array.isArray(incoming)?incoming:[],m=new Map();const key=x=>String(x?.id??x?.uid??x?.ref??x?.referencia??x?.numero??x?.codigo??'');const ts=x=>{const t=Date.parse(x?.updatedAt||x?.clientUpdatedAt||x?.createdAt||x?.fechaModificacion||x?.fechaCreacion||'');return Number.isFinite(t)?t:0};const rev=x=>Number.isFinite(Number(x?.entityRevision))?Number(x.entityRevision):Number.isFinite(Number(x?.revision))?Number(x.revision):0;const src=x=>String(x?.sourceId??x?.deviceId??'');const rank=x=>[rev(x),ts(x),src(x)];const newer=(x,y)=>{const a1=rank(x),b1=rank(y);for(let i=0;i<a1.length;i++){if(a1[i]>b1[i])return true;if(a1[i]<b1[i])return false;}return false;};a.forEach(x=>{const k=key(x);if(k)m.set(k,x)});b.forEach(x=>{const k=key(x);if(!k||tombstoneBlocksEntity(collection,x))return;const o=m.get(k);if(!o||newer(x,o))m.set(k,x)});return [...m.values()];}
-window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones))mergeTombstones(snapshot.tombstones);const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
+window.aplicarSnapshotSincronizacion=function(snapshot){if(!snapshot||!window.appState)return false;if(Array.isArray(snapshot.tombstones)&&(typeof window.mergeTombstones!=='function'||window.mergeTombstones(snapshot.tombstones)===false))return false;const incomingRev=Number(snapshot.revision)||0;const localRev=Number(localStorage.getItem('sintergia_sync_revision')||0)||0;if(incomingRev<localRev&&snapshot.sourceId!==sessionStorage.getItem('sintergia_device_id'))return false;['clientes','partes','facturas','pendientes','stock','stockListas'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=mergeEntityArrays(window.appState[k],snapshot[k],k);if(Array.isArray(window.appState[k]))window.appState[k]=window.appState[k].filter(x=>!tombstoneBlocksEntity(k,x));});['partCounter','facCounter'].forEach(k=>{if(Object.prototype.hasOwnProperty.call(snapshot,k))window.appState[k]=Math.max(Number(window.appState[k]||0),Number(snapshot[k]||0));});if(Object.prototype.hasOwnProperty.call(snapshot,'horario')){const localH=window.appState.horario||null;const remoteH=snapshot.horario||null;const lt=Date.parse(localH?.updatedAt||'')||0,rt=Date.parse(remoteH?.updatedAt||'')||0;if(!localH||rt>lt||(rt===lt&&String(snapshot.sourceId||'')>String(localH.sourceId||'')))window.appState.horario=remoteH||{version:2,jornada:null,eventos:[],contador:1};}if(Object.prototype.hasOwnProperty.call(snapshot,'compras'))window.appState.compras=mergeEntityArrays(window.appState.compras,snapshot.compras,'compras');try{localStorage.setItem('sintergia_sync_revision',String(Math.max(localRev,incomingRev)));window.__sintergiaSuppressOfflineQueue=true;if(typeof window.guardarEstadoStorage==='function')window.guardarEstadoStorage();}catch(_){window.__sgIgn&&window.__sgIgn(_);}finally{window.__sintergiaSuppressOfflineQueue=false;}try{if(typeof window.renderizarTodo==='function')window.renderizarTodo();}catch(_){window.__sgIgn&&window.__sgIgn(_);}return true;};
 window.probarSincronizacionMultidispositivo=async function(){
   const st=document.getElementById('sync-ai-status'),log=document.getElementById('sync-ai-log');
   if(st){st.className='sync-ai-status';st.textContent='Probando publicación y lectura…';}
