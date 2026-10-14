@@ -92,6 +92,7 @@ Las siguientes áreas constan en Estado_SintergiaSE_ubicaciones.md como requisit
 - **Facturas y recibos:** enlace de entrega al cliente, revisión/preview, aprobación o rechazo, estado de factura cobrada y conservación del recibo.
 - **Api mail:** pestaña, confirmación antes del envío, seguimiento de apertura y proveedor configurado sin credenciales en el HTML.
 - **Offline, biometría y sincronización:** reinicio sin conexión, reintentos, conflictos, cuota local y persistencia entre dos dispositivos.
+- **Privacidad local:** clientes, partes y facturas se guardan en claro en `localStorage`. La copia AES-GCM/PBKDF2 cifra solo la exportación, no el estado activo del navegador. No se cambió esta persistencia porque falta diseñar y probar el ciclo completo de clave, recuperación offline y migración de datos existentes; cifrarla sin ese flujo podría bloquear el acceso a los datos locales.
 - **REBT y O.C.A.:** validación técnica/normativa y de evidencias en contexto real.
 - **Stock:** integridad del catálogo de fabricantes, materiales e imágenes.
 - **Publicación:** URL activa, rama y artefacto reales de Cloudflare Pages/GitHub Pages y contenido de Cloud Shell.
