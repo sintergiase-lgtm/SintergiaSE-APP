@@ -1,0 +1,28 @@
+name: Technician identity and signature regressions
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-signature:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check signature durability
+        run: node test-technician-signature-durability.cjs
+      - name: Check identity claim boundary
+        run: node test-identity-claim-boundary.cjs
+      - name: Parse inline JavaScript
+        run: node test-inline-script-syntax.cjs
