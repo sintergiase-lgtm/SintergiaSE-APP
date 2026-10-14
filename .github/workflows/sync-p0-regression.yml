@@ -38,3 +38,39 @@ jobs:
         run: node test-sw-guard.cjs
       - name: Run async entrypoint failure regressions
         run: node test-async-entrypoint-containment.cjs
+
+  supabase-local-synthetic-roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Mount isolated QA fixture
+        run: |
+          mkdir -p supabase
+          cp -R qa/supabase/. supabase/
+          printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\n' > supabase/functions/.env
+      - name: Start disposable local Supabase stack
+        run: npx --yes supabase@latest start
+      - name: Apply synthetic local schema
+        run: npx --yes supabase@latest db reset
+      - name: Serve the real snapshot function locally
+        run: |
+          npx --yes supabase@latest functions serve realtime-snapshot --env-file supabase/functions/.env > "$RUNNER_TEMP/realtime-snapshot.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/realtime-snapshot.pid"
+          for attempt in $(seq 1 60); do
+            code=$(curl --silent --max-time 2 --output /dev/null --write-out '%{http_code}' http://127.0.0.1:54321/functions/v1/realtime-snapshot || true)
+            if [ "$code" = "401" ]; then exit 0; fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/realtime-snapshot.log"
+          exit 1
+      - name: Run authenticated two-device synthetic round-trip
+        run: node test-local-snapshot-roundtrip.cjs
+      - name: Stop disposable local Supabase stack
+        if: always()
+        run: npx --yes supabase@latest stop --no-backup || true
