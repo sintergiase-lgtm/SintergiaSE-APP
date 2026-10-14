@@ -40,6 +40,8 @@ Esto acredita las suites automatizadas de esos workflows. No sustituye una prueb
 
 ### Estado de backend y límites conocidos
 
+- Auditoría de funciones activas (sin leer valores de secretos): OpenAI se llama desde IA/normativa/recibos; Google Routes puede usarse si hay una clave configurada; correo y WhatsApp pueden pasar por Resend y Twilio. Esos proveedores pueden generar cargos. No se puede garantizar 0 € hasta desactivar las rutas de pago o sustituirlas por alternativas con límites de coste verificados.
+- El plan de facturación y el uso restante del proyecto Supabase conectado no están disponibles mediante esta conexión. El nivel gratuito tiene cuotas y la superación puede restringir el servicio; no se debe asumir que el proyecto esté en Free.
 - Solo está conectado el proyecto Supabase de producción; no se usó para pruebas de escritura ni se modificaron funciones, datos, políticas, secretos o configuración.
 - En el bucket privado `sintergia-docs`, el límite es 25 MiB y la allowlist actual no incluye `image/heic`. El cliente acepta HEIC; hay que decidir y validar el formato en un proyecto QA antes de alinear la configuración.
 - Se observaron rechazos 401 y errores 503 en el endpoint de snapshots. La PR #2 corrige los reintentos ante 401/403, pero la causa de las sesiones rechazadas y de los 503 no quedó determinada.
@@ -49,11 +51,12 @@ Esto acredita las suites automatizadas de esos workflows. No sustituye una prueb
 
 ## Pendiente para cerrar la revisión
 
-1. Preparar QA sin costes mediante Supabase local/CI y datos sintéticos; no usar ramas de vista previa facturables.
-2. Configurar un hosting dentro del plan gratuito y registrar su URL pública; aportar también el detalle de las dos advertencias actuales, sin tokens ni datos personales.
+1. Preparar QA local/efímero con datos sintéticos y runners estándar gratuitos de GitHub Actions; no crear ramas Supabase facturables.
+2. Configurar hosting estático gratuito dentro de cuotas y registrar su URL pública; aportar también el detalle de las dos advertencias actuales, sin tokens ni datos personales.
 3. Probar desde navegador las funciones críticas, los flujos de ruta y geocodificación, normativa, gasolineras, diseño adaptable y animación; registrar errores de consola/red.
 4. Ejecutar el round-trip autenticado y la prueba entre dos dispositivos, incluyendo desconexión, reinicio, reintentos, tombstones, conflictos y cuota local.
 5. Revisar e integrar las PR en orden: #2, #6 y #7; revisar por separado #14 antes de cualquier despliegue.
-6. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
+6. Desactivar o sustituir integraciones de IA, rutas, correo y mensajería que puedan generar cargos, con degradación clara si alcanzan cuotas gratuitas.
+7. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
 
 No se han fusionado PR ni desplegado cambios de esta revisión. La aplicación no está certificada como publicada ni libre de errores hasta completar las pruebas con la URL y el entorno QA reales.
