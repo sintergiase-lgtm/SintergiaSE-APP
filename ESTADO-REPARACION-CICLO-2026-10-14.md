@@ -29,22 +29,32 @@ Esta lista describe el contenido del paquete según los informes aportados; no a
 
 ## 3. Resultado de esta iteración
 
-No apareció un fallo reproducible en las comprobaciones locales, por lo que no se cambió la lógica de la aplicación en esta pasada. Se añadió este informe al paquete y a la rama de documentación indicada al final.
+En la auditoría ampliada sí apareció un riesgo reproducible de pérdida de datos en las colas de sincronización. Se corrigieron ambas páginas HTML completas del paquete, se añadieron pruebas dinámicas de regresión y se amplió el workflow local para incluirlas. El ZIP original no se modificó.
+
+### Reparaciones de esta pasada
+
+- Las eliminaciones ya no pierden tombstones al superar MAX_TOMBSTONES. Una operación de borrado no se encola si el tombstone no se guardó; un fallo aborta la creación del snapshot de sincronización.
+- La página secundaria ahora comprueba los fallos al guardar snapshots y operaciones y no recorta operaciones pendientes para ajustarlas a MAX_OPERATIONS.
+- Los conflictos pendientes de distintas operaciones ya no se sustituyen por compartir entidad ni se eliminan por superar MAX_CONFLICTS. Los reintentos de la misma operación actualizan su registro; el historial resuelto sí conserva un límite.
+- Las referencias de operaciones inciertas ya no se truncan. `queueSnapshot()` y `defer()` devuelven un resultado que refleja si el almacenamiento durable tuvo éxito.
+- La aplicación de snapshots remotos se detiene antes de tocar el estado si no se pudieron persistir sus tombstones.
+- La nueva suite `test-critical-queue-durability.cjs` ejecuta los helpers reales extraídos de ambas páginas: fallos y éxitos de almacenamiento, límites de cola, conflictos repetidos, APIs de cola y aplicación de snapshots con y sin tombstones.
 
 ### Validación local repetida
 
-- **19/19 suites CJS aprobadas:** appointment-html-rules, async-entrypoint-containment, biometric-error-containment, candidate-invariants, contract, email-security-rules, geo-lifecycle, gps-runtime-errors, inline-script-syntax, receipt-verification-rules, security-async-containment, snapshot-auth-regression, sw-guard, sync-client-regression, sync-flush-failures, sync-operations-rules, sync-p0-client-rules, sync-queue-retention y ui-live-duration-performance.
-- **39/39 archivos JavaScript/TypeScript:** node --check sin errores.
+- **20/20 suites CJS aprobadas:** las 19 suites originales más `test-critical-queue-durability.cjs`.
+- **40/40 archivos JavaScript/TypeScript:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
-- **CI remoto:** el workflow de la PR #2 terminó en success (ejecución 44); el workflow de la PR #3 terminó en success (ejecución 7). La PR #4 es solo documental y no tuvo workflow asociado en la consulta.
+- **CI remoto observado:** PR #2, ejecución 44; PR #3, ejecución 7; PR #7, ejecución 21 — las tres terminaron en success. El workflow remoto de PR #7 valida su rama, no los cambios locales adicionales de esta entrega.
 
 ### Comprobación remota de GitHub
 
 - La PR #2 de sincronización sigue abierta, sin fusionar y mergeable; su rama es fix/sync-p0-ack-and-durability-20261013, con head 90f4eb19fee8c11202de39447735492db8fd9b2b.
 - La PR #3 de acciones UI sigue abierta y sin fusionar.
 - La PR #4 de documentación sigue abierta en la rama docs/estado-aplicacion-2026-10-13. Este informe se añade a esa rama; main no se modifica.
-- La PR #6 de fallback aparece abierta y con mergeable=false. Hay que resolver su estado de integración antes de intentar fusionarla.
+- La PR #6 de fallback sigue abierta, en borrador y con `mergeable=false`. La comparación de ramas informa historias divergentes: 13 commits a cada lado desde `edbb625b120ee9b8335ba9b8263a42d48f3d5d97`. No se reescribió ni actualizó la rama.
+- La PR #7 de tombstones/conflictos sigue abierta, en borrador, mergeable y sin fusionar; su CI observado está verde. Incluye el núcleo de estas reparaciones en `index.html`; el paquete de esta entrega además aplica las salvaguardas a la página secundaria y prueba ambos archivos.
 - Ninguna comprobación confirma que el ZIP completo esté desplegado. No se cambió Supabase, sus datos, secretos ni funciones activas.
 
 ### Límite de la comprobación en navegador
@@ -71,9 +81,11 @@ La consulta que el informe histórico de iteración 7 atribuye a Supabase —71 
 2. Hacer un round-trip autenticado POST/GET en Supabase de pruebas con datos sintéticos y verificar sourceId/revision exactos, CORS, reintentos e idempotencia.
 3. Probar en dos dispositivos la cola offline, reinicio, reconexión, tombstones, conflictos y cuota de almacenamiento.
 4. Recorrer los flujos de avisos, partes, facturas, recibos, correo, biometría, REBT, O.C.A. y stock; registrar cada resultado.
-5. Resolver la incompatibilidad indicada por mergeable=false en la PR #6 y revisar las PR abiertas antes de integrar.
+5. Reconciliar y revisar la divergencia de la PR #6 con la rama actual de la PR #2; revisar también el alcance de #7 antes de integrar.
 6. Comparar el artefacto con la publicación real. No declarar la aplicación sin errores de producción hasta completar esas verificaciones.
 
 ## 6. Trazabilidad de esta entrega
 
-Este mismo informe se incorpora al ZIP de salida y a la rama docs/estado-aplicacion-2026-10-13 de la PR #4. El paquete original permanece intacto. No se fusionó ninguna PR ni se desplegó la aplicación.
+Este mismo informe se incorpora al ZIP de salida y a la rama docs/estado-aplicacion-2026-10-13 de la PR #4. La salida contiene 55 archivos; el paquete de entrada de 53 archivos permanece intacto. No se fusionó ninguna PR ni se desplegó la aplicación.
+
+
