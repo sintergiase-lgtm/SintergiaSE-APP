@@ -16,6 +16,6 @@ Base: `main` @ `53c14f7`. Rama: `fix/integral-corregido-20261014` (paquete integ
 - URL de producción, Cloudflare/GitHub Pages, Cloud Shell: sin confirmar.
 
 ## Siguiente acción exacta
-1. Abrir PR de esta rama contra `main`, reconciliar con PR #2/#5/#12 y revisar diff.
+1. Abrir PR de `fix/integral-corregido-20261014` contra `main` a mano (la integración devuelve 403 al crear PR), y reconciliar con PR #2/#5/#12.
 2. Probar en navegador real y dos dispositivos; round-trip de sync con datos sintéticos.
 3. Verificar pestañas: avisos, partes, facturas/recibos, Api mail, REBT, O.C.A., stock.
