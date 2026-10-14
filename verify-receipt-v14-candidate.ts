@@ -100,6 +100,12 @@ function finiteNonNegative(value: unknown): number | null {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
 }
+function expectedAmountFromInvoice(value: unknown): number | null {
+  return finiteNonNegative(value)
+}
+function receiptVerificationStatus(valid: boolean): 'verified' | 'rejected' {
+  return valid ? 'verified' : 'rejected'
+}
 function evaluateModelVerification(parsed: any, expectedReference: string, expectedAmount: number) {
   const recognizedReference = String(parsed?.referencia ?? '').trim()
   const recognizedAmount = finiteNonNegative(parsed?.importe)
@@ -164,9 +170,7 @@ Deno.serve(async req => {
 
     const invoicePayload = row.payload && typeof row.payload === 'object' ? row.payload : {}
     const expectedReference = String(invoicePayload.reference || invoicePayload.referencia || facturaId).trim().slice(0, 200)
-    const storedAmount = finiteNonNegative(row.importe)
-    const suppliedAmount = finiteNonNegative(body.importe)
-    const expectedAmount = storedAmount ?? suppliedAmount
+    const expectedAmount = expectedAmountFromInvoice(row.importe)
     if (!expectedReference || expectedAmount === null) {
       return json(req, 422, { ok: false, error: 'invoice_reference_or_amount_missing', pending: true })
     }
@@ -221,7 +225,7 @@ Deno.serve(async req => {
     const reason = evaluated.reason
     const verifiedAt = new Date().toISOString()
     const verification = {
-      status: 'verified', valido: valid,
+      status: receiptVerificationStatus(valid), valido: valid,
       referencia: recognizedReference.slice(0, 200), importe: recognizedAmount,
       referenciaCoincide: referenceMatches, importeCoincide: amountMatches,
       motivo: reason, verified_at: verifiedAt,
@@ -270,3 +274,4 @@ async function configuredKey(): Promise<{ key: string; source: string } | null> 
   } catch { /* no secret is returned to the caller */ }
   return null
 }
+
