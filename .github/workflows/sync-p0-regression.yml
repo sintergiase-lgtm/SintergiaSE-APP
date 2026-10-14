@@ -54,13 +54,16 @@ jobs:
         run: |
           mkdir -p supabase
           cp -R qa/supabase/. supabase/
+          printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\nLOCAL_QA_DIAGNOSTICS=1\n' > supabase/functions/.env
+      - name: Start disposable local Supabase stack
+        run: npx --yes supabase@latest start
+      - name: Connect function runtime to disposable database
+        run: |
           db_container=$(docker ps --format '{{.Names}}' | grep -E '^supabase_db_' | head -n 1)
-          test -n "$db_container"
+          if [ -z "$db_container" ]; then docker ps --format '{{.Names}}'; exit 1; fi
           db_ip=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$db_container")
           test -n "$db_ip"
           printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\nSUPABASE_DB_URL=postgresql://postgres:postgres@%s:5432/postgres\nLOCAL_QA_DIAGNOSTICS=1\n' "$db_ip" > supabase/functions/.env
-      - name: Start disposable local Supabase stack
-        run: npx --yes supabase@latest start
       - name: Apply synthetic local schema
         run: npx --yes supabase@latest db reset
       - name: Serve the real snapshot function locally
