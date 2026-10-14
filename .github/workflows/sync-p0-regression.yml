@@ -40,6 +40,7 @@ jobs:
         run: node test-async-entrypoint-containment.cjs
 
   supabase-local-synthetic-roundtrip:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -53,7 +54,7 @@ jobs:
         run: |
           mkdir -p supabase
           cp -R qa/supabase/. supabase/
-          printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\n' > supabase/functions/.env
+          printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\nSUPABASE_DB_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres\n' > supabase/functions/.env
       - name: Start disposable local Supabase stack
         run: npx --yes supabase@latest start
       - name: Apply synthetic local schema

@@ -12,3 +12,5 @@ Cubre:
 - comprobación de que una revisión más alta o un origen distinto no confirma el snapshot previo.
 
 No reproduce el esquema completo de producción ni sustituye una prueba manual en dos teléfonos/navegadores. La app usa una sesión HMAC propia, no Supabase Auth. No se hacen llamadas de escritura al proyecto alojado, no se crean ramas Supabase y no se necesitan secretos de CI.
+
+La función local usa explícitamente `postgresql://postgres:postgres@host.docker.internal:54322/postgres`; esa dirección solo llega al contenedor de la base desechable del runner.
