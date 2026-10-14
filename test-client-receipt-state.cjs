@@ -29,17 +29,19 @@ function extractFunction(source, name) {
 
 for (const page of pages) {
   const source = fs.readFileSync(path.join(__dirname, page), 'utf8');
-  const fileValidator = extractFunction(source, 'sgReciboArchivoAdmitido');
+  const fileValidator = extractFunction(source, 'sgReciboContentType');
   const typeSandbox = {};
-  vm.runInNewContext(`${fileValidator}\nglobalThis.sgReciboArchivoAdmitido = sgReciboArchivoAdmitido;`, typeSandbox);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: 'image/jpeg', name: 'recibo.jpg' }), true, `${page}: accepts JPEG MIME`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: 'image/heic', name: 'recibo.heic' }), true, `${page}: accepts HEIC MIME`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: 'application/pdf', name: 'factura.pdf' }), true, `${page}: accepts PDF MIME`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: '', name: 'factura.pdf' }), true, `${page}: falls back to an allowed extension when MIME is absent`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: 'image/svg+xml', name: 'recibo.svg' }), false, `${page}: rejects active SVG`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: 'image/gif', name: 'recibo.gif' }), false, `${page}: rejects unsupported GIF`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido({ type: 'application/octet-stream', name: 'factura.pdf' }), false, `${page}: rejects MIME that backend will reject`);
-  assert.equal(typeSandbox.sgReciboArchivoAdmitido(null), false, `${page}: rejects missing file`);
+  vm.runInNewContext(`${fileValidator}\nglobalThis.sgReciboContentType = sgReciboContentType;`, typeSandbox);
+  assert.equal(typeSandbox.sgReciboContentType({ type: 'image/jpeg', name: 'recibo.jpg' }), 'image/jpeg', `${page}: retains JPEG MIME`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: 'image/heic', name: 'recibo.heic' }), 'image/heic', `${page}: retains HEIC MIME`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: 'application/pdf', name: 'factura.pdf' }), 'application/pdf', `${page}: retains PDF MIME`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: '', name: 'factura.pdf' }), 'application/pdf', `${page}: infers PDF MIME from extension`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: '', name: 'recibo.jpeg' }), 'image/jpeg', `${page}: infers JPEG MIME from extension`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: 'image/svg+xml', name: 'recibo.svg' }), '', `${page}: rejects active SVG`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: 'image/gif', name: 'recibo.gif' }), '', `${page}: rejects unsupported GIF`);
+  assert.equal(typeSandbox.sgReciboContentType({ type: 'application/octet-stream', name: 'factura.pdf' }), '', `${page}: rejects MIME that backend will reject`);
+  assert.equal(typeSandbox.sgReciboContentType(null), '', `${page}: rejects missing file`);
+  assert.match(source, /f\.reciboFileType=receiptContentType/, `${page}: sends the normalized MIME to the backend`);
 
   const rejectHandler = extractFunction(source, 'rechazarReciboFacturaActual');
 
