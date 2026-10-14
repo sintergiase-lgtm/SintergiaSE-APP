@@ -10,7 +10,7 @@ const pages = [
   'SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html',
 ];
 
-function createHarness({ failLocalStorage = false, failSessionStorage = false } = {}) {
+function createHarness({ failLocalStorage = false, failSessionStorage = false, missingModal = false, missingCanvas = false } = {}) {
   const persisted = new Map();
   const strokes = [];
   const cleared = [];
@@ -44,6 +44,9 @@ function createHarness({ failLocalStorage = false, failSessionStorage = false } 
     'technician-signature-save': saveButton,
     'technician-signature-error': error,
   };
+  if (missingModal) delete elements['modal-firma-tecnico'];
+  if (missingCanvas) delete elements['technician-signature-pad'];
+
   const sandbox = {
     esc: value => String(value == null ? '' : value),
     document: { getElementById: id => elements[id] || null },
@@ -81,6 +84,45 @@ function drawStroke(canvas) {
   canvas.onpointerup();
 }
 
+function loadAccessFinalizer(source, sandbox) {
+  const start = source.indexOf('async function finalizarAcceso(modo)');
+  const end = source.indexOf('function initAccess()', start);
+  assert.ok(start >= 0 && end > start, 'access finalizer boundaries must exist');
+  return vm.runInNewContext(`${source.slice(start, end)}\nfinalizarAcceso('tecnico');`, sandbox);
+}
+
+async function assertMissingSignatureFailsClosed(source, page) {
+  let jornadaStarted = false, geoStarted = false, toastShown = false;
+  const classes = [];
+  const gate = { style: { display: 'none' }, attrs: {}, setAttribute(key, value) { this.attrs[key] = value; } };
+  const sandbox = {
+    window: {
+      __sgIgn() {},
+      aplicarModoSintergia() {},
+      SintergiaGeo: { iniciar() { geoStarted = true; } },
+      mostrarToast() { toastShown = true; },
+    },
+    document: { body: { classList: { add(value) { classes.push(`add:${value}`); }, remove(value) { classes.push(`remove:${value}`); } } } },
+    sessionStorage: { setItem() {} },
+    gate,
+    errorId: { textContent: '' },
+    ETIQUETAS: { tecnico: 'Técnico' },
+    mostrarAnimacionCorrecto: async () => {},
+    prepararEntorno() {},
+    abrirFirmaTecnicoDelDia: async () => false,
+    exigirInicioJornada: async () => { jornadaStarted = true; },
+  };
+  const result = await loadAccessFinalizer(source, sandbox);
+  assert.equal(result, false, `${page}: missing signature UI must reject access completion`);
+  assert.equal(gate.style.display, 'flex');
+  assert.equal(gate.attrs['aria-hidden'], 'false');
+  assert.ok(classes.includes('add:sintergia-locked'));
+  assert.match(sandbox.errorId.textContent, /firma obligatoria no está disponible/i);
+  assert.equal(jornadaStarted, false);
+  assert.equal(geoStarted, false);
+  assert.equal(toastShown, false);
+}
+
 async function assertPending(promise) {
   let settled = false;
   promise.then(() => { settled = true; });
@@ -90,6 +132,14 @@ async function assertPending(promise) {
 
 async function runPage(page) {
   const source = fs.readFileSync(path.join(__dirname, page), 'utf8');
+  await assertMissingSignatureFailsClosed(source, page);
+
+  for (const options of [{ missingModal: true }, { missingCanvas: true }]) {
+    const h = createHarness(options);
+    const completion = loadSignatureFlow(source, h.sandbox);
+    assert.equal(await completion, false, `${page}: missing signature UI must not count as success`);
+    assert.equal(h.persisted.size, 0);
+  }
 
   {
     const h = createHarness();
@@ -154,3 +204,4 @@ async function runPage(page) {
   console.error(error);
   process.exitCode = 1;
 });
+
