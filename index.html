@@ -6724,17 +6724,24 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         if (revisionCapturada) {
             try {
                 if (localStorage.getItem(claveRevision) !== revisionAnterior) {
-                    if (revisionAnterior === null) localStorage.removeItem(claveRevision);
-                    else localStorage.setItem(claveRevision, revisionAnterior);
+                    localStorage.removeItem(claveRevision);
                 }
             } catch (_) { rollbackOk = false; }
         }
+        /* Free the newly written values first, then restore the snapshot to avoid transient quota overflow. */
+        for (let i = escritos.length - 1; i >= 0; i--) {
+            try { localStorage.removeItem(escritos[i]); }
+            catch (_) { rollbackOk = false; }
+        }
         for (let i = escritos.length - 1; i >= 0; i--) {
             const clave = escritos[i];
-            try {
-                if (anteriores[clave] === null) localStorage.removeItem(clave);
-                else localStorage.setItem(clave, anteriores[clave]);
-            } catch (_) { rollbackOk = false; }
+            if (anteriores[clave] === null) continue;
+            try { localStorage.setItem(clave, anteriores[clave]); }
+            catch (_) { rollbackOk = false; }
+        }
+        if (revisionCapturada && revisionAnterior !== null) {
+            try { localStorage.setItem(claveRevision, revisionAnterior); }
+            catch (_) { rollbackOk = false; }
         }
         for (const clave of Object.keys(anteriores)) {
             if (rollbackOk && anteriores[clave] !== null) _ultimoEstadoGuardado[clave] = anteriores[clave];
