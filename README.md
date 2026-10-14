@@ -18,26 +18,27 @@ La configuración del repositorio no acredita por sí sola que exista un desplie
 
 ## Estado de revisión de la aplicación — 14 de octubre de 2026
 
-Esta actualización registra el estado de las ramas candidatas revisadas al 14-10-2026. Ninguna está fusionada ni desplegada. La comparación con `main` (`f93cfd82df60d16f7b71dd80d9aaaaade47a4bc7`) muestra que las ramas #2/#6/#7 divergen desde hace 3 commits y #13/#14 desde hace 4; hay que reconciliarlas y volver a validar antes de integrar.
+Las cinco PR están abiertas; #2 no está en borrador y #6/#7/#13/#14 sí. Esta nota registra las reconciliaciones y el CI posterior contra `main`; ninguna PR está fusionada ni desplegada.
 
 ### Reparaciones preparadas
 
-- **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, head `8660aef062a2c7e09d41d66b327db34477a560ae`, abierta; GitHub actualmente la marca no mergeable. Ante 401/403 se conserva la operación y la cola pendiente y se detienen los reintentos automáticos hasta reautenticar. Los POST diferidos usan la sesión actual. La rama se reconcilió con `main`.
-- **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, head `f35223ecb9e095cfdb82e9a9634ad48e4c075872`, abierta, en borrador y mergeable según el estado actual de GitHub. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.
-- **Tombstones y conflictos — [PR #7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7)**, head `10248b98b986f044db40e7828bd9948bcd3b7928`, abierta, en borrador y mergeable según el estado actual de GitHub. Conserva eliminaciones y conflictos sin resolver, y verifica la persistencia antes de aplicar snapshots.
-- **Identidad y firma — [PR #13](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/13)**, head `ad71a5072f3c2de17ffcf5728ef7f29b04420c6e`, abierta y en borrador; hace explícito que la validación de DNI no acredita identidad real y exige persistir una firma antes de iniciar jornada. GitHub actualmente la marca no mergeable.
-- **Recibos y copias — [PR #14](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/14)**, head `b44c070ac8088883c792ab8f9b4a517d638d335f`, abierta y en borrador; GitHub actualmente la marca no mergeable. Verifica usando el importe registrado, guarda el archivo en Storage y conserva su referencia/hash. El guardado multiclave de `localStorage` intenta restaurar los valores anteriores si una escritura falla; sigue sin ser transaccional ni cifrado.
+- **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, abierta y mergeable. Ante 401/403 se conserva la operación y la cola pendiente y se detienen los reintentos automáticos hasta reautenticar. Los POST diferidos usan la sesión actual. La rama se reconcilió con `main`.
+- **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, abierta, en borrador y mergeable. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.
+- **Tombstones y conflictos — [PR #7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7)**, abierta, en borrador y mergeable. Conserva eliminaciones y conflictos sin resolver, y verifica la persistencia antes de aplicar snapshots.
+- **Identidad y firma — [PR #13](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/13)**, abierta, en borrador y mergeable; hace explícito que la validación de DNI no acredita identidad real y exige persistir una firma antes de iniciar jornada.
+- **Recibos y copias — [PR #14](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/14)**, abierta, en borrador y mergeable. Verifica usando el importe registrado, guarda el archivo en Storage y conserva su referencia/hash. El guardado multiclave de `localStorage` intenta restaurar los valores anteriores si una escritura falla; sigue sin ser transaccional ni cifrado.
 
 ### Validación automatizada
 
 Los workflows de GitHub Actions terminaron correctamente en los heads indicados:
 
-- PR #2: [regresión de sincronización — pull request](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521912083), [push](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521906081) y [recibos/copias del cliente](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521912084).
-- PR #6: [pull request](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521919182) y [push](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38521912721).
-- PR #7: [pull request](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38522029840) y [push](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38522025234).
-- PR #14: [verificación de recibos](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38517102009) y [recibos/copias del cliente](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38517102055).
+- PR #2: [Checks](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2/checks) (sincronización y cliente/recibos).
+- PR #6: [Checks](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6/checks) (sincronización).
+- PR #7: [Checks](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7/checks) (sincronización).
+- PR #13: [Checks](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/13/checks) (identidad y firma).
+- PR #14: [Checks](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/14/checks) (verificación de recibos).
 
-PR #13 también pasó sus pruebas sintéticas de identidad/firma (Actions #4, run `38501062535`). Esto acredita las suites automatizadas de los heads registrados, no sustituye pruebas tras reconciliar con `main`, ni una integración real con Supabase/Storage y dos dispositivos.
+Las suites automatizadas se ejecutaron de nuevo tras la reconciliación con `main` y terminaron correctamente. Esto no sustituye una integración real con Supabase/Storage y dos dispositivos.
 
 ### Estado de backend y límites conocidos
 
@@ -56,7 +57,7 @@ PR #13 también pasó sus pruebas sintéticas de identidad/firma (Actions #4, ru
 2. Configurar hosting estático gratuito dentro de cuotas y registrar su URL pública; aportar también el detalle de las dos advertencias actuales, sin tokens ni datos personales.
 3. Probar desde navegador las funciones críticas, los flujos de ruta y geocodificación, normativa, gasolineras, diseño adaptable y animación; registrar errores de consola/red.
 4. Ejecutar el round-trip autenticado y la prueba entre dos dispositivos, incluyendo desconexión, reinicio, reintentos, tombstones, conflictos y cuota local.
-5. Reconciliar con `main` y volver a ejecutar CI para las PR #2, #6, #7, #13 y #14; completar revisión funcional antes de integrar (la respuesta de mergeabilidad ha cambiado y las ramas están detrás de `main`).
+5. Reconciliación con `main` y CI completados para las PR #2, #6, #7, #13 y #14; falta completar revisión funcional antes de integrar.
 6. Desactivar o sustituir integraciones de IA, rutas, correo y mensajería que puedan generar cargos, con degradación clara si alcanzan cuotas gratuitas.
 7. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
 
