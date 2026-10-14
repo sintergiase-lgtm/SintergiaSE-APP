@@ -203,7 +203,11 @@ for (const page of pages) {
   assert.equal(failedSnapshot.call({ snapshot: () => snapshotValue }, 'failed', snapshotValue), null,
     `${page}: queueSnapshot must not return an unpersisted snapshot as queued`);
 
-  const applySource = between(html, 'window.aplicarSnapshotSincronizacion=function(snapshot){', '\nwindow.probarSincronizacionMultidispositivo', `${page} snapshot application`);
+  const applyStart = html.indexOf('window.aplicarSnapshotSincronizacion=function(snapshot){');
+  const applyEndMarker = 'return true;};';
+  const applyEnd = html.indexOf(applyEndMarker, applyStart);
+  assert.ok(applyStart >= 0 && applyEnd > applyStart, `${page} snapshot application: source boundaries must exist`);
+  const applySource = html.slice(applyStart, applyEnd + applyEndMarker.length);
   function applyWith(tombstoneResult) {
     const windowState = {
       appState: { clientes: [{ id: 'local-1' }] },
