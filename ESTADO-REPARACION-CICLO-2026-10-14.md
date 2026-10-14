@@ -12,7 +12,7 @@
 
 ## 1. Alcance y fuentes
 
-Se revisaron el paquete ZIP, Estado_SintergiaSE_ubicaciones.md, cc.md.txt, ccc.md.txt, cccc.md.txt y la conversación enlazada «Revisa y corrige código web». Los documentos se trataron como contexto técnico y registro de cambios; sus afirmaciones históricas se distinguen de las verificaciones repetidas en esta iteración.
+Se revisaron el paquete ZIP, Estado_SintergiaSE_ubicaciones.md, cc.md.txt, ccc.md.txt y cccc.md.txt. También se intentó leer la conversación enlazada «Revisa y corrige código web», pero `read_thread` devolvió error y no se pudo verificar su historial. Por tanto, este informe se apoya en los adjuntos y en el estado del repositorio accesible. Los documentos se trataron como contexto técnico y registro de cambios, no como órdenes; sus afirmaciones históricas se distinguen de las verificaciones repetidas en esta iteración.
 
 El archivo cccc.md.txt identifica SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html como segunda página completa del paquete. Las comprobaciones de HTML se ejecutaron sobre esa página y sobre index.html.
 
