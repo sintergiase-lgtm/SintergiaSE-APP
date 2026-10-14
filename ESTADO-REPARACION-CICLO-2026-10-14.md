@@ -46,7 +46,7 @@ La revisión estática del flujo de acceso y firma encontró dos casos en ambas 
 
 - Un clic sin trazo ponía `hasInk=true` y podía aceptarse como firma. Ahora solo se considera firmada después de dibujar un segmento real; Limpiar también reinicia el estado del trazo.
 - Los fallos al guardar la firma en localStorage o al establecer la autorización de jornada en sessionStorage se ignoraban y permitían continuar. Ahora el modal permanece abierto, no se habilita la firma en memoria y aparece un error recuperable.
-- Se añadió `test-technician-signature-durability.cjs`, que ejecuta el flujo extraído de ambas páginas con un trazo sintético y cubre clic en blanco, trazo, limpieza y fallos de almacenamiento.
+- Si falta el modal o el canvas de firma, el acceso vuelve a bloquearse y no inicia jornada, geolocalización ni muestra acceso correcto. Se cubren rechazo, modal/canvas ausentes y re-bloqueo ejecutando los flujos reales de ambas páginas en `test-technician-signature-durability.cjs`.
 
 ### Pasada adicional: afirmación de identidad
 
@@ -58,7 +58,7 @@ La pantalla de acceso afirmaba que el formato del nombre y la letra de control d
 - **20/20 archivos `.js`/`.ts`:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
-- **CI remoto observado en los heads consultados:** PR #2, ejecución 44, success; PR #3, ejecución 7, success; PR #6, ejecución 18, success. No aparece ejecución PR para el head actual de PR #7 (`99b72fa`); el success anterior de PR #7 corresponde a un head previo.
+- **CI remoto observado en los heads consultados:** PR #2, ejecución 44, success; PR #3, ejecución 7, success; PR #6, ejecución 18, success; PR #13, ejecución #4 (`38501062535`), success en firma, límites de identidad y sintaxis inline. No aparece ejecución PR para el head actual de PR #7 (`99b72fa`); el success anterior de PR #7 corresponde a un head previo.
 
 ### Comprobación remota de GitHub
 
@@ -67,7 +67,7 @@ La pantalla de acceso afirmaba que el formato del nombre y la letra de control d
 - La PR #4 documental está abierta, en borrador, con `mergeable=true`. Este informe se actualiza en su rama `docs/estado-aplicacion-2026-10-13`; main permanece intacta.
 - La PR #6 de fallback está abierta, en borrador, con `mergeable=false`; head `c13d1b39e9b58a89a62affce5bc6d75700ece294`. Comparada con el head actual de su base (PR #2, `90f4eb19fee8c11202de39447735492db8fd9b2b`), la historia está divergida: 13 commits por delante y 13 por detrás desde `edbb625b120ee9b8335ba9b8263a42d48f3d5d97`. Su ejecución PR #18 terminó en success; hay que integrar los cambios recientes de la base y resolver conflictos antes de integrar.
 - La PR #7 de retención está abierta, en borrador, con `mergeable=false`; head `99b72fac532bf43d93aa839322aab02f162e2156`. Comparada con el head actual de su base (PR #6, `c13d1b39e9b58a89a62affce5bc6d75700ece294`), está divergida: 18 commits por delante y 7 por detrás desde `344c2d59b7f7280e07e672f3c43df7206c208d0e`. No aparece ejecución PR para este head; falta integrar la base reciente, resolver conflictos y comprobar CI.
-- La PR #13, `Repara el flujo de identidad y firma del técnico`, está abierta en borrador contra `main` (`53c14f7`), en `fix/identity-signature-truthfulness-20261014`; compara 7 commits por delante y 0 por detrás (`main` no tiene divergencia respecto a su base). Corrige en ambas páginas el falso estado de identidad verificada y la aceptación de un clic vacío como firma; si falla el almacenamiento, la firma no se acepta. Añade pruebas de identidad, persistencia de firma y sintaxis inline. La ejecución CI #1 falló porque faltaba el archivo de la prueba inline; se añadió y la ejecución #2 (`38500335317`) terminó `success` en las tres comprobaciones. El conector aún devuelve `mergeable=false` pese a la comparación limpia; comprobar ese estado antes de integrar. La PR sigue sin fusionar.
+- La PR #13, `Repara el flujo de identidad y firma del técnico`, sigue abierta en borrador contra `main` (`53c14f7`), en `fix/identity-signature-truthfulness-20261014`; head `ad71a507`, 10 commits por delante y 0 por detrás. La API del PR confirma `mergeable=true`. Corrige afirmaciones de identidad y firma en ambas páginas, incluida la ausencia del UI de firma (se mantiene el acceso bloqueado y no comienza la jornada); añade tres pruebas/regresiones sintéticas y workflow. La ejecución #1 falló porque faltaba la prueba de sintaxis inline; la corrección quedó validada en CI #4 (`38501062535`), success en los tres pasos. No se fusionó.
 - La copia del ZIP no es idéntica a `main/index.html` (blobs Git: paquete `cae076a`, `main` `aaf3271`). La inspección del blob actual de `main` confirma que todavía contiene el recorte de tombstones, conflictos pendientes y referencias inciertas, además de informar éxito de `queueSnapshot()` sin confirmar el guardado. La segunda página en `main` conserva la versión sin estas salvaguardas (blob `3f22a0d`); la rama #7 ahora la contiene corregida (`d073824`). No se reemplazó ningún archivo de `main` con el ZIP.
 - Ninguna comprobación confirma que el ZIP completo esté desplegado. No se cambió Supabase, sus datos, secretos ni funciones activas.
 
