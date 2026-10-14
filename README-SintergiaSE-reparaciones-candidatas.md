@@ -5,7 +5,7 @@
 ## Archivos incluidos
 
 1. `sync-operations-v13-candidate.ts`: transacción e idempotencia de snapshots, casts explícitos a JSONB y rechazo `405` para operaciones `upsert/delete` que el endpoint actual no aplica; fuerza el fallback de snapshot del cliente en vez de confirmar cambios que no se guardaron.
-2. `verify-receipt-v14-candidate.ts`: verificación de recibos en modo *fail closed*; exige flags explícitas, referencia concordante e importe dentro de tolerancia; usa el importe registrado en la factura y guarda un estado acorde al resultado.
+2. `verify-receipt-v14-candidate.ts`: verificación de recibos en modo *fail closed*; exige referencia/importe concordantes con la factura registrada, conserva el archivo en Storage con hash y referencia JSONB (sin Base64 embebido), deriva el estado del resultado y deja PDF/HEIC pendientes de revisión manual.
 3. `receipt-register-v13-candidate.ts`: impide reasignar un token a otra factura/importe; el reintento idéntico es idempotente.
 4. `upload-receipt-v12-candidate.ts`: limita el cuerpo antes del parseo, valida Base64 y elimina el archivo de Storage si falla el registro en BD.
 5. `upload-doc-v12-candidate.ts`: límites de petición y limpieza compensatoria de Storage si falla la inserción de metadatos.
@@ -20,19 +20,21 @@
 14. `cita-whatsapp-v14-candidate.ts`: límite de cuerpo y mensaje, validación E.164, timeout de Twilio y CORS estricto.
 15. `gmail-oauth-v11-candidate.ts`: escapa los textos de respuesta HTML (incluido el error devuelto por OAuth), añade CSP/referrer/nosniff y timeout de la llamada de token.
 
-## HTML: corrección adicional de sincronización
+## HTML: endurecimiento local adicional del cliente
 
-- `SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html`: copia completa del HTML consolidado con una corrección aislada en `postSnapshot()`: reutiliza `window.authHeadersSintergia()` y añade `X-Sintergia-Request-ID` al llamar a `realtime-snapshot`, que valida un Bearer personalizado. No cambia las funciones ni el flujo biométrico.
+- `index.html` y `SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html`: copias completas con el GET autenticado del snapshot, filtros de origen/ruta, limpieza segura de `flush()`, retención de operaciones/snapshots hasta su acuse y conservación de elementos añadidos concurrentemente. La página secundaria queda alineada con las reglas de cola y fallback de la principal.
+- Ambas páginas también contienen fallback ante excepciones del proveedor GPS, validación de coordenadas, preflight biométrico protegido y manejo seguro de callbacks asíncronos; el control horario actualiza sólo las duraciones cada segundo y ya no reconstruye la tabla en cada tick. No se cambia el flujo normal ni el diseño.
 
 ## Pruebas ejecutadas
 
 - TypeScript estático `tsc --noEmit` para los quince candidatos de función y archivos asociados: sin errores.
 - `node test-candidate-invariants.cjs`: 13 grupos de invariantes aprobados.
 - `node test-sync-operations-rules.cjs`: 7 invariantes de sincronización aprobados.
-- `node test-receipt-verification-rules.cjs`: 20 aserciones de recibos extraídas del candidato aprobadas, sin depender de la API experimental `stripTypeScriptTypes`.
+- `node test-receipt-verification-rules.cjs`: 34 aserciones de reglas, límites y persistencia de recibos extraídas del propio candidato aprobadas; ya no dependen de `stripTypeScriptTypes` experimental.
 - `node test-email-security-rules.cjs`: 10 pruebas unitarias extraídas de los candidatos de correo, IA y OAuth aprobadas.
 - `node test-appointment-html-rules.cjs`: 7 pruebas de escape HTML para mensajes de citas aprobadas.
-- HTML consolidado v4: los 46 scripts inline extraídos pasan `node --check`; el HTML original permanece sin modificar.
+- Las dos páginas HTML del paquete: sus 45 scripts inline cada una pasan `node --check`; el paquete incluye las correcciones de backend, metadatos PWA, carácter de control, delegado de eventos duplicado y estabilidad de sincronización/GPS descritas en el informe de revisión entregado junto con el ZIP.
+- `test-gps-runtime-errors.cjs`, `test-biometric-error-containment.cjs`, `test-sync-flush-failures.cjs`, `test-sync-queue-retention.cjs` y `test-ui-live-duration-performance.cjs` fuerzan fallos GPS/biométricos, desconexiones/acuse de colas, altas concurrentes, filtros de endpoints y actualización incremental en ambas páginas.
 - Integridad del ZIP: `unzip -t` sin errores.
 
 ## Bloqueadores antes de desplegar
@@ -57,3 +59,4 @@ La lectura de solo lectura encontró que las 69 filas actuales de `sync_operatio
 - `test-snapshot-auth-regression.cjs` extrae `postSnapshot()` del HTML v4 y lo ejecuta con `fetch` simulado. Comprueba que se envían el Bearer de sesión, `X-Sintergia-Request-ID`, el canal y el identificador de cambio, y que no se envían cookies.
 - Ejecutar: `node test-snapshot-auth-regression.cjs /ruta/al/SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html`.
 - Es una prueba aislada del cliente; no verifica que el token sea aceptado por Supabase ni que la escritura real en `app_state` funcione.
+
