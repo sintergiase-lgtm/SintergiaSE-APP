@@ -27,3 +27,7 @@ jobs:
         run: node --check test-receipt-verification-rules.cjs
       - name: Run receipt verification regressions
         run: node test-receipt-verification-rules.cjs
+      - name: Check client receipt-state test syntax
+        run: node --check test-client-receipt-state.cjs
+      - name: Run client receipt-state regressions
+        run: node test-client-receipt-state.cjs
