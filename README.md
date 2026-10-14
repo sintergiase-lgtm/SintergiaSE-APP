@@ -4,11 +4,17 @@ Frontend estático preparado para Cloudflare Pages o GitHub Pages.
 
 Backend: Supabase.
 
-## Publicación estática
+## Restricción de coste: 0 €
 
-- Cloudflare Pages: rama de producción `main`, comando de build `exit 0`, directorio de salida `.`.
-- GitHub Pages: publicar desde `main` / raíz; se incluye `.nojekyll`.
-- La configuración del repositorio no acredita por sí sola que exista un despliegue público activo. Falta anotar y probar la URL real del sitio.
+La aplicación debe funcionar sin cargos de plataformas. No crearé recursos remotos que puedan facturarse, ni activaré proveedores de pago.
+
+- **QA:** no crear ramas de Supabase. Supabase factura el cómputo de las ramas de vista previa por hora ([detalle oficial](https://supabase.com/docs/guides/platform/manage-your-usage/branching)). La alternativa prevista es una instancia local/efímera en CI.
+- **CI:** este repositorio es público; GitHub indica que los runners estándar de Actions son gratuitos para repositorios públicos ([facturación oficial](https://docs.github.com/en/actions/concepts/billing-and-usage)).
+- **Frontend:** Cloudflare Pages Free es una opción candidata para el HTML estático, dentro de sus límites publicados ([límites oficiales](https://developers.cloudflare.com/pages/platform/limits/)). No se ha creado ni configurado un despliegue. GitHub Pages tiene restricciones para sitios comerciales/SaaS ([límites y términos](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)).
+- **Supabase existente:** la integración solo permite confirmar que el proyecto está activo; no expone aquí el plan de facturación ni el uso/cuotas. No se asume que sea gratis.
+- **Servicios externos:** IA, mapas, correo y mensajería pueden consumir cuotas o claves con coste. No deben habilitarse con claves de pago para cumplir el objetivo de 0 €; los límites gratuitos no garantizan disponibilidad continua.
+
+La configuración del repositorio no acredita por sí sola que exista un despliegue público activo. Falta anotar y probar la URL real del sitio.
 
 ## Estado de revisión de la aplicación — 14 de octubre de 2026
 
@@ -43,8 +49,8 @@ Esto acredita las suites automatizadas de esos workflows. No sustituye una prueb
 
 ## Pendiente para cerrar la revisión
 
-1. Facilitar un proyecto Supabase QA aislado (o su `project_ref`) para probar autenticación, snapshots, colas, recibos y Storage con datos sintéticos.
-2. Facilitar la URL pública real del frontend y el detalle de las dos advertencias actuales del diagnóstico, sin tokens ni datos personales.
+1. Preparar QA sin costes mediante Supabase local/CI y datos sintéticos; no usar ramas de vista previa facturables.
+2. Configurar un hosting dentro del plan gratuito y registrar su URL pública; aportar también el detalle de las dos advertencias actuales, sin tokens ni datos personales.
 3. Probar desde navegador las funciones críticas, los flujos de ruta y geocodificación, normativa, gasolineras, diseño adaptable y animación; registrar errores de consola/red.
 4. Ejecutar el round-trip autenticado y la prueba entre dos dispositivos, incluyendo desconexión, reinicio, reintentos, tombstones, conflictos y cuota local.
 5. Revisar e integrar las PR en orden: #2, #6 y #7; revisar por separado #14 antes de cualquier despliegue.
