@@ -63,7 +63,7 @@ const objectPath = sandbox.receiptObjectPath('../token', 'a'.repeat(64), 'applic
 assert.match(objectPath, /^receipts\/[A-Za-z0-9_-]+\/[a-f0-9]{64}\.pdf$/, 'storage path sanitizes token and uses the file digest');
 assert.equal(sandbox.receiptObjectPath('token', 'not-a-digest', 'image/jpeg'), null, 'invalid digest cannot form a storage path');
 const evidence = sandbox.receiptEvidenceMetadata(objectPath, 'a'.repeat(64), 'application/pdf', 123, 'recibo.pdf');
-assert.equal(evidence.bucket, 'sintergia-docs', 'evidence points to the private receipt bucket');
+assert.equal(evidence.bucket, 'sintergia-docs', 'evidence uses the configured Storage bucket name');
 assert.equal(evidence.sha256, 'a'.repeat(64), 'stored evidence includes a digest');
 assert.equal(Object.hasOwn(evidence, 'file_base64'), false, 'evidence metadata never embeds the binary');
 assert.match(source, /storage\.storage\.from\('sintergia-docs'\)\.upload\(storagePath, fileBytes/, 'route uploads the binary to Storage');
