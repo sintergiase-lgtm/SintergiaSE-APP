@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
-const source = fs.readFileSync('/mnt/data/sync-operations-v13-candidate.ts', 'utf8');
+const path = require('node:path');
+const source = fs.readFileSync(path.join(__dirname, 'sync-operations-v13-candidate.ts'), 'utf8');
 assert.match(source, /values\(\$\{rid\},\$\{op\},\$\{JSON\.stringify\(payload\)\}::jsonb,'pending'\)/);
 assert.match(source, /set result=\$\{JSON\.stringify\(result\)\}::jsonb,status='applied'/);
 assert.match(source, /if \(op !== 'snapshot'\) return json\(req, 405/);

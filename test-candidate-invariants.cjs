@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
-const root = '/mnt/data/';
+const path = require('node:path');
+const root = __dirname + path.sep;
 const cases = [
   ['verify-receipt-v14-candidate.ts', /parsed\?\.referenciaCoincide === true/, /parsed\?\.importeCoincide === true/, /MAX_REQUEST_BYTES/, /ALLOWED_ORIGINS/],
   ['receipt-register-v13-candidate.ts', /on conflict\(token\) do nothing/i, /409/, /MAX_REQUEST_BYTES/],

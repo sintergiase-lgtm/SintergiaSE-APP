@@ -2,7 +2,8 @@
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const htmlPath = process.argv[2] || '/mnt/data/SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html';
+const path = require('node:path');
+const htmlPath = process.argv[2] || path.join(__dirname, 'SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 const start = html.indexOf('  async function postSnapshot(item){');
 const end = html.indexOf('  async function postApi(item){', start);

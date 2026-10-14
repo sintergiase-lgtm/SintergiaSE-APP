@@ -1,14 +1,15 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
-const root = '/mnt/data/';
+const { stripTypeScriptTypes } = require('node:module');
+const path = require('node:path');
+const root = __dirname + path.sep;
 const sources = ['cita-email-v15-candidate.ts', 'cita-recordatorio-v14-candidate.ts', 'cita-anulacion-reprogramacion-v13-candidate.ts'];
 for (const file of sources) assert.match(fs.readFileSync(root + file, 'utf8'), /escapeHtmlText\(/, `${file} must escape plain text before using HTML mail`);
 const source = fs.readFileSync(root + sources[0], 'utf8');
 const m = source.match(/function escapeHtmlText\(value: string\): string \{[\s\S]*?\n\}/);
 assert.ok(m, 'escapeHtmlText implementation must exist in the actual email candidate');
-const compiled = ts.transpileModule(m[0] + '\nglobalThis.escapeHtmlText = escapeHtmlText;', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+const compiled = stripTypeScriptTypes(m[0] + '\nglobalThis.escapeHtmlText = escapeHtmlText;', { mode: 'strip' });
 const sandbox = {};
 vm.runInNewContext(compiled, sandbox);
 const escape = sandbox.escapeHtmlText;

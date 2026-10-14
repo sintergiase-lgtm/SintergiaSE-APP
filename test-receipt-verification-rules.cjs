@@ -1,8 +1,9 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
-const source = fs.readFileSync('/mnt/data/verify-receipt-v14-candidate.ts', 'utf8');
+const { stripTypeScriptTypes } = require('node:module');
+const path = require('node:path');
+const source = fs.readFileSync(path.join(__dirname, 'verify-receipt-v14-candidate.ts'), 'utf8');
 function extractFunction(name) {
   const match = source.match(new RegExp(`function ${name}\\b[\\s\\S]*?\\n}\\n`));
   assert.ok(match, `Could not find ${name} in the actual candidate source`);
@@ -14,7 +15,7 @@ const helperSource = [
   extractFunction('evaluateModelVerification'),
   'globalThis.evaluateModelVerification = evaluateModelVerification;'
 ].join('\n');
-const compiled = ts.transpileModule(helperSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+const compiled = stripTypeScriptTypes(helperSource, { mode: 'strip' });
 const sandbox = {};
 vm.runInNewContext(compiled, sandbox);
 const evaluate = sandbox.evaluateModelVerification;

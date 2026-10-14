@@ -20,9 +20,10 @@
 14. `cita-whatsapp-v14-candidate.ts`: límite de cuerpo y mensaje, validación E.164, timeout de Twilio y CORS estricto.
 15. `gmail-oauth-v11-candidate.ts`: escapa los textos de respuesta HTML (incluido el error devuelto por OAuth), añade CSP/referrer/nosniff y timeout de la llamada de token.
 
-## HTML: corrección adicional de sincronización
+## HTML: endurecimiento local adicional del cliente
 
-- `SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html`: copia completa del HTML consolidado con una corrección aislada en `postSnapshot()`: reutiliza `window.authHeadersSintergia()` y añade `X-Sintergia-Request-ID` al llamar a `realtime-snapshot`, que valida un Bearer personalizado. No cambia las funciones ni el flujo biométrico.
+- `index.html` y `SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html`: copias completas con el GET autenticado del snapshot, filtros de origen/ruta, limpieza segura de `flush()`, retención de operaciones/snapshots hasta su acuse y conservación de elementos añadidos concurrentemente. La página secundaria queda alineada con las reglas de cola y fallback de la principal.
+- Ambas páginas también contienen fallback ante excepciones del proveedor GPS, validación de coordenadas, preflight biométrico protegido y manejo seguro de callbacks asíncronos; el control horario actualiza sólo las duraciones cada segundo y ya no reconstruye la tabla en cada tick. No se cambia el flujo normal ni el diseño.
 
 ## Pruebas ejecutadas
 
@@ -32,7 +33,8 @@
 - `node test-receipt-verification-rules.cjs`: 9 pruebas unitarias extraídas del propio candidato de recibos aprobadas.
 - `node test-email-security-rules.cjs`: 10 pruebas unitarias extraídas de los candidatos de correo, IA y OAuth aprobadas.
 - `node test-appointment-html-rules.cjs`: 7 pruebas de escape HTML para mensajes de citas aprobadas.
-- HTML consolidado v4: los 46 scripts inline extraídos pasan `node --check`; el HTML original permanece sin modificar.
+- Las dos páginas HTML del paquete: sus 45 scripts inline cada una pasan `node --check`; el paquete incluye las correcciones de backend, metadatos PWA, carácter de control, delegado de eventos duplicado y estabilidad de sincronización/GPS descritas en el informe de revisión entregado junto con el ZIP.
+- `test-gps-runtime-errors.cjs`, `test-biometric-error-containment.cjs`, `test-sync-flush-failures.cjs`, `test-sync-queue-retention.cjs` y `test-ui-live-duration-performance.cjs` fuerzan fallos GPS/biométricos, desconexiones/acuse de colas, altas concurrentes, filtros de endpoints y actualización incremental en ambas páginas.
 - Integridad del ZIP: `unzip -t` sin errores.
 
 ## Bloqueadores antes de desplegar
