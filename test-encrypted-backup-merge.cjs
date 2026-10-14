@@ -14,15 +14,32 @@ function extractFunction(source, name) {
   return source.slice(start, end);
 }
 
-function importerScenario(page, source, { confirmResult = true, applyResult = true } = {}) {
-  const prepared = [];
+function extractSyncApplier(source) {
+  const start = source.indexOf('window.aplicarSnapshotSincronizacion=function(snapshot)');
+  const end = source.indexOf('\n', start);
+  assert.ok(start >= 0 && end > start, 'sync snapshot applier exists');
+  return source.slice(start, end);
+}
+
+function importerScenario(page, source, { confirmResult = true, saveResult = true } = {}) {
   const audits = [];
   const alerts = [];
   const snapshot = { version: 5, clientes: [{ id: 'backup-client' }], partes: [], facturas: [], horario: null, compras: [] };
   const payload = { format: 'SINTERGIASE-BACKUP', kdf: { salt: 'salt' }, cipher: { iv: 'iv', data: 'ciphertext' } };
+  const persisted = new Map([['sintergia_sync_revision', '47']]);
+  const appState = { clientes: [], partes: [], facturas: [], pendientes: [], stock: [], stockListas: [], compras: [], partCounter: 1, facCounter: 1 };
+  const window = {
+    appState,
+    guardarEstadoStorage() { return saveResult; },
+    renderizarTodo() {},
+    __sgIgn() {},
+  };
   const sandbox = {
-    window: { aplicarSnapshotSincronizacion(value) { prepared.push(value); return applyResult; } },
-    localStorage: { getItem(key) { return key === 'sintergia_sync_revision' ? '47' : null; } },
+    window,
+    localStorage: {
+      getItem(key) { return persisted.has(key) ? persisted.get(key) : null; },
+      setItem(key, value) { persisted.set(key, String(value)); },
+    },
     sessionStorage: { getItem(key) { return key === 'sintergia_device_id' ? 'device-current' : null; } },
     crypto: { subtle: { async decrypt() { return new TextEncoder().encode(JSON.stringify(snapshot)).buffer; } } },
     TextEncoder,
@@ -32,6 +49,9 @@ function importerScenario(page, source, { confirmResult = true, applyResult = tr
     Array,
     Object,
     Date,
+    Map,
+    String,
+    tombstoneBlocksEntity() { return false; },
     prompt() { return 'local-test-password'; },
     confirm() { return confirmResult; },
     alert(message) { alerts.push(String(message)); },
@@ -42,13 +62,15 @@ function importerScenario(page, source, { confirmResult = true, applyResult = tr
     ev: { target: { files: [{ async text() { return JSON.stringify(payload); } }], value: 'selected' } },
   };
   const helpers = [extractFunction(source, 'prepararSnapshotImportacion'), extractFunction(source, 'fusionarCopiaImportada')].join('\n');
+  const mergeArrays = extractFunction(source, 'mergeEntityArrays');
+  const syncApplier = extractSyncApplier(source);
   const importerStart = source.indexOf('async function importarCifrado(');
   const importerEnd = source.indexOf('\n', importerStart);
   assert.ok(importerStart >= 0 && importerEnd > importerStart, `${page}: async importer exists`);
   const importer = source.slice(importerStart, importerEnd);
   assert.match(importer, /fusionarCopiaImportada\(snap\)/, `${page}: importer delegates to sync merge`);
   assert.match(importer, /if\(!confirm\(/, `${page}: importer confirms documented merge semantics`);
-  return vm.runInNewContext(`${helpers}\n${importer}\nimportarCifrado(ev);`, sandbox).then(() => ({ prepared, audits, alerts, snapshot }));
+  return vm.runInNewContext(`${mergeArrays}\n${syncApplier}\n${helpers}\n${importer}\nimportarCifrado(ev);`, sandbox).then(() => ({ alerts, audits, appState, persisted }));
 }
 
 (async () => {
@@ -71,20 +93,16 @@ function importerScenario(page, source, { confirmResult = true, applyResult = tr
     assert.deepEqual(JSON.parse(JSON.stringify(prepared.clientes)), [{ id: 'from-backup' }], `${page}: retains backup records for merge`);
 
     const successful = await importerScenario(page, source);
-    assert.equal(successful.prepared.length, 1, `${page}: applies the decrypted snapshot once`);
-    assert.equal(successful.prepared[0].revision, 47, `${page}: importer passes the normalized revision`);
-    assert.equal(successful.prepared[0].sourceId, 'device-current', `${page}: importer passes the local source ID`);
-    assert.equal(Object.hasOwn(successful.prepared[0], 'horario'), false, `${page}: importer omits a null schedule`);
-    assert.ok(successful.alerts.some(message => /Copia fusionada correctamente/i.test(message)), `${page}: reports success only after application`);
+    assert.deepEqual(JSON.parse(JSON.stringify(successful.appState.clientes)), [{ id: 'backup-client' }], `${page}: persists merged backup records`);
+    assert.ok(successful.alerts.some(message => /Copia fusionada correctamente/i.test(message)), `${page}: reports success only after persistence succeeds`);
 
-    const rejected = await importerScenario(page, source, { applyResult: false });
-    assert.equal(rejected.prepared.length, 1, `${page}: detects failed snapshot application`);
-    assert.ok(rejected.alerts.some(message => /No se pudo restaurar la copia/i.test(message)), `${page}: reports failed application`);
-    assert.equal(rejected.alerts.some(message => /Copia fusionada correctamente/i.test(message)), false, `${page}: does not claim success after failure`);
+    const rejected = await importerScenario(page, source, { saveResult: false });
+    assert.ok(rejected.alerts.some(message => /No se pudo restaurar la copia/i.test(message)), `${page}: reports failed persistence`);
+    assert.equal(rejected.alerts.some(message => /Copia fusionada correctamente/i.test(message)), false, `${page}: does not claim success after a storage failure`);
 
     const cancelled = await importerScenario(page, source, { confirmResult: false });
-    assert.equal(cancelled.prepared.length, 0, `${page}: cancellation does not change local data`);
+    assert.deepEqual(JSON.parse(JSON.stringify(cancelled.appState.clientes)), [], `${page}: cancellation does not change data`);
     assert.equal(cancelled.alerts.length, 0, `${page}: cancellation does not show a success message`);
   }
-  console.log(`PASS: encrypted backup merge import and failure handling across ${pages.length} pages`);
+  console.log(`PASS: encrypted backup import, durability result, and failure handling across ${pages.length} pages`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
