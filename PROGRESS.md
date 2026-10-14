@@ -12,7 +12,7 @@ Base: `main` @ `53c14f7`. Rama: `fix/integral-corregido-20261014` (paquete integ
 - Sin round-trip autenticado POST/GET con `sourceId`/`revision` exactos; sin prueba en dos dispositivos.
 - 71 filas históricas de `sync_operations` (JSONB escalar) y `app_state` vacío: sin reconciliar (no borrar sin copia).
 - PR abiertas #2, #3, #5–#8, #10–#12: sin fusionar; parte de los ajustes del paquete no está en esas PR (posible duplicación con #5/#12).
-- `.nojekyll` no existe en `main` pese a lo que dice README (comprobar si GitHub Pages es el destino).
+- `.nojekyll` añadido en esta rama (faltaba en `main`).
 - URL de producción, Cloudflare/GitHub Pages, Cloud Shell: sin confirmar.
 
 ## Siguiente acción exacta
