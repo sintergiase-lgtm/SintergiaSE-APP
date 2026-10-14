@@ -5,6 +5,7 @@ on:
     branches:
       - fix/sync-p0-ack-and-durability-20261013
       - fix/sync-fallback-full-snapshot-20261013
+      - fix/sync-preserve-tombstones-conflicts-20261013
   pull_request:
     branches:
       - main
@@ -30,5 +31,7 @@ jobs:
         run: node --check test-sync-p0-client-rules.cjs
       - name: Run sync P0 regression tests
         run: node test-sync-p0-client-rules.cjs
+      - name: Run durable queue regression tests
+        run: node test-critical-queue-durability.cjs
       - name: Parse all inline JavaScript blocks
         run: node test-inline-script-syntax.cjs
