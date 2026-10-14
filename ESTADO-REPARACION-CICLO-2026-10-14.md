@@ -65,9 +65,10 @@ La interfaz afirmaba que una copia cifrada reemplazaría los datos. Sin embargo,
 - El importador ahora normaliza la copia con la revisión local actual y el identificador del dispositivo, omite el horario cuando viene vacío, y exige que el aplicador confirme la fusión antes de notificar éxito.
 - La confirmación y el mensaje de éxito describen una fusión: registros nuevos se añaden y los locales más recientes o ausentes de la copia se conservan conforme a las reglas de sincronización. No equivale a restaurar un punto exacto ni elimina registros locales que no estén en el backup.
 - `test-encrypted-backup-merge.cjs` ejecuta los helpers y el importador reales de ambas páginas: fusión confirmada, cancelación y error de aplicación sin falso mensaje de éxito. Se añadió al workflow de recibos en PR #14.
+
 ### Validación local repetida
 
-- **24/24 suites CJS aprobadas:** incluye las regresiones de colas durables, firma del técnico, límites de validación de identidad, verificación de recibos, validación MIME y aprobación/rechazo del recibo.
+- **24/24 suites CJS aprobadas:** incluye regresiones de colas durables, firma, identidad, recibos (incluida validación MIME y aprobación/rechazo) e importación cifrada de backups.
 - **20/20 archivos `.js`/`.ts`:** `node --check` sin errores.
 - **JavaScript inline:** ambas páginas pasan la suite de sintaxis con 45 bloques por página.
 - La suite del service worker confirma la versión de caché v7 y que los fallos de open, match y put de Cache Storage no bloquean la red.
