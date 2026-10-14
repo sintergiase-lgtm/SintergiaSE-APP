@@ -172,14 +172,18 @@ Deno.serve(async req => {
   const tokens = Array.isArray(body.tokens)
     ? [...new Set(body.tokens.map(value => String(value ?? '').trim()).filter(value => value.length > 0 && value.length <= 160))].slice(0, 200)
     : []
-  if (!tokens.length) return json(req, 200, { ok: true, results: [] })
+  const facturaIds = Array.isArray(body.factura_ids)
+    ? [...new Set(body.factura_ids.map(value => String(value ?? '').trim()).filter(value => value.length > 0 && value.length <= 160))].slice(0, 200)
+    : []
+  if (!tokens.length && !facturaIds.length) return json(req, 200, { ok: true, results: [] })
   const withFile = body.withFile === true
 
   try {
     const rows = await db`
       select token, factura_id, status, payload, updated_at
       from sintergia.receipt_tokens
-      where token = any(${tokens})
+      where token = any(${tokens}::text[])
+         or factura_id = any(${facturaIds}::text[])
     `
     const results = []
     for (const row of rows as any[]) {
@@ -206,6 +210,7 @@ Deno.serve(async req => {
         filename: String(receipt?.filename || payload.filename || '').slice(0, 180),
         content_type: String(receipt?.content_type || payload.content_type || '').slice(0, 100),
         size_bytes: Number(receipt?.size_bytes || 0) || 0,
+        receipt_available: Boolean(receipt?.storage_path || (typeof payload.file_base64 === 'string' && payload.file_base64.trim())),
         ...(withFile ? file : { file_base64: '' }),
       })
     }
