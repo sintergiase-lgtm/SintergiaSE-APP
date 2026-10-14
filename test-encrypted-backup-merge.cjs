@@ -76,6 +76,8 @@ function importerScenario(page, source, { confirmResult = true, saveResult = tru
 (async () => {
   for (const page of pages) {
     const source = fs.readFileSync(path.join(__dirname, page), 'utf8');
+    assert.match(source, /window\.aplicarSnapshotSincronizacion\(snap\)!==true\)return false/, `${page}: local persistence failure reaches the caller`);
+    assert.match(source, /if\(!applied\)ultimoHash='';syncToast\(applied\?/, `${page}: periodic sync reports failure and retries later`);
     const helpers = [extractFunction(source, 'prepararSnapshotImportacion'), extractFunction(source, 'fusionarCopiaImportada')].join('\n');
     const preparedSandbox = {
       window: { aplicarSnapshotSincronizacion(value) { this.value = value; return true; } },
