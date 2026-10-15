@@ -66,7 +66,6 @@ jobs:
           db_ip=$(docker inspect "$db_container" | jq -r '.[0].NetworkSettings.Networks | to_entries[0].value.IPAddress')
           test -n "$db_ip"
           printf '%s\n' "ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io" "LOCAL_QA_DATABASE_URL=postgresql://postgres:postgres@${db_ip}:5432/postgres" "LOCAL_QA_DIAGNOSTICS=1" > supabase/functions/.env
-          grep -Eq '^LOCAL_QA_DATABASE_URL=postgresql://postgres:postgres@[0-9.]+:5432/postgres
       - name: Serve the real snapshot function locally
         run: |
           export LOCAL_QA_DATABASE_URL="$(sed -n 's/^LOCAL_QA_DATABASE_URL=//p' supabase/functions/.env)"
