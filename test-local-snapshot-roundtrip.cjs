@@ -68,7 +68,11 @@ function makeDevice(deviceId) {
     headers.set('Origin', 'https://sintergiase-lgtm.github.io');
     assert.equal(headers.get('authorization'), `Bearer ${sessionToken}`, 'POST must use the current HMAC session');
     assert.ok(headers.get('x-sintergia-request-id'), 'POST must include its idempotency/request identifier');
-    return fetch(localEndpoint, { ...options, headers });
+    const response = await fetch(localEndpoint, { ...options, headers });
+    if (!response.ok) {
+      console.error(`Local snapshot request failed: HTTP ${response.status}: ${await response.clone().text()}`);
+    }
+    return response;
   };
   const backendFetch = async (url, options) => {
     const remoteUrl = new URL(url);
