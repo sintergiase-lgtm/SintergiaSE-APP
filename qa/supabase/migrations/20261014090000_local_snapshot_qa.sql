@@ -24,6 +24,23 @@ insert into sintergia.server_secrets(name, value)
 values ('session_hmac', 'local-qa-only-hmac-secret-not-a-production-value')
 on conflict (name) do update set value = excluded.value;
 
+-- Synthetic QA only: preserve and de-duplicate tombstones for the two-device round-trip fixture.
+CREATE OR REPLACE FUNCTION sintergia.merge_tombstone_array_v18(p_old jsonb, p_new jsonb)
+RETURNS jsonb
+LANGUAGE sql
+IMMUTABLE
+AS $function$
+  SELECT COALESCE(jsonb_agg(item ORDER BY item::text), '[]'::jsonb)
+  FROM (
+    SELECT DISTINCT item
+    FROM jsonb_array_elements(
+      (CASE WHEN jsonb_typeof(p_old) = 'array' THEN p_old ELSE '[]'::jsonb END)
+      ||
+      (CASE WHEN jsonb_typeof(p_new) = 'array' THEN p_new ELSE '[]'::jsonb END)
+    ) AS entries(item)
+  ) AS unique_entries
+$function$;
+
 CREATE OR REPLACE FUNCTION sintergia.touch_app_state_v18(p_id text, p_state jsonb, p_updated_by text DEFAULT NULL::text)
  RETURNS bigint
  LANGUAGE plpgsql
