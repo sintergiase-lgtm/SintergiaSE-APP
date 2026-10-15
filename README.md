@@ -14,15 +14,15 @@ La aplicación debe funcionar sin cargos de plataformas. No crearé recursos rem
 - **Supabase existente:** la integración solo permite confirmar que el proyecto está activo; no expone aquí el plan de facturación ni el uso/cuotas. No se asume que sea gratis.
 - **Servicios externos:** IA, mapas, correo y mensajería pueden consumir cuotas o claves con coste. No deben habilitarse con claves de pago para cumplir el objetivo de 0 €; los límites gratuitos no garantizan disponibilidad continua.
 
-La URL pública observada el 16-10-2026 es [https://sintergiase-lgtm.github.io/SintergiaSE-APP/](https://sintergiase-lgtm.github.io/SintergiaSE-APP/); muestra la portada y la puerta de acceso por contraseña. No se autenticó ni se hicieron escrituras. No se ha confirmado que sirva el commit de la PR #2 ni que sea un entorno QA, así que no aporta evidencia de la reparación.
+La URL pública observada el 16-10-2026 es [https://sintergiase-lgtm.github.io/SintergiaSE-APP/](https://sintergiase-lgtm.github.io/SintergiaSE-APP/). La página cargó, el indicador de Supabase apareció operativo y no se observaron errores de consola. El formulario visible rechazó la credencial de la sesión de prueba; no se alcanzó el paso de identidad ni se hicieron escrituras. Después apareció una vista local en modo administrador con firma y jornada previas; no se atribuye a la autenticación recién probada. La firma técnica quedó pendiente, por lo que no se recorrieron los módulos de trabajo. La URL no está confirmada como QA ni se verificó que sirva el commit fusionado.
 
 ## Estado de revisión de la aplicación — 16 de octubre de 2026
 
-Hay 13 PR abiertas: la #2 está fuera de borrador y las otras 12 siguen en borrador. Esta nota registra el estado de la reparación P0 de sincronización en la PR #2; las PR siguen sin fusionar ni desplegar.
+La PR #2 se fusionó en `main` con el commit `69057254b65165d654d5608ec34b59c60d3d1122`; su round-trip virtual está aprobado en CI. El despliegue de ese commit no está confirmado. Las demás PR quedan en revisión según sus estados individuales.
 
 ### Reparaciones preparadas
 
-- **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, abierta, fuera de borrador y mergeable. Ante 401/403 conserva la operación y la cola pendiente, detiene reintentos hasta reautenticar y los POST diferidos usan la sesión actual. La rama está reconciliada con `main`; el código `42ee856399fd2bb04b68fb862f8beb1d275f7861` pasa regresiones y el round-trip de dos dispositivos virtuales pasa contra Supabase local aislado (CI del head de PR `ec89867795078bc4e9517306e8cff3b13452bb1c`).
+- **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, fusionada en `main` mediante `69057254b65165d654d5608ec34b59c60d3d1122`. Ante 401/403 conserva la operación y la cola pendiente, detiene reintentos hasta reautenticar y los POST diferidos usan la sesión actual. La rama está reconciliada con `main`; el código `42ee856399fd2bb04b68fb862f8beb1d275f7861` pasa regresiones y el round-trip de dos dispositivos virtuales pasa contra Supabase local aislado (CI del head de PR `ec89867795078bc4e9517306e8cff3b13452bb1c`).
 - **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, abierta, en borrador y mergeable. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.
 - **Tombstones y conflictos — [PR #7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7)**, abierta, en borrador y mergeable. Conserva eliminaciones y conflictos sin resolver, y verifica la persistencia antes de aplicar snapshots.
 - **Identidad y firma — [PR #13](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/13)**, abierta, en borrador y mergeable; hace explícito que la validación de DNI no acredita identidad real y exige persistir una firma antes de iniciar jornada.
@@ -45,6 +45,8 @@ Las suites automatizadas se ejecutaron después de reconciliar con `main`. La pr
 1. **Análisis y regresiones de cliente:** completados para la PR #2.
 2. **Integración sintética aislada:** completada. Se corrigió el orden de arranque del Edge Runtime para que use la URL de la base local, el bind JSON de la fixture QA y la unión de tombstones necesaria al actualizar un snapshot existente. El workflow pasó; no se usó el Supabase conectado a producción.
 3. **Validación virtual en dos dispositivos:** completada en CI. Dos contextos independientes recorrieron el flujo real del cliente con sesiones sintéticas y Supabase local efímero: A escribió y leyó; B leyó el snapshot de A y guardó una revisión nueva; A recibió exactamente el `sourceId`/`revision` de B. No se usaron teléfonos físicos ni la instancia de producción.
+4. **Comprobación funcional en la URL pública (16-10-2026):** portada y shell cargan, Supabase reporta operativo y no aparecen errores de consola. La credencial de prueba fue rechazada por Supabase; la identidad no se envió. El panel administrador apareció después con estado local previo de jornada/firma; no prueba el acceso de esa credencial. El modal exige una firma personal que debe completar el usuario. La revisión de módulos queda pendiente de una sesión QA autorizada.
+5. **Seguridad de acceso:** el JavaScript público contiene una referencia literal a la credencial esperada. Tratarla como expuesta, retirar esa referencia del cliente y rotar el secreto en Supabase antes de nuevas pruebas administrativas.
 
 #### Protocolo adicional en dispositivos físicos (si se requiere validar hardware)
 
@@ -75,8 +77,8 @@ Las suites automatizadas se ejecutaron después de reconciliar con `main`. La pr
 2. La prueba física descrita arriba sigue pendiente si se requiere cobertura de hardware; la validación virtual solicitada ya está completada. Usar solo sesiones y datos sintéticos.
 3. Probar desde navegador las funciones críticas, los flujos de ruta y geocodificación, normativa, gasolineras, diseño adaptable y animación; registrar errores de consola/red.
 4. El round-trip autenticado POST/GET entre dos contextos virtuales pasó en CI para la PR #2. En hardware aún no se han reproducido desconexión/reinicio, reintento y tombstones; esta cobertura adicional queda condicionada a disponer de teléfonos y QA aislado.
-5. Reconciliación con `main` y CI completados para las PR #2, #6, #7, #13 y #14; falta completar revisión funcional antes de integrar.
+5. La PR #2 está fusionada en `main`; las PR #6, #7, #13 y #14 siguen pendientes de revisión funcional antes de integrar.
 6. Desactivar o sustituir integraciones de IA, rutas, correo y mensajería que puedan generar cargos, con degradación clara si alcanzan cuotas gratuitas.
 7. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
 
-No se han fusionado PR ni desplegado cambios de esta revisión. El round-trip virtual de sincronización está aprobado; la revisión global de la aplicación y cualquier certificación física siguen pendientes de pruebas funcionales en un entorno QA confirmado.
+La PR #2 está fusionada en `main` en el commit `69057254b65165d654d5608ec34b59c60d3d1122`. El despliegue de ese commit no está confirmado. El round-trip virtual de sincronización está aprobado; la revisión global de la aplicación y cualquier certificación física siguen pendientes de pruebas funcionales en un entorno QA confirmado.
