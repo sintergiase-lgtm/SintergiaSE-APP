@@ -38,7 +38,7 @@ BEGIN
    RAISE EXCEPTION 'invalid_app_state_id';
  END IF;
  IF p_state IS NULL OR jsonb_typeof(p_state) IS DISTINCT FROM 'object' THEN
-   RAISE EXCEPTION 'invalid_app_state_payload';
+   RAISE EXCEPTION 'invalid_app_state_payload_%', COALESCE(jsonb_typeof(p_state),'null');
  END IF;
  canonical_id:=CASE WHEN p_id IN ('admin','tecnico') THEN 'sintergia-operativo' ELSE p_id END;
  PERFORM pg_advisory_xact_lock(hashtextextended(canonical_id,0));
