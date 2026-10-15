@@ -34,8 +34,11 @@ DECLARE
  v bigint; old_state jsonb; merged jsonb; k text; peer_id text; canonical_id text;
  incoming_horario jsonb; old_horario jsonb; horario_old_ts timestamptz; horario_new_ts timestamptz;
 BEGIN
- IF p_id IS NULL OR btrim(p_id)='' OR length(p_id)>128 OR p_state IS NULL OR jsonb_typeof(p_state) IS DISTINCT FROM 'object' THEN
-   RAISE EXCEPTION 'invalid_app_state';
+ IF p_id IS NULL OR btrim(p_id)='' OR length(p_id)>128 THEN
+   RAISE EXCEPTION 'invalid_app_state_id';
+ END IF;
+ IF p_state IS NULL OR jsonb_typeof(p_state) IS DISTINCT FROM 'object' THEN
+   RAISE EXCEPTION 'invalid_app_state_payload';
  END IF;
  canonical_id:=CASE WHEN p_id IN ('admin','tecnico') THEN 'sintergia-operativo' ELSE p_id END;
  PERFORM pg_advisory_xact_lock(hashtextextended(canonical_id,0));
