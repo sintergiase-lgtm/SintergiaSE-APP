@@ -65,11 +65,11 @@ jobs:
           if [ -z "$db_container" ]; then docker ps --format '{{.Names}}'; exit 1; fi
           db_ip=$(docker inspect "$db_container" | jq -r '.[0].NetworkSettings.Networks | to_entries[0].value.IPAddress')
           test -n "$db_ip"
-          printf '%s\n' "ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io" "LOCAL_QA_DATABASE_URL=postgresql://postgres:postgres@${db_ip}:5432/postgres" "LOCAL_QA_DIAGNOSTICS=1" > supabase/functions/.env
+          sed -i "s/__LOCAL_QA_DB_HOST__/${db_ip}/g" supabase/functions/realtime-snapshot/index.ts
+          grep -Fq "const LOCAL_QA_DB_HOST='${db_ip}'" supabase/functions/realtime-snapshot/index.ts
+          printf '%s\n' "ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io" "LOCAL_QA_DIAGNOSTICS=1" > supabase/functions/.env
       - name: Serve the real snapshot function locally
         run: |
-          export LOCAL_QA_DATABASE_URL="$(sed -n 's/^LOCAL_QA_DATABASE_URL=//p' supabase/functions/.env)"
-          test -n "$LOCAL_QA_DATABASE_URL"
           npx --yes supabase@latest functions serve realtime-snapshot --env-file supabase/functions/.env > "$RUNNER_TEMP/realtime-snapshot.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/realtime-snapshot.pid"
           for attempt in $(seq 1 60); do
