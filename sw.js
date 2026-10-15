@@ -1,7 +1,7 @@
 /* SintergiaSE offline shell + restricted offline authorization guard. */
 'use strict';
 const CACHE_PREFIX = 'sintergiase-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'v6';
+const CACHE_NAME = CACHE_PREFIX + 'v7';
 const SCOPE_URL = self.registration.scope;
 const APP_SHELL = new URL('./index.html', SCOPE_URL).href;
 const SCOPE_PATH = new URL(SCOPE_URL).pathname;
@@ -20,6 +20,9 @@ function isBackend(url, request) {
 function isAppDocument(url) {
   return url.origin === self.location.origin && (url.pathname === new URL(APP_SHELL).pathname || url.pathname === SCOPE_PATH);
 }
+async function safeCacheOpen() { try { return await caches.open(CACHE_NAME); } catch (_) { return null; } }
+async function safeCacheMatch(cache, request) { try { return cache ? await cache.match(request) : null; } catch (_) { return null; } }
+async function safeCachePut(cache, request, response) { try { if (cache && response) await cache.put(request, response.clone()); } catch (_) {} }
 async function withOfflineGuard(response) {
   if (!response || !response.ok || !/text\/html/i.test(response.headers.get('content-type') || '')) return response;
   const html = await response.clone().text();
@@ -66,23 +69,25 @@ self.addEventListener('fetch', event => {
   if (isBackend(url, request)) return;
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await safeCacheOpen();
       try {
         const response = await fetch(request);
         if (isAppDocument(url)) {
           const guarded = await withOfflineGuard(response);
           if (guarded && guarded.ok && /text\/html/i.test(guarded.headers.get('content-type') || '')) {
-            await cache.put(APP_SHELL, guarded.clone());
+            await safeCachePut(cache, APP_SHELL, guarded);
             return guarded;
           }
         }
         return response;
       } catch (_) {
-        const cached = (await cache.match(request)) || (await cache.match(APP_SHELL));
+        const cached = (await safeCacheMatch(cache, request)) || (await safeCacheMatch(cache, APP_SHELL));
         if (cached) {
-          const guarded = await withOfflineGuard(cached);
-          if (guarded !== cached) await cache.put(APP_SHELL, guarded.clone()).catch(() => {});
-          return guarded;
+          try {
+            const guarded = await withOfflineGuard(cached);
+            if (guarded !== cached) await safeCachePut(cache, APP_SHELL, guarded);
+            return guarded;
+          } catch (_) {}
         }
         return new Response('SintergiaSE no está disponible sin conexión. Abre la aplicación al menos una vez con Internet y vuelve a intentarlo.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
@@ -91,13 +96,14 @@ self.addEventListener('fetch', event => {
   }
   if (url.origin === self.location.origin && ['script', 'style', 'image', 'font', 'manifest'].includes(request.destination)) {
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(request);
+      const cache = await safeCacheOpen();
+      const cached = await safeCacheMatch(cache, request);
       const refresh = fetch(request).then(response => {
-        if (response && response.ok && response.type !== 'opaque') cache.put(request, response.clone()).catch(() => {});
+        if (response && response.ok && response.type !== 'opaque') void safeCachePut(cache, request, response);
         return response;
       }).catch(() => null);
       return cached || (await refresh) || Response.error();
     })());
   }
 });
+

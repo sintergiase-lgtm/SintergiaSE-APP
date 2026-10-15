@@ -1,0 +1,4 @@
+project_id = "sintergia-local-qa"
+
+[functions.realtime-snapshot]
+verify_jwt = false
