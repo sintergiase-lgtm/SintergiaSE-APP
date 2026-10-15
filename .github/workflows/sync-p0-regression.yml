@@ -56,21 +56,16 @@ jobs:
           cp -R qa/supabase/. supabase/
           printf 'ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io\nLOCAL_QA_DIAGNOSTICS=1\n' > supabase/functions/.env
       - name: Start disposable local Supabase stack
-        run: npx --yes supabase@latest start
+        run: npx --yes supabase@latest start -x edge-runtime
       - name: Apply synthetic local schema
         run: npx --yes supabase@latest db reset
       - name: Connect function runtime to disposable database
         run: |
           db_container=$(docker ps --format '{{.Names}}' | grep -E '^supabase_db_' | head -n 1)
           if [ -z "$db_container" ]; then docker ps --format '{{.Names}}'; exit 1; fi
-          db_network=$(docker inspect "$db_container" --format '{{range $name, $config := .NetworkSettings.Networks}}{{$name}}{{end}}')
-          if [ -z "$db_network" ]; then exit 1; fi
-          edge_container=$(docker ps --format '{{.Names}} {{.Image}}' | awk '$2 ~ /edge-runtime/ {print $1; exit}')
-          if [ -z "$edge_container" ]; then docker ps --format '{{.Names}} {{.Image}}'; exit 1; fi
-          if ! docker inspect "$edge_container" | jq -e --arg network "$db_network" '.[0].NetworkSettings.Networks | has($network)' >/dev/null; then
-            docker network connect "$db_network" "$edge_container"
-          fi
-          printf '%s\n' "ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io" "LOCAL_QA_DIAGNOSTICS=1" > supabase/functions/.env
+          db_ip=$(docker inspect "$db_container" | jq -r '.[0].NetworkSettings.Networks | to_entries[0].value.IPAddress')
+          test -n "$db_ip"
+          printf '%s\n' "ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io" "LOCAL_QA_DATABASE_URL=postgresql://postgres:postgres@${db_ip}:5432/postgres" "LOCAL_QA_DIAGNOSTICS=1" > supabase/functions/.env
       - name: Serve the real snapshot function locally
         run: |
           npx --yes supabase@latest functions serve realtime-snapshot --env-file supabase/functions/.env > "$RUNNER_TEMP/realtime-snapshot.log" 2>&1 &
