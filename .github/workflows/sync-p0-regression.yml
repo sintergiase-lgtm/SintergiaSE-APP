@@ -63,10 +63,13 @@ jobs:
         run: |
           db_container=$(docker ps --format '{{.Names}}' | grep -E '^supabase_db_' | head -n 1)
           if [ -z "$db_container" ]; then docker ps --format '{{.Names}}'; exit 1; fi
-          db_ip=$(docker inspect "$db_container" | jq -r '.[0].NetworkSettings.Networks | to_entries[0].value.IPAddress')
-          test -n "$db_ip"
-          sed -i "s/__LOCAL_QA_DB_HOST__/${db_ip}/g" supabase/functions/realtime-snapshot/index.ts
-          grep -Fq "const LOCAL_QA_DB_HOST='${db_ip}'" supabase/functions/realtime-snapshot/index.ts
+          db_network=$(docker inspect "$db_container" --format '{{range $name, $config := .NetworkSettings.Networks}}{{$name}}{{end}}')
+          if [ -z "$db_network" ]; then exit 1; fi
+          edge_container=$(docker ps --format '{{.Names}} {{.Image}}' | awk '$2 ~ /edge-runtime/ {print $1; exit}')
+          if [ -z "$edge_container" ]; then docker ps --format '{{.Names}} {{.Image}}'; exit 1; fi
+          if ! docker inspect "$edge_container" | jq -e --arg network "$db_network" '.[0].NetworkSettings.Networks | has($network)' >/dev/null; then
+            docker network connect "$db_network" "$edge_container"
+          fi
           printf '%s\n' "ALLOWED_ORIGINS=https://sintergiase-lgtm.github.io" "LOCAL_QA_DIAGNOSTICS=1" > supabase/functions/.env
       - name: Serve the real snapshot function locally
         run: |
