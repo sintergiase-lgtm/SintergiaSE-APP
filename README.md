@@ -23,7 +23,7 @@ Backend: Supabase.
 
 ### Punto de relevo — endurecimiento detenido y trabajo pendiente (16/10/2026)
 
-**Base de código al detenerse:** `main` estaba en `1816d5d1cd12fa5d08c91d761f53954859c54044` e incluía los cambios integrados de aislamiento de perfiles de la PR [#26](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/26) y del escenario demo anual de alto volumen de la PR [#27](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/27). La rama `fix/local-crypto-fail-closed-20261016` apunta a ese mismo commit base y no contiene commits de código ni PR. Esta actualización registra el relevo en el README de `main`; el endurecimiento de desbloqueo descrito abajo **no está implementado**. No hubo despliegue ni cambio de producción en este tramo.
+**Base de código del relevo:** `main` estaba en `1816d5d1cd12fa5d08c91d761f53954859c54044` e incluía los cambios de las PR [#26](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/26) y [#27](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/27). El README se actualizó después en `36e8863f63a02c9c2a671f154e7f7d352c638500`. La rama histórica `fix/local-crypto-fail-closed-20261016` sigue en el commit anterior y no contiene código. La continuación actual parte de `main` (`36e8863f63a02c9c2a671f154e7f7d352c638500`) y está presentada como PR de borrador [#28](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/28), desde `fix/local-crypto-fail-closed-20261016-followup`. Cloudflare Pages generó la vista previa de rama [fix-local-crypto-fail-closed-lxjl.sintergiase-app.pages.dev](https://fix-local-crypto-fail-closed-lxjl.sintergiase-app.pages.dev); el aislamiento de previews de la PR #22 neutraliza el backend productivo. No se ha comprobado manualmente la interfaz. La rama no está integrada ni publicada en producción; no se ha modificado QA ni el backend productivo.
 
 #### Lo que ya está hecho y comprobado
 
@@ -34,7 +34,16 @@ Backend: Supabase.
 
 #### Punto exacto donde se interrumpió el siguiente cambio
 
-Se había delimitado una corrección **fail-closed** para `desbloquearApp(password)`: si ninguna envoltura conocida puede abrirse, el cliente debe conservar intactas las envolturas, los datos cifrados y las copias existentes; no debe limpiar almacenamiento, guardar una lista vacía ni continuar como si hubiera creado una base de datos vacía. El trabajo debía añadir una regresión que demostrara que el fallo no altera ningún byte del estado previo y que un formato legado válido sigue abriéndose. La interrupción ocurrió antes de modificar archivos, por lo que ese comportamiento todavía debe verificarse e implementarse en `index.html` y en el HTML consolidado duplicado, si ambos siguen siendo rutas mantenidas.
+La corrección **fail-closed** para `desbloquearApp(password)` ya está implementada en `index.html` y en `SintergiaSE_biometria_reparada_consolidada_v4-sync-auth.html`, en la rama `fix/local-crypto-fail-closed-20261016-followup`.
+
+- Si no hay una envoltura válida, el flujo devuelve fallo y conserva los envoltorios, ciphertext y copias; no borra la lista de claves ni crea un DEK nuevo sobre un almacén existente.
+- El acceso de ambas páginas se detiene cuando falla el desbloqueo local, aunque el backend haya autenticado la contraseña.
+- La DEK restaurada de `sessionStorage` se comprueba contra los ciphertext existentes antes de aceptarla; una clave de sesión obsoleta se descarta y deja el almacén bloqueado.
+- La apertura comprueba que las envolturas candidatas puedan descifrar los registros existentes antes de activar la clave. Si encuentra una envoltura de `sintergia_enc_wraps_antiguas` que abre el almacén, la recupera sin borrar ese respaldo.
+- `test-local-crypto-fail-closed.cjs` valida en ambos HTML: estado byte a byte sin cambios ante contraseña incorrecta, rechazo de una DEK de sesión obsoleta, recuperación desde la envoltura histórica, reemplazo de la envoltura de aplicación obsoleta y rechazo de ciphertext alterado. Resultado local: PASS. También pasaron `node test-inline-script-syntax.cjs` (47 bloques), `node test-public-auth-guard.cjs`, `node test-encrypted-backup-merge.cjs` y `git diff --check`.
+- **Límite de esta corrección:** la comprobación usa el sello del formato `SGX1` existente, que no es autenticación criptográfica. No convierte ChaCha20 propio en AEAD, no retira la clave literal embebida en el HTML y no resuelve la protección en reposo. No ejecutar migraciones de datos reales hasta diseñar y probar recuperación/rollback.
+
+El antiguo flujo, que reemplazaba las envolturas y luego abría una base vacía, queda eliminado. La rama aún requiere revisión de CI y preview antes de solicitar su integración.
 
 #### Bloqueadores antes de usar datos reales
 

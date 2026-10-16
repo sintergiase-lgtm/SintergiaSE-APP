@@ -545,25 +545,55 @@
      cambiar una contraseña no inutiliza la información guardada. */
   var K_ENVOLTURAS = 'sintergia_enc_wraps';
 
-  function sal() {
+  function sal(permitirCrear) {
     var s = getOrig.call(localStorage, K_SAL);
-    if (!s || s.length < 32) {
+    if (s == null) {
+      if (!permitirCrear) return null;
       s = hex(crypto.getRandomValues(new Uint8Array(16)));
       setOrig.call(localStorage, K_SAL, s);
     }
+    if (typeof s !== 'string' || !/^[0-9a-f]{32}$/i.test(s)) return null;
     return unhex(s);
   }
-  async function derivarKEK(password) {
+  async function derivarKEK(password, permitirCrearSal) {
+    var salActual = sal(permitirCrearSal === true);
+    if (!salActual) return null;
     var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(password)), { name: 'PBKDF2' }, false, ['deriveBits']);
-    var bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: sal(), iterations: 210000, hash: 'SHA-256' }, base, 256);
+    var bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salActual, iterations: 210000, hash: 'SHA-256' }, base, 256);
     return new Uint8Array(bits);
   }
   async function idDe(kek) {
     var d = await crypto.subtle.digest('SHA-256', kek);
     return hex(new Uint8Array(d)).slice(0, 32);
   }
-  function envolturas() {
-    try { return JSON.parse(getOrig.call(localStorage, K_ENVOLTURAS) || '{}') || {}; } catch (_) { return {}; }
+  function leerEnvolturas(claveLocal) {
+    var bruto = getOrig.call(localStorage, claveLocal);
+    if (bruto == null) return { raw: null, value: Object.create(null), valid: true };
+    try {
+      var parsed = JSON.parse(bruto);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { raw: bruto, value: Object.create(null), valid: false };
+      var value = Object.create(null);
+      Object.keys(parsed).forEach(function (id) {
+        if (typeof parsed[id] !== 'string') throw new Error('Invalid local key envelope');
+        value[id] = parsed[id];
+      });
+      return { raw: bruto, value: value, valid: true };
+    } catch (_) { return { raw: bruto, value: Object.create(null), valid: false }; }
+  }
+  function envolturas() { return leerEnvolturas(K_ENVOLTURAS).value; }
+  function hayDatosCifrados() {
+    return Object.keys(SENS).some(function (k) { return getOrig.call(localStorage, PREFIJO + k) != null; });
+  }
+  function validarClaveConDatos(dek) {
+    var previa = clave;
+    clave = dek;
+    try {
+      return Object.keys(SENS).every(function (k) {
+        var valor = getOrig.call(localStorage, PREFIJO + k);
+        return valor == null || descifrar(valor) != null;
+      });
+    } catch (_) { return false; }
+    finally { clave = previa; }
   }
   function guardarEnvolturas(w) { setOrig.call(localStorage, K_ENVOLTURAS, JSON.stringify(w)); }
   function envolver(kek, dek) {
@@ -624,14 +654,34 @@
   async function desbloquear(password) {
     if (!password || !window.crypto || !crypto.subtle) return false;
     try {
-      var kek = await derivarKEK(password);
+      var actual = leerEnvolturas(K_ENVOLTURAS);
+      var antigua = leerEnvolturas('sintergia_enc_wraps_antiguas');
+      if (!actual.valid || !antigua.valid) return false;
+      var w = actual.value;
+      var anterior = antigua.value;
+      var cifrados = hayDatosCifrados();
+      var tieneEstadoProtegido = Object.keys(w).length > 0 || Object.keys(anterior).length > 0 || antigua.raw != null || cifrados;
+      var kek = await derivarKEK(password, !tieneEstadoProtegido);
+      if (!kek) return false;
       var id = await idDe(kek);
-      var w = envolturas();
-      var dek = w[id] ? desenvolver(kek, w[id]) : null;
+      var dek = null;
+      var envolturaValida = null;
+      if (Object.prototype.hasOwnProperty.call(w, id)) {
+        var dekActual = desenvolver(kek, w[id]);
+        if (dekActual && validarClaveConDatos(dekActual)) { dek = dekActual; envolturaValida = w[id]; }
+      }
+      if (!dek && Object.prototype.hasOwnProperty.call(anterior, id)) {
+        var dekAnterior = desenvolver(kek, anterior[id]);
+        if (dekAnterior && validarClaveConDatos(dekAnterior)) { dek = dekAnterior; envolturaValida = anterior[id]; }
+      }
       if (!dek) {
-        if (Object.keys(w).length) return false;     // contraseña sin acceso a estos datos
+        if (tieneEstadoProtegido) return false;
         dek = crypto.getRandomValues(new Uint8Array(32));
         w[id] = envolver(kek, dek);
+        guardarEnvolturas(w);
+      } else if (w[id] !== envolturaValida) {
+        /* Recupera la envoltura anterior solo después de verificar que abre los datos existentes. */
+        w[id] = envolturaValida;
         guardarEnvolturas(w);
       }
       activar(dek);
@@ -648,10 +698,20 @@
   async function anadirClave(password) {
     if (!password || !crypto.subtle) return false;
     try {
-      var kek = await derivarKEK(password);
+      var actual = leerEnvolturas(K_ENVOLTURAS);
+      var antigua = leerEnvolturas('sintergia_enc_wraps_antiguas');
+      if (!actual.valid || !antigua.valid) return false;
+      var w = actual.value;
+      var tieneEstadoProtegido = Object.keys(w).length > 0 || Object.keys(antigua.value).length > 0 || antigua.raw != null || hayDatosCifrados();
+      var kek = await derivarKEK(password, !tieneEstadoProtegido);
+      if (!kek) return false;
       var id = await idDe(kek);
-      var w = envolturas();
-      if (w[id]) return true;
+      if (Object.prototype.hasOwnProperty.call(w, id)) {
+        var envuelto = desenvolver(kek, w[id]);
+        if (envuelto && validarClaveConDatos(envuelto)) return true;
+        if (!clave) return false;
+      }
+      if (!clave && tieneEstadoProtegido) return false;
       var dek = clave || crypto.getRandomValues(new Uint8Array(32));
       w[id] = envolver(kek, dek);
       guardarEnvolturas(w);
@@ -663,7 +723,11 @@
   /* Misma pestaña tras recargar: la clave de datos sigue en sessionStorage. */
   try {
     var guardada = sessionStorage.getItem(K_SESION);
-    if (guardada && guardada.length === 64) { clave = unhex(guardada); migrarClaros(); }
+    if (guardada) {
+      var dekGuardada = /^[0-9a-f]{64}$/i.test(guardada) ? unhex(guardada) : null;
+      if (dekGuardada && validarClaveConDatos(dekGuardada)) { clave = dekGuardada; migrarClaros(); }
+      else sessionStorage.removeItem(K_SESION);
+    }
   } catch (_) { }
 
   /* Los tres modos (SSE1, Demofull y cualquier otra contraseña) abren los
@@ -675,15 +739,8 @@
     if (clave) return true;
     if (await desbloquear(CLAVE_DATOS_APP)) return true;
     if (password && await desbloquear(password)) { await anadirClave(CLAVE_DATOS_APP); return true; }
-    /* Ninguna clave conocida abre los datos antiguos: se crea un almacén nuevo
-       para que la aplicación funcione (los datos antiguos no se borran). */
-    try {
-      var w = envolturas();
-      var viejo = getOrig.call(localStorage, 'sintergia_enc_wraps_antiguas');
-      if (!viejo && Object.keys(w).length) setOrig.call(localStorage, 'sintergia_enc_wraps_antiguas', JSON.stringify(w));
-      guardarEnvolturas({});
-      return await desbloquear(CLAVE_DATOS_APP);
-    } catch (e) { window.__sgIgn && window.__sgIgn(e); return false; }
+    /* No hay una clave válida: conservar envolturas y ciphertext y detener el acceso. */
+    return false;
   }
 
   window.SintergiaLocalCrypto = Object.freeze({
@@ -4460,7 +4517,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
                         : window.SintergiaLocalCrypto.desbloquear(value));
                 } catch (e) { window.__sgIgn && window.__sgIgn(e); }
                 if (!desbloqueado || window.SintergiaLocalCrypto.bloqueado()) {
-                    error.textContent = 'No se pudieron desbloquear los datos locales. No se ha abierto la sesión.';
+                    error.textContent = 'No se pudieron abrir los datos locales. El acceso se ha detenido; revisa la contraseña o la copia de seguridad.';
                     return;
                 }
                 error.textContent = '';
