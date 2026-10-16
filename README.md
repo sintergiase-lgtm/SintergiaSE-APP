@@ -6,8 +6,9 @@ Backend: Supabase.
 
 ## Estado actual de la aplicación y seguridad — 16/10/2026
 
-- **Rama principal:** `main` integra PR #20 en `b91d6cac73ee1b71eacd504269b65c56eb95a4a9` y PR #21 en `18a6708d183472fe5b2334a234f4b97bc1b3e48e`. Los checks posteriores a la integración siguen ejecutándose; el despliegue público no se declara verificado hasta comprobarlos.
+- **Rama principal:** `main` integra PR #20 en `b91d6cac73ee1b71eacd504269b65c56eb95a4a9` y PR #21 en `18a6708d183472fe5b2334a234f4b97bc1b3e48e`. Sus checks de `Cloudflare Pages`, `deploy`, `cors` y `request-body-limits` terminaron correctamente; no se releyó el HTML público después de la integración.
 - **Backend de producción:** permanece en `authenticate` v16, `realtime-snapshot` v19 y `sync-operations` v18. Ninguna función de producción se ha sustituido en este ciclo.
+- **Frontera Data API:** auditoría SQL read-only: `anon` y `authenticated` no tienen `USAGE` sobre `sintergia`; las 14 relaciones de producción no conceden `SELECT` a esos roles. Los avisos del advisor «RLS enabled, no policy» son informativos para este esquema privado; no se deben resolver con políticas abiertas.
 - **Backend de QA dUö** (`dwemiuimdrtcpmwmucye`): activo con `authenticate` v2 (`c9e5fe101069357d82c9fef785343a5a8a789b46f62da9d77b26cb77b3ec61ce`), `realtime-snapshot` v5 (`86e5ad3b95cdd2e9773ef69b1d07f62beee80e698403601489795f7b1df31e07`) y `sync-operations` v7 (`3f87d269cd7195d8119a04524ebb76ade9f7b617da5e68ed25f635825fdac2e6`). `verify_jwt=false` se conserva porque estas funciones validan su sesión HMAC propia.
 - **PR #20 — [límite de cuerpo en login](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20):** integrada; limita el JSON de acceso a 4 KiB y cancela cuerpos excesivos.
 - **PR #21 — [límites de entrada y sesión](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** integrada; lector JSON acotado común, tenant firmado obligatorio en sincronización, rate limit basado únicamente en `CF-Connecting-IP` y regresión CORS de preview. Checks en el head: 7/7 aprobados, incluido el round-trip local sintético de dos dispositivos.
