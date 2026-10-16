@@ -89,7 +89,7 @@ try {
       const type = (attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/i) || [])[1] || 'text/javascript';
       return /(?:java|ecma)script/i.test(type);
     });
-  assert.equal(sourceScripts.length, 46, 'expected the complete application JavaScript block set');
+  assert.equal(sourceScripts.length, 47, 'expected the complete application JavaScript block set');
   const builtScripts = [...built.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
   assert.equal(builtScripts.length, sourceScripts.length, 'all script elements must be preserved');
   assert.ok(builtScripts.every(([, attrs]) => /\bsrc\s*=\s*["']\.\/assets\/script-[a-f0-9]{64}\.js["']/i.test(attrs)),
