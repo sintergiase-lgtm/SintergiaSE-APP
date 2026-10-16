@@ -38,7 +38,7 @@ const original = readFileSync(SOURCE, 'utf8');
 const assets = new Map();
 let extractedBytes = 0;
 const imageSrc = /(<img\b[^>]*?\bsrc\s*=\s*)(["'])data:(image\/(?:png|jpe?g|gif|webp));base64,([^"']+)\2/gi;
-const html = original.replace(imageSrc, (whole, prefix, quote, mime, payload) => {
+const imageOptimizedHtml = original.replace(imageSrc, (whole, prefix, quote, mime, payload) => {
   const bytes = Buffer.from(payload, 'base64');
   if (bytes.length < MIN_IMAGE_BYTES) return whole;
   const canonical = bytes.toString('base64').replace(/=+$/, '');
@@ -54,6 +54,27 @@ const html = original.replace(imageSrc, (whole, prefix, quote, mime, payload) =>
   extractedBytes += bytes.length;
   return prefix + quote + './assets/' + name + quote;
 });
+
+const inlineScripts = new Set();
+let inlineScriptCount = 0;
+const scriptTag = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+const html = imageOptimizedHtml.replace(scriptTag, (whole, attributes, body) => {
+  if (/\bsrc\s*=/.test(attributes)) return whole;
+  const type = (attributes.match(/\btype\s*=\s*["']?([^"'\s>]+)/i) || [])[1] || 'text/javascript';
+  if (!/(?:java|ecma)script/i.test(type)) return whole;
+  if (/\b(?:async|defer|nomodule)\b/i.test(attributes)) {
+    throw new Error('Refusing to change inline script scheduling semantics');
+  }
+  const name = 'script-' + createHash('sha256').update(body).digest('hex') + '.js';
+  if (!inlineScripts.has(name)) {
+    writeFileSync(join(OUTPUT, 'assets', name), body, 'utf8');
+    inlineScripts.add(name);
+  }
+  inlineScriptCount++;
+  return '<script' + attributes + ' defer src="./assets/' + name + '"></script>';
+});
+if (inlineScriptCount === 0) throw new Error('No inline JavaScript was externalized');
+
 
 for (const [name, bytes] of assets) {
   writeFileSync(join(OUTPUT, 'assets', name), bytes, { flag: 'wx' });
@@ -72,6 +93,6 @@ if (assets.size === 0 || afterBytes >= beforeBytes) {
   throw new Error('Static build did not reduce the HTML payload');
 }
 console.log(
-  'Static build ready: ' + assets.size + ' images externalized; HTML ' +
+  'Static build ready: ' + assets.size + ' images and ' + inlineScriptCount + ' inline scripts externalized (' + inlineScripts.size + ' JS assets); HTML ' +
   beforeBytes + ' -> ' + afterBytes + ' bytes; assets ' + extractedBytes + ' bytes.'
 );

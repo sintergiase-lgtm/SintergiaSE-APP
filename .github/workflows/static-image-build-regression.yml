@@ -7,13 +7,18 @@ on:
       - _headers
       - scripts/build-static.mjs
       - test-static-image-build.cjs
+      - sw.js
+      - test-sw-guard.cjs
       - .github/workflows/static-image-build-regression.yml
   push:
     branches: [main]
     paths:
       - index.html
+      - _headers
       - scripts/build-static.mjs
       - test-static-image-build.cjs
+      - sw.js
+      - test-sw-guard.cjs
       - .github/workflows/static-image-build-regression.yml
 permissions:
   contents: read
@@ -26,3 +31,4 @@ jobs:
         with:
           node-version: 20
       - run: node test-static-image-build.cjs
+      - run: node test-sw-guard.cjs

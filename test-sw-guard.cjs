@@ -8,7 +8,7 @@ assert.match(source, /const guardTag = '<script id="sintergia-offline-auth-guard
   'Guard injection must emit a valid literal closing script tag.');
 assert.doesNotMatch(source, /<\\\\\/script>/,
   'Guard injection must not emit a backslash before the closing script tag.');
-assert.match(source, /const CACHE_NAME = CACHE_PREFIX \+ 'v7';/,
+assert.match(source, /const CACHE_NAME = CACHE_PREFIX \+ 'v8';/,
   'Cache name must change so clients do not retain the old service-worker shell.');
 assert.match(source, /if \(isBackend\(url, request\)\) return;/,
   'API/auth requests must bypass the shell cache.');
@@ -17,7 +17,7 @@ assert.match(source, /async function safeCacheOpen\(\)/,
 assert.match(source, /async function safeCacheMatch\(cache, request\)/,
   'cache lookup failures must degrade to a network/offline fallback.');
 console.log('PASS: valid offline-guard script tag');
-console.log('PASS: service-worker cache version bumped to v7');
+console.log('PASS: service-worker cache version bumped to v8');
 console.log('PASS: API/auth requests bypass cache interception');
 
 function createWorker({ openFails = false, matchFails = false, putFails = false, fetchImpl }) {
