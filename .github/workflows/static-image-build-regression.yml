@@ -1,0 +1,27 @@
+name: Static image build regressions
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - index.html
+      - scripts/build-static.mjs
+      - test-static-image-build.cjs
+      - .github/workflows/static-image-build-regression.yml
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - scripts/build-static.mjs
+      - test-static-image-build.cjs
+      - .github/workflows/static-image-build-regression.yml
+permissions:
+  contents: read
+jobs:
+  static-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node test-static-image-build.cjs
