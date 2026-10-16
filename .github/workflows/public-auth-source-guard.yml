@@ -1,0 +1,25 @@
+name: Public auth source guard
+on:
+  push:
+    branches:
+      - fix/public-auth-credential-leak-20261016
+    paths:
+      - index.html
+      - test-public-auth-guard.cjs
+      - .github/workflows/public-auth-source-guard.yml
+      - README.md
+  pull_request:
+    paths:
+      - index.html
+      - test-public-auth-guard.cjs
+      - .github/workflows/public-auth-source-guard.yml
+      - README.md
+jobs:
+  source-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node test-public-auth-guard.cjs
