@@ -20,6 +20,8 @@ Backend: Supabase.
 
 **NO APTO para datos operativos de varias empresas.** La separación multiempresa, identidad individual y protección de los datos locales todavía no existen.
 
+- **Revisión de continuidad (16-10-2026):** las PR [#6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6) y [#7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7) siguen basadas en ramas antiguas de la PR #2, ya fusionada; sus checks no validan la integración contra el `main` actual. La PR [#13](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/13) tiene conflictos y además ignora el resultado fallido de `guardarEstadoStorage()` al aplicar/importar snapshots, por lo que puede informar éxito sin persistencia y perder cambios al recargar. La PR [#14](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/14) no vincula token/factura con la empresa de la sesión antes de consultar o devolver recibos; una sesión HMAC válida no acredita titularidad multiempresa. Ninguna de estas PR está lista para integrarse; requieren reconciliación con `main`, autorización por empresa en servidor y checks frescos, incluyendo pruebas negativas entre empresas.
+
 1. **Previews existentes:** los artefactos creados antes de PR #22 pueden conservar el destino anterior; no introducir credenciales o datos reales. Los nuevos previews quedan sin backend remoto deliberadamente hasta configurar una ruta web QA aislada.
 2. **Identidad y autorización:** siguen las credenciales compartidas, tenant fijo y sesiones HMAC de ocho horas sin revocación individual; falta autorización por empresa/rol.
 3. **Datos locales:** clientes, trabajos, facturas y existencias permanecen en `localStorage` sin cifrado en reposo.
