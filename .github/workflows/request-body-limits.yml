@@ -16,8 +16,6 @@ on:
       - test-request-body-limits.cjs
       - .github/workflows/request-body-limits.yml
   pull_request:
-    branches:
-      - main
     paths:
       - supabase/functions/_shared/request-body.mjs
       - supabase/functions/_shared/session-claims.mjs

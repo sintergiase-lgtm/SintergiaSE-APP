@@ -1,5 +1,5 @@
-Warning: truncated output (original token count: 12512)
-Total output lines: 246
+Warning: truncated output (original token count: 12649)
+Total output lines: 247
 
 # SintergiaSE — Static Web
 
@@ -18,7 +18,8 @@ Backend: Supabase.
 - **Backend de producción:** permanece en `authenticate` v16, `realtime-snapshot` v19 y `sync-operations` v18. Ninguna función de producción se ha sustituido en este ciclo.
 - **Frontera Data API:** auditoría SQL read-only: `anon` y `authenticated` no tienen `USAGE` sobre `sintergia`; las 14 relaciones de producción no conceden `SELECT` a esos roles. Los avisos del advisor «RLS enabled, no policy» son informativos para este esquema privado; no se deben resolver con políticas abiertas.
 - **Revisión de autenticación de producción (16-10-2026):** [hallazgos y límites](docs/SECURITY-REVIEW-SUPABASE-20261016.md). `auth_check` puede bloquear globalmente un ámbito durante 15 minutos tras 40 fallos distribuidos; la identidad sigue siendo compartida y los tokens no se revocan antes de expirar. Producción quedó de solo lectura.
-- **Verificador de sesión compartido:** trabajo en curso para unificar el parseo, HMAC y validación de claims en las tres funciones, con regresiones firmadas sintéticas. Aún no desplegado.
+- **PR #30 — [migración local fail-closed](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/30):** borrador apilado sobre #28. Verifica el ciphertext antes de borrar cada claro y conserva el almacén bloqueado si falla; su regresión cubre cuota, reanudación y rechazo de claves/datos incorrectos. Los checks `Cloudflare Pages` y `source-guard` pasaron en `9e06976`.
+- **PR #31 — [verificador HMAC compartido](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/31):** borrador apilado sobre #30. Unifica verificación de bearer y claims en las tres funciones y documenta el audit Supabase read-only. Las pruebas locales de sesión y cliente pasan; el workflow de sesión se amplía para ejecutar también en PR apiladas.
 - **Backend de QA dUö** (`dwemiuimdrtcpmwmucye`): activo con `authenticate` v2 (`c9e5fe101069357d82c9fef785343a5a8a789b46f62da9d77b26cb77b3ec61ce`), `realtime-snapshot` v5 (`86e5ad3b95cdd2e9773ef69b1d07f62beee80e698403601489795f7b1df31e07`) y `sync-operations` v7 (`3f87d269cd7195d8119a04524ebb76ade9f7b617da5e68ed25f635825fdac2e6`). `verify_jwt=false` se conserva porque estas funciones validan su sesión HMAC propia.
 - **PR #20 — [límite de cuerpo en login](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20):** integrada; limita el JSON de acceso a 4 KiB y cancela cuerpos excesivos.
 - **PR #21 — [límites de entrada y sesión](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** integrada; lector JSON acotado común, tenant firmado obligatorio en sincronización, rate limit basado únicamente en `CF-Connecting-IP` y regresión CORS de preview. Checks en el head: 7/7 aprobados, incluido el round-trip local sintético de dos dispositivos.
@@ -86,8 +87,7 @@ La aplicación debe funcionar sin cargos de plataformas. No crearé recursos rem
 
 - **QA:** no crear ramas de Supabase. Supabase factura el cómputo de las ramas de vista previa por hora ([detalle oficial](https://supabase.com/docs/guides/platform/manage-your-usage/branching)). La alternativa prevista es una instancia local/efímera en CI.
 - **CI:** este repositorio es público; GitHub indica que los runners estándar de Actions son gratuitos para repositorios públicos ([facturación oficial](https://docs.github.com/en/actions/concepts/billing-and-usage)).
-- **Frontend:** Cloudflare Pages publica desde `main` en [https://sintergiase-app.pages.dev](https://sintergiase-app.pages.dev); el build reduce el HTML a 2.872.191 bytes y entrega HSTS, `nosniff` y `X-Frame-Options`. La PR #17 integrada contiene la optimización. La URL de GitHub Pages ahora publica solo una redirección a Cloudflare, con CSP meta y un service worker de migración que elimina el caché legado y redirige las sesiones abiertas. Cloudflare sigue siendo la URL operativa y el único origen de la aplicación. GitHub Pages también tiene restricciones para sitios comerciales/SaaS ([límites y términos](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)).
-- …2512 tokens truncated…ear un registro sintético y esperar confirmación remota. Anotar `sourceId` y `revision`; en B, recargar y comprobar que llegan los mismos valores y el registro completo.
+- **Frontend:** Cloudflare Pages publica desde `main` en [https://sintergiase-app.pages.dev](https://sintergiase-app.pages.dev); el build reduce el HTML a 2.872.191 b…2649 tokens truncated…ear un registro sintético y esperar confirmación remota. Anotar `sourceId` y `revision`; en B, recargar y comprobar que llegan los mismos valores y el registro completo.
 - En B, guardar una revisión nueva y confirmar en A que se recibe esa revisión exacta una sola vez.
 - Desconectar A, crear otro cambio, cerrar y reabrir la app; comprobar que permanece en la cola local. Reconectar y verificar confirmación y lectura desde B, sin duplicados ni pérdida.
 - Eliminar en B un registro sintético; confirmar que el tombstone se conserva y que el registro no reaparece al reiniciar o resincronizar A.
