@@ -91,6 +91,7 @@ La PR #2 está fusionada en `main` en el commit `69057254b65165d654d5608ec34b59c
 
 - Cloudflare Pages publica `_headers` con HSTS, `nosniff`, bloqueo de iframes, política de referrer y permisos del navegador limitados. El build copia el archivo y CI comprueba que llegue a `dist`.
 - La CSP queda en modo `Report-Only`: la aplicación conserva 46 scripts inline. Se restringen en el informe los recursos a la propia página y al proyecto Supabase, sin bloquear los flujos antes de completar una migración a scripts con hash y verificar las dependencias reales.
+- El smoke test [38839075158](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38839075158) comprobó por preflight los tres endpoints principales en producción: Cloudflare Pages está permitido, un origen no confiable queda rechazado y CORS con credenciales permanece desactivado.
 - En Supabase, `authenticate` dejó de reflejar cualquier origen CORS; los tres endpoints principales de acceso/sincronización admiten explícitamente Cloudflare Pages y mantienen los orígenes HTTPS ya configurados. HMAC, sesiones, contraseñas y JWT personalizado no se modificaron.
 - La aplicación cargó en Pages hasta la pantalla de acceso. No se introdujeron credenciales de producción ni se hicieron escrituras; por ello, autenticación real, módulos protegidos, sincronización y Storage aún requieren QA con una cuenta autorizada y datos sintéticos.
 
