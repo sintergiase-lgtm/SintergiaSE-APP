@@ -1,6 +1,6 @@
 # SintergiaSE — Static Web
 
-Frontend estático preparado para Cloudflare Pages o GitHub Pages.
+Frontend estático; Cloudflare Pages es el alojamiento canónico y operativo.
 
 Backend: Supabase.
 
@@ -10,7 +10,7 @@ La aplicación debe funcionar sin cargos de plataformas. No crearé recursos rem
 
 - **QA:** no crear ramas de Supabase. Supabase factura el cómputo de las ramas de vista previa por hora ([detalle oficial](https://supabase.com/docs/guides/platform/manage-your-usage/branching)). La alternativa prevista es una instancia local/efímera en CI.
 - **CI:** este repositorio es público; GitHub indica que los runners estándar de Actions son gratuitos para repositorios públicos ([facturación oficial](https://docs.github.com/en/actions/concepts/billing-and-usage)).
-- **Frontend:** Cloudflare Pages está conectado al repositorio y publica en [https://sintergiase-app.pages.dev](https://sintergiase-app.pages.dev). El build externaliza dos logotipos y reduce el HTML de 3.238.921 a 2.872.191 bytes. La rama de producción es `main`; la PR #17 ya integrada contiene la optimización de imágenes y las cabeceras de seguridad. GitHub Pages también refleja ahora `main`; se conserva como URL compatible, mientras Cloudflare Pages es el hosting canónico. GitHub Pages tiene restricciones para sitios comerciales/SaaS ([límites y términos](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)).
+- **Frontend:** Cloudflare Pages publica desde `main` en [https://sintergiase-app.pages.dev](https://sintergiase-app.pages.dev); el build reduce el HTML a 2.872.191 bytes y entrega HSTS, `nosniff` y `X-Frame-Options`. La PR #17 integrada contiene la optimización. La inspección del 16-10-2026 detectó que GitHub Pages todavía sirve el HTML anterior (3.238.188 bytes), que conserva `verificarLocal` y no entrega esas cabeceras; no se debe usar para acceder a la aplicación. Cloudflare Pages es la URL operativa. GitHub Pages también tiene restricciones para sitios comerciales/SaaS ([límites y términos](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)).
 - **Supabase existente:** la organización conectada está en plan **Free** (verificado el 16-10-2026); el proyecto de producción está activo. Las cuotas publicadas incluyen 500.000 invocaciones Edge/mes, 500 MB de base de datos, 5 GB de egress y 1 GB de Storage. Esta conexión no expone el consumo restante, por lo que no se da por garantizado el margen de cuota ([cuotas oficiales](https://supabase.com/docs/guides/platform/billing-on-supabase)).
 - **Servicios externos:** IA, mapas, correo y mensajería pueden consumir cuotas o claves con coste. No deben habilitarse con claves de pago para cumplir el objetivo de 0 €; los límites gratuitos no garantizan disponibilidad continua.
 
@@ -83,7 +83,7 @@ Las suites automatizadas se ejecutaron después de reconciliar con `main`. La pr
 6. Desactivar o sustituir integraciones de IA, rutas, correo y mensajería que puedan generar cargos, con degradación clara si alcanzan cuotas gratuitas.
 7. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
 
-La PR #2 está fusionada en `main` en el commit `69057254b65165d654d5608ec34b59c60d3d1122`; la PR #16 también está fusionada en `main` (`0697d53b80f471479dda34f891462775a305ef24`). El round-trip virtual de dos dispositivos está aprobado en CI con Supabase local efímero. GitHub Pages y Cloudflare Pages muestran ahora la landing y la guardia de acceso del backend; Cloudflare Pages publica desde `main` en `https://sintergiase-app.pages.dev`. Cloud Shell sigue siendo una vista previa temporal. La contraseña de producción se mantiene sin cambios por instrucción del propietario. Siguen pendientes la revisión global en un QA confirmado y cualquier certificación física.
+La PR #2 está fusionada en `main` en `69057254b65165d654d5608ec34b59c60d3d1122`; la PR #16 en `0697d53b80f471479dda34f891462775a305ef24`. El round-trip virtual de dos dispositivos pasa en CI con Supabase local efímero. Cloudflare Pages publica desde `main` en `https://sintergiase-app.pages.dev`; GitHub Pages no se ha republicado desde el 12-10-2026 y aún sirve una copia con autenticación local obsoleta, por lo que queda desaconsejado hasta actualizarlo. Cloud Shell es temporal. La contraseña de producción no se modificó.
 
 
 
@@ -100,7 +100,7 @@ La PR #2 está fusionada en `main` en el commit `69057254b65165d654d5608ec34b59c
 - Se revisaron las funciones Edge activas y los planes oficiales. La matriz de proveedores, límites y próximos cambios está en [docs/API_GRATUITAS_Y_COSTES.md](docs/API_GRATUITAS_Y_COSTES.md).
 - **Coste:** el backend actual puede llamar a OpenAI, Google Routes, Twilio y Resend. Twilio cobra por mensaje; OpenAI/Google pueden facturarse por uso. El modo de coste cero no queda garantizado mientras esas rutas sigan habilitadas sin límite duro verificado. La ruta gratis de Open-Meteo es no comercial; BigDataCloud gratis no admite la llamada server-side actual con coordenadas. Nominatim requiere atribución, caché, máximo de 1 solicitud/segundo para toda la aplicación y no enviar direcciones personales.
 - **Rendimiento:** `index.html` tenía 3.238.921 bytes y 46 scripts inline. El build reproducible extrae los dos logotipos grandes a archivos con hash sin cambiar sus bytes ni el HTML fuente; CI aprobó los assets, la guardia de acceso y la sintaxis de los 46 scripts. El HTML generado mide 2.872.191 bytes (11,3 % menos).
-- **Publicación:** Cloudflare Pages sirve desde `main` y GitHub Pages ya refleja la versión actual. Ambas URLs muestran la landing y el acceso por backend. Cloud Shell es temporal. No se probaron credenciales reales ni escrituras de producción.
+- **Publicación:** la comprobación del 16-10-2026 confirma que Cloudflare Pages sirve la versión actual con cabeceras de seguridad. GitHub Pages sigue sirviendo la copia anterior con `verificarLocal`; mantenerlo fuera del flujo operativo hasta que se actualice o desactive. Cloud Shell es temporal. No se usaron credenciales reales de producción ni se escribieron datos.
 - **Respaldo:** el ZIP histórico anterior a la PR #16 conserva código de autenticación legado. No restaurarlo ni redistribuirlo; el commit de Git debe usarse para rollback seguro hasta sustituir o retirar ese artefacto. La contraseña de producción se mantiene intacta.
 - **Seguridad Supabase:** el advisor de seguridad informa 14 tablas de `sintergia` con RLS habilitado y sin políticas; los privilegios directos de `anon`/`authenticated` estaban restringidos en la revisión previa. El advisor de rendimiento señala 6 índices aún no usados. No se hicieron cambios de esquema en producción.
 
