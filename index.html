@@ -8023,7 +8023,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             const estadoVisualNormalizado = String(estadoVisual || '').toLowerCase().trim();
             const textoEstado = textoEstadoCapitalizado(estadoVisual);
             const textoEstadoHtml = (estadoVisualNormalizado === 'realizado' || estadoVisualNormalizado === 'terminado sin firma')
-                ? `<span class="estado-realizado-alarma" aria-label="Terminado SIN firma">⚠️Terminado SIN ✒️</span>`
+                ? `<span class="estado-realizado-alarma" aria-label="Terminado SIN firma"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado SIN ✒️</span>`
                 : estadoVisualNormalizado === 'firmado'
                     ? `<span class="estado-realizado-alarma" aria-label="Terminado firmado sin guardar"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado✒️ SIN GUARDAR<span class="alarma-icono" aria-hidden="true">⚠️</span></span>`
                     : estadoVisualNormalizado === 'factura anulada'
@@ -8056,6 +8056,9 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             const facturasVinculadas = appState.facturas
                 .map((f, facturaIdx) => ({ f, facturaIdx }))
                 .filter(({ f }) => sgFacturaViva(f) && obtenerPartesFactura(f).includes(String(parteIdVisual)));
+            const facturasAnuladasVinculadas = appState.facturas
+                .map((f, facturaIdx) => ({ f, facturaIdx }))
+                .filter(({ f }) => String(f?.estado || '').toLowerCase().trim() === 'anulado' && obtenerPartesFactura(f).includes(String(parteIdVisual)));
             const tieneFactura = facturasVinculadas.length > 0;
             const badgeFactura = tieneFactura
                 ? '<span class="badge badge-factura-si">Sí</span>'
@@ -8085,10 +8088,10 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
 
             let accionesHTML = '';
             if (esParteDirecto) {
-                if (estadoParte === 'aparcado' || estadoParte === 'realizándose') {
-                    accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : 'realización'}" aria-label="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : 'realización'}">👷🏻‍♂️🛠️</button>`;
+                if (estadoParte === 'aparcado' || estadoParte === 'en trayecto' || estadoParte === 'realizándose') {
+                    accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : (estadoParte === 'en trayecto' ? 'trayecto' : 'realización')}" aria-label="Abrir Parte en ${estadoParte === 'aparcado' ? 'aparcado' : (estadoParte === 'en trayecto' ? 'trayecto' : 'realización')}">👷🏻‍♂️🛠️</button>`;
                 } else if (estadoParte === 'firmado') {
-                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDA⚠️</button>`;
+                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`;
                 } else if (estadoParte === 'terminado sin firma') {
                     /*
                      * Cuando aparece ✒️ no se muestra 🪛, tal como en los
@@ -8111,7 +8114,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 const estadoNormalizado = estadoVisualNormalizado;
 
                 if (parteVinculado?.firma && estadoNormalizado !== 'cobrado' && estadoNormalizado !== 'anulado' && estadoNormalizado !== 'factura anulada') {
-                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDA⚠️</button>`;
+                    accionesHTML = `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [parteVinculadoIndex])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`;
                 } else if (estadoNormalizado === 'aparcado' || estadoNormalizado === 'en trayecto' || estadoNormalizado === 'realizándose') {
                     accionesHTML = `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [parteVinculadoIndex])} title="Abrir Parte en ${estadoNormalizado === 'aparcado' ? 'aparcado' : (estadoNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}" aria-label="Abrir Parte en ${estadoNormalizado === 'aparcado' ? 'aparcado' : (estadoNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}">👷🏻‍♂️🛠️</button>`;
                 } else if (estadoNormalizado === 'pospuesto') {
@@ -8127,7 +8130,11 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                     accionesHTML = `
                         <button type="button" class="btn-secondary btn-firmar-pendiente" ${sgAction("abrirFirmaPartePendiente", [registro.pendienteIdx])} title="Firmar parte realizado" aria-label="Firmar parte realizado">✒️</button>
                         ${botonCorreoAvisoHTML(registro.pendienteIdx, parteVinculadoIndex)}`;
-                } else if (estadoNormalizado === 'terminado' || estadoNormalizado === 'cobrado' || estadoNormalizado === 'factura anulada') {
+                } else if (estadoNormalizado === 'factura anulada') {
+                    accionesHTML = facturasAnuladasVinculadas.map(({ f, facturaIdx }) =>
+                        `<button type="button" class="btn-icon btn-restaurar-anulado" ${sgAction("restaurarFactura", [facturaIdx])} title="Restaurar factura ${escapeHTML(f.idDoc)}" aria-label="Restaurar factura ${escapeHTML(f.idDoc)}">♻️</button>`
+                    ).join('');
+                } else if (estadoNormalizado === 'terminado' || estadoNormalizado === 'cobrado') {
                     accionesHTML = `
                         ${botonCorreoAvisoHTML(registro.pendienteIdx, parteVinculadoIndex)}`;
                 } else if (estadoNormalizado === 'anulado') {
@@ -10102,7 +10109,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             const accionesHistorial = estadoHistorialNormalizado === 'aparcado' || estadoHistorialNormalizado === 'realizándose' || estadoHistorialNormalizado === 'en trayecto'
                 ? `<button type="button" class="btn-parte-en-realizacion" ${sgAction("editarParte", [idx])} title="Abrir Parte en ${estadoHistorialNormalizado === 'aparcado' ? 'aparcado' : (estadoHistorialNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}" aria-label="Abrir Parte en ${estadoHistorialNormalizado === 'aparcado' ? 'aparcado' : (estadoHistorialNormalizado === 'en trayecto' ? 'trayecto' : 'realización')}">👷🏻‍♂️🛠️</button>`
                  : estadoHistorialNormalizado === 'firmado'
-                     ? `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [idx])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDA⚠️</button>`
+                     ? `<button type="button" class="btn-guardar-advertencia" ${sgAction("guardarParteFirmadoDesdeLista", [idx])} title="Guardar y cerrar parte firmado" aria-label="Guardar y cerrar parte firmado">⚠️GUARDAR⚠️</button>`
                  : estadoHistorialNormalizado === 'anulado'
                      ? `<button type="button" class="btn-icon btn-restaurar-anulado" ${sgAction("restaurarParte", [idx])} title="Restaurar estado anterior" aria-label="Restaurar estado anterior">♻️</button>`
                  : (estadoHistorialNormalizado === 'realizado' || estadoHistorialNormalizado === 'terminado sin firma')
@@ -10120,7 +10127,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
                 <td>${escapeHTML(p.clienteNombre || '')}</td>
                 <td>${(Number(p.base) || 0).toFixed(2)} €</td>
                 <td>${sgGarantiaHTML(sgGarantiaParte(p))}</td>
-                <td class="historial-estado-cell"><span class="badge historial-estado-badge ${claseBadgeEstado(p.estadoParte)}">${(() => { const estadoHistorial = String(p.estadoParte || '').toLowerCase().trim(); return (estadoHistorial === 'realizado' || estadoHistorial === 'terminado sin firma') ? '<span class="estado-realizado-alarma" aria-label="Terminado SIN firma">⚠️Terminado SIN ✒️</span>' : (estadoHistorial === 'firmado' ? '<span class="estado-realizado-alarma" aria-label="Terminado firmado sin guardar"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado✒️ SIN GUARDAR<span class="alarma-icono" aria-hidden="true">⚠️</span></span>' : (estadoHistorial === 'facturado' ? 'Factura emitida pendiente cobro' : (estadoHistorial === 'factura anulada' ? estadoFacAnuladaHTML() : textoEstadoCapitalizado(p.estadoParte)))); })()}</span></td>
+                <td class="historial-estado-cell"><span class="badge historial-estado-badge ${claseBadgeEstado(p.estadoParte)}">${(() => { const estadoHistorial = String(p.estadoParte || '').toLowerCase().trim(); return (estadoHistorial === 'realizado' || estadoHistorial === 'terminado sin firma') ? '<span class="estado-realizado-alarma" aria-label="Terminado SIN firma"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado SIN ✒️</span>' : (estadoHistorial === 'firmado' ? '<span class="estado-realizado-alarma" aria-label="Terminado firmado sin guardar"><span class="alarma-icono" aria-hidden="true">⚠️</span>Terminado✒️ SIN GUARDAR<span class="alarma-icono" aria-hidden="true">⚠️</span></span>' : (estadoHistorial === 'facturado' ? 'Factura emitida pendiente cobro' : (estadoHistorial === 'factura anulada' ? estadoFacAnuladaHTML() : textoEstadoCapitalizado(p.estadoParte)))); })()}</span></td>
                 <td class="acciones-cell">
                     <div class="acciones-fixed">
                         ${accionesHistorial}
