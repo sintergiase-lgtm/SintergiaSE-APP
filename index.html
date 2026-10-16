@@ -229,6 +229,185 @@
    P7: copia local de emergencia endurecida; ya no serializa `document.documentElement.outerHTML`; PWA separada con manifest + Service Worker.
 -->
 <script>window.__sgIgn=window.__sgIgn||(function(){var n=0,b=[],busy=false,seen=Object.create(null),sent=0;function f(e){var m="?";try{n++;m=String(e&&e.message||e);if(b.length<300)b.push({t:Date.now(),m:m});if(n<=50)console.warn("[Sintergia] error ignorado #"+n,e);}catch(_){}if(busy||sent>=20||seen[m])return;var a=window.SintergiaSecurity;if(!a||typeof a.audit!=="function")return;busy=true;try{seen[m]=1;sent++;a.audit("error_ignorado",m);}catch(_){}finally{busy=false;}}f.log=b;return f;})();window.__sgJsq=function(v){return String(v==null?'':v).replace(/[\\'"<>&\u0000-\u001f\u2028\u2029]/g,function(c){return '\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4);});};window.__sgEncId=function(v){return encodeURIComponent(String(v==null?'':v)).replace(/[!'()*~]/g,function(c){return '%'+c.charCodeAt(0).toString(16).toUpperCase();});};</script>
+<script id="sintergia-storage-profile-v1">
+(function (global) {
+  'use strict';
+  var DEMO_PREFIX = '__sintergia_demo_v1__:';
+  var MODE_KEY = 'sintergia_modo';
+  var TOKEN_KEY = 'sintergia_auth_token';
+  var RESUME_KEY = 'sintergia_profile_resume_v1';
+  var SENSITIVE_KEYS = Object.freeze({
+    sintergia_clientes: 1, sintergia_partes: 1, sintergia_facs: 1,
+    sintergia_pendientes: 1, sintergia_stock_v2: 1, sintergia_stock_listas_v2: 1,
+    sintergia_horario_v2: 1, sintergia_compras_v2: 1, sintergia_email_api_v1: 1,
+    sintergia_tecnico_firma_dia_v1: 1, sintergia_oca_vencimientos: 1
+  });
+  var session = global.sessionStorage;
+  function validMode(mode) { return mode === 'admin' || mode === 'tecnico' || mode === 'demo'; }
+  function profileFor(mode) { return mode === 'demo' ? 'demo' : (mode === 'admin' || mode === 'tecnico' ? 'operativo' : null); }
+  function liveSession() {
+    try {
+      var raw = session.getItem(TOKEN_KEY);
+      var data = raw ? JSON.parse(raw) : null;
+      return !!(data && typeof data.token === 'string' && data.token.indexOf('v1.') === 0 &&
+        Number.isFinite(Number(data.expiresAt)) && Number(data.expiresAt) > Date.now());
+    } catch (_) { return false; }
+  }
+  var resumeRequested = false, initialMode = null;
+  try {
+    resumeRequested = session.getItem(RESUME_KEY) === '1';
+    var candidateMode = session.getItem(MODE_KEY);
+    if (resumeRequested && liveSession() && validMode(candidateMode)) initialMode = candidateMode;
+    else if (resumeRequested) session.removeItem(RESUME_KEY);
+  } catch (_) { resumeRequested = false; }
+  var activeProfile = profileFor(initialMode);
+  var bootProfile = activeProfile;
+  var proto = global.Storage && global.Storage.prototype;
+  var installed = false, localStorageReady = false;
+  try { localStorageReady = !!(global.Storage && global.localStorage instanceof global.Storage); } catch (_) { localStorageReady = false; }
+  if (proto && localStorageReady) {
+    var nativeGet = proto.getItem, nativeSet = proto.setItem, nativeRemove = proto.removeItem, nativeKey = proto.key, nativeClear = proto.clear;
+    var lengthDescriptor = Object.getOwnPropertyDescriptor(proto, 'length');
+    function isLocal(storage) { try { return storage === global.localStorage; } catch (_) { return false; } }
+    function mappedKey(key) {
+      if (!activeProfile) return null;
+      key = String(key);
+      return activeProfile === 'demo' ? DEMO_PREFIX + key : key;
+    }
+    function isCryptoKey(key) { return /^(?:sintergia_enc_|sgx1_)/.test(String(key)); }
+    function canWriteKey(key) { return activeProfile !== null && (activeProfile === bootProfile || isCryptoKey(key)); }
+    function canRemoveKey(key) { return canWriteKey(key) || (activeProfile !== null && !!SENSITIVE_KEYS[String(key)]); }
+    function visiblePhysical(key) {
+      key = String(key);
+      return activeProfile === 'demo' ? key.indexOf(DEMO_PREFIX) === 0 : activeProfile === 'operativo' && key.indexOf(DEMO_PREFIX) !== 0;
+    }
+    function logicalKey(key) { return activeProfile === 'demo' ? String(key).slice(DEMO_PREFIX.length) : String(key); }
+    function visibleKeys(storage) {
+      if (!activeProfile) return [];
+      var result = [], count = lengthDescriptor && lengthDescriptor.get ? lengthDescriptor.get.call(storage) : 0;
+      for (var i = 0; i < count; i++) {
+        var key = nativeKey.call(storage, i);
+        if (key !== null && visiblePhysical(key)) result.push(logicalKey(key));
+      }
+      return result;
+    }
+    proto.getItem = function (key) {
+      if (!isLocal(this)) return nativeGet.call(this, key);
+      var mapped = mappedKey(key);
+      return mapped === null ? null : nativeGet.call(this, mapped);
+    };
+    proto.setItem = function (key, value) {
+      if (!isLocal(this)) return nativeSet.call(this, key, value);
+      var mapped = mappedKey(key);
+      if (mapped === null || !canWriteKey(key)) return;
+      return nativeSet.call(this, mapped, value);
+    };
+    proto.removeItem = function (key) {
+      if (!isLocal(this)) return nativeRemove.call(this, key);
+      var mapped = mappedKey(key);
+      if (mapped === null || !canRemoveKey(key)) return;
+      return nativeRemove.call(this, mapped);
+    };
+    proto.key = function (index) {
+      if (!isLocal(this)) return nativeKey.call(this, index);
+      var keys = visibleKeys(this), value = keys[Number(index)];
+      return value === undefined ? null : value;
+    };
+    proto.clear = function () {
+      if (!isLocal(this)) return nativeClear.call(this);
+      if (!activeProfile || activeProfile !== bootProfile) return;
+      var count = lengthDescriptor && lengthDescriptor.get ? lengthDescriptor.get.call(this) : 0;
+      for (var i = count - 1; i >= 0; i--) {
+        var key = nativeKey.call(this, i);
+        if (key !== null && visiblePhysical(key)) nativeRemove.call(this, key);
+      }
+    };
+    try {
+      if (!lengthDescriptor || !lengthDescriptor.get || !lengthDescriptor.configurable) throw new Error('Storage length cannot be isolated');
+      Object.defineProperty(proto, 'length', {
+        configurable: true,
+        enumerable: lengthDescriptor.enumerable,
+        get: function () {
+          if (!isLocal(this)) return lengthDescriptor.get.call(this);
+          return visibleKeys(this).length;
+        }
+      });
+      installed = true;
+    } catch (_) { installed = false; }
+  }
+  function activate(mode) {
+    if (!installed || !validMode(mode)) return null;
+    var next = profileFor(mode), prior = activeProfile;
+    activeProfile = next;
+    try { session.setItem(MODE_KEY, mode); }
+    catch (_) { activeProfile = prior; return null; }
+    return { ok: true, changed: prior !== next, profile: next };
+  }
+  function scheduleResume(mode) {
+    if (!installed || !validMode(mode) || profileFor(mode) !== activeProfile || !liveSession()) return false;
+    try { session.setItem(MODE_KEY, mode); session.setItem(RESUME_KEY, '1'); return true; }
+    catch (_) { return false; }
+  }
+  function consumeResume() {
+    if (!installed || !resumeRequested || !initialMode || !liveSession()) return null;
+    resumeRequested = false;
+    try { session.removeItem(RESUME_KEY); } catch (_) { }
+    return { mode: initialMode, profile: profileFor(initialMode) };
+  }
+  function simulateNotice(channel) {
+    if (activeProfile !== 'demo') return null;
+    var result = { ok: true, simulated: true, channel: String(channel || 'aviso'), id: 'DEMO-SIMULADO-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) };
+    try {
+      global.setTimeout(function () {
+        var message = '🧪 Modo demo: aviso simulado; no se ha contactado con clientes.';
+        if (typeof global.mostrarToast === 'function') global.mostrarToast(message);
+        else if (global.console && typeof global.console.info === 'function') global.console.info(message);
+      }, 0);
+    } catch (_) { }
+    return result;
+  }
+  if (typeof global.fetch === 'function') {
+    var originalFetch = global.fetch.bind(global);
+    var noticePaths = Object.freeze({
+      '/functions/v1/send-email': 'email',
+      '/functions/v1/cita-email': 'email',
+      '/functions/v1/cita-whatsapp': 'whatsapp',
+      '/functions/v1/cita-recordatorio': 'recordatorio',
+      '/functions/v1/cita-anulacion-reprogramacion': 'reprogramacion'
+    });
+    global.fetch = function (input, init) {
+      if (activeProfile === 'demo') {
+        try {
+          var rawUrl = typeof input === 'string' ? input : (input && input.url);
+          var method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+          var path = new global.URL(rawUrl, (global.location && global.location.href) || 'https://sintergia.invalid/').pathname.toLowerCase();
+          var channel = noticePaths[path];
+          if (channel && method !== 'GET') {
+            var simulated = simulateNotice(channel);
+            return Promise.resolve(new global.Response(JSON.stringify(simulated), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
+            }));
+          }
+        } catch (_) { }
+      }
+      return originalFetch.apply(global, arguments);
+    };
+  }
+  global.SintergiaStorageProfile = Object.freeze({
+    version: 1,
+    available: installed,
+    profile: function () { return activeProfile; },
+    matches: function (mode) { return installed && profileFor(mode) !== null && profileFor(mode) === activeProfile; },
+    activate: activate,
+    requiresReload: function () { return installed && activeProfile !== null && activeProfile !== bootProfile; },
+    canPersist: function () { return installed && activeProfile !== null && activeProfile === bootProfile; },
+    scheduleResume: scheduleResume,
+    consumeResume: consumeResume,
+    simulateNotice: simulateNotice
+  });
+})(window);
+</script>
 <script id="sintergia-storage-crypto-v1">
 /* =========================================================
  * SINTERGIA · CIFRADO DE DATOS LOCALES EN REPOSO (P36)
@@ -340,6 +519,7 @@
   };
   Storage.prototype.setItem = function (k, v) {
     if (esLocal(this) && SENS[k]) {
+      if (window.SintergiaStorageProfile && !window.SintergiaStorageProfile.canPersist()) return;
       v = String(v);
       memoria[k] = v;
       if (!clave) return;                         // bloqueado: nunca en disco en claro
@@ -351,6 +531,7 @@
   };
   Storage.prototype.removeItem = function (k) {
     if (esLocal(this) && SENS[k]) {
+      if (window.SintergiaStorageProfile && !window.SintergiaStorageProfile.canPersist()) return;
       delete memoria[k];
       try { delOrig.call(this, PREFIJO + k); } catch (_) { }
     }
@@ -4254,19 +4435,34 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
                 error.textContent = 'Contraseña no válida o acceso no autorizado por Supabase.';
                 return;
             }
-            var modo = ({ admin: 'admin', tecnico: 'tecnico', demo: 'demo' })[String(idServidor)] || 'tecnico';
+            var modo = ({ admin: 'admin', tecnico: 'tecnico', demo: 'demo' })[String(idServidor)];
+            if (!modo) { error.textContent = 'El servidor devolvió un perfil no reconocido.'; return; }
+            var perfiles = window.SintergiaStorageProfile;
+            var activacion = perfiles && perfiles.activate(modo);
+            if (!activacion || activacion.ok !== true) {
+                error.textContent = 'No se pudo habilitar el almacenamiento aislado de la aplicación.';
+                return;
+            }
+            if (activacion.changed && window.SintergiaLocalCrypto && window.SintergiaLocalCrypto.olvidarClave) {
+                window.SintergiaLocalCrypto.olvidarClave();
+            }
             passPendiente = value;
             intentos = 0;
             error.textContent = '';
             await mostrarAnimacionCorrecto(modo);
-            /* Descifra los datos locales con esta misma contraseña (P36). */
+            /* El modo ya está autenticado por servidor y el almacén correcto está seleccionado. */
             if (window.SintergiaLocalCrypto && window.SintergiaLocalCrypto.bloqueado()) {
-                error.textContent = 'Descifrando datos…';
+                error.textContent = 'Desbloqueando datos locales…';
+                var desbloqueado = false;
                 try {
-                    await (window.SintergiaLocalCrypto.desbloquearApp
+                    desbloqueado = await (window.SintergiaLocalCrypto.desbloquearApp
                         ? window.SintergiaLocalCrypto.desbloquearApp(value)
                         : window.SintergiaLocalCrypto.desbloquear(value));
                 } catch (e) { window.__sgIgn && window.__sgIgn(e); }
+                if (!desbloqueado || window.SintergiaLocalCrypto.bloqueado()) {
+                    error.textContent = 'No se pudieron desbloquear los datos locales. No se ha abierto la sesión.';
+                    return;
+                }
                 error.textContent = '';
             }
             modoPendiente = modo;
@@ -4399,8 +4595,21 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
     }
 
     async function finalizarAcceso(modo) {
-        /* Modo efectivo: en Demo todos los dispositivos tienen las mismas
-           capacidades que el Modo Administrador. */
+        var perfiles = window.SintergiaStorageProfile;
+        if (!perfiles || !perfiles.matches(modo)) {
+            if (window.__mostrarErrorApp) window.__mostrarErrorApp('El perfil autenticado no coincide con el almacén seleccionado.');
+            return;
+        }
+        try { sessionStorage.setItem('sintergia_modo', modo); } catch(_){window.__sgIgn&&window.__sgIgn(_);}
+        if (perfiles.requiresReload()) {
+            if (!perfiles.scheduleResume(modo)) {
+                if (window.__mostrarErrorApp) window.__mostrarErrorApp('No se pudo preparar de forma segura el cambio de almacén. Vuelve a autenticarte.');
+                return;
+            }
+            location.reload();
+            return;
+        }
+        /* Modo efectivo: admin y técnico comparten los datos operativos; demo usa su almacén propio. */
         window.SintergiaAccess = Object.freeze({
             mode: modo,
             grupo: (modo === 'demo') ? 'demo' : 'operativo',
@@ -4408,7 +4617,6 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
             isDemo: modo === 'demo',
             authenticatedAt: Date.now()
         });
-        try { sessionStorage.setItem('sintergia_modo', modo); } catch(_){window.__sgIgn&&window.__sgIgn(_);}
 
         /* Animación de acceso correcto justo antes de la transición de entrada. */
         try { await mostrarAnimacionCorrecto(modo); } catch (_) { window.__sgIgn && window.__sgIgn(_); }
@@ -4448,6 +4656,24 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
             inputPass.focus();
         });
         setTimeout(function () { inputPass.focus(); }, 50);
+        var perfiles = window.SintergiaStorageProfile;
+        var reanudacion = perfiles && perfiles.consumeResume();
+        if (reanudacion) {
+            try {
+                var tecnicoGuardado = JSON.parse(sessionStorage.getItem('sintergia_technician') || 'null');
+                if (tecnicoGuardado && tecnicoGuardado.verified === true &&
+                    tecnicoGuardado.modo === reanudacion.mode &&
+                    typeof tecnicoGuardado.nombre === 'string' && typeof tecnicoGuardado.dni === 'string') {
+                    window.SintergiaTechnician = tecnicoGuardado;
+                    modoPendiente = reanudacion.mode;
+                    setTimeout(function () {
+                        finalizarAcceso(reanudacion.mode).catch(function (e) {
+                            if (window.__mostrarErrorApp) window.__mostrarErrorApp('No se pudo reanudar el cambio de almacén: ' + (e.message || e));
+                        });
+                    }, 0);
+                }
+            } catch (_) { window.__sgIgn && window.__sgIgn(_); }
+        }
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAccess, { once: true });
@@ -9084,6 +9310,8 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     }
 
     async function enviarPorApiEmail({to,subject,text,html,attachments=[],ignorarActivacion=false,tags=[]}) {
+        const simulacion = window.SintergiaStorageProfile && window.SintergiaStorageProfile.simulateNotice('email');
+        if (simulacion) return simulacion;
         const c=appState.emailApi||{};
         if((!ignorarActivacion&&!c.enabled)||!c.endpoint||!c.from) throw new Error('Configure el remitente y active el backend de correo.');
         if(!to||!String(to).includes('@')) throw new Error('El cliente no tiene un email válido.');
@@ -13028,7 +13256,7 @@ function openToday(){ensureState();var ds=weekDates(todayISO()),today=todayISO()
 function renderSelected(){ensureState();renderDays();bindRutasDynamicEvents();try{RutasIA.render();bindRutasDynamicEvents();}catch(e){window.__sgIgn&&window.__sgIgn(e);}}
 function markSent(id,channel,token,p){var c=cita(id);c.enviado=true;c.enviadoAt=c.enviadoAt||Date.now();c.canal=channel;c.token=token;c.fecha=p.fecha;c.hora=p.hora;c.propuestaAnterior={fecha:p.fecha,hora:p.hora};state.citas[id]=c;saveSafe();}
 function markConfirmed(id,resp,source){var c=cita(id);var old={fecha:c.fecha,hora:c.hora,canal:c.canal};c.respuesta=resp;c.respuestaAt=Date.now();c.respuestaOrigen=source||'cliente';if(resp==='si'){c.confirmadaAt=Date.now();c.flexible=false;c.manualConfirmed=false;state.citas[id]=c;saveSafe();return old;}c.rechazadaAt=Date.now();c.flexible=true;state.citas[id]=c;saveSafe();return old;}
-async function notifyReschedule(id,old,newP){var c=cita(id);var a=avisosActivos().find(function(x){return String(x.id)===String(id);});if(!a||!newP)return;var cli=(typeof st==='function'?st().clientes:state.clientes||[]).find(function(x){return String(x.id)===String(a.clienteId)})||{};var email=cli.email||c.email||'',tel=String(cli.tel||c.tel||'').replace(/[^\d+]/g,'');if(tel&&tel.indexOf('+')!==0)tel=tel.length===9?'+34'+tel:'+'+tel;var text='Hola '+(cli.nombre||a.clienteNombre||'')+',\n\nDisculpe las molestias. La propuesta anterior de cita del '+(old.fecha||'')+' a las '+(old.hora||'')+' h ha quedado anulada porque su confirmación llegó después de una reorganización de la ruta.\n\nTras recalcular la ruta, le proponemos '+(newP.fecha||'')+' a las '+(newP.hora||'')+' h.\n\nPor favor, confirme esta nueva propuesta. Gracias por su comprensión.\n\nSintergiaSE';try{await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-anulacion-reprogramacion',{avisoId:id,to:email,telefono:tel,cliente:cli.nombre||a.clienteNombre||'',anterior:old,nueva:{fecha:newP.fecha,hora:newP.hora},texto:text},15000);}catch(e){if(email){try{window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Nueva propuesta de cita')+'&body='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}if(tel){try{window.open('https://wa.me/'+tel.replace('+','')+'?text='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}}}
+async function notifyReschedule(id,old,newP){if(window.SintergiaStorageProfile&&window.SintergiaStorageProfile.profile()==='demo'){window.SintergiaStorageProfile.simulateNotice('reprogramacion');return;}var c=cita(id);var a=avisosActivos().find(function(x){return String(x.id)===String(id);});if(!a||!newP)return;var cli=(typeof st==='function'?st().clientes:state.clientes||[]).find(function(x){return String(x.id)===String(a.clienteId)})||{};var email=cli.email||c.email||'',tel=String(cli.tel||c.tel||'').replace(/[^\d+]/g,'');if(tel&&tel.indexOf('+')!==0)tel=tel.length===9?'+34'+tel:'+'+tel;var text='Hola '+(cli.nombre||a.clienteNombre||'')+',\n\nDisculpe las molestias. La propuesta anterior de cita del '+(old.fecha||'')+' a las '+(old.hora||'')+' h ha quedado anulada porque su confirmación llegó después de una reorganización de la ruta.\n\nTras recalcular la ruta, le proponemos '+(newP.fecha||'')+' a las '+(newP.hora||'')+' h.\n\nPor favor, confirme esta nueva propuesta. Gracias por su comprensión.\n\nSintergiaSE';try{await post('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/cita-anulacion-reprogramacion',{avisoId:id,to:email,telefono:tel,cliente:cli.nombre||a.clienteNombre||'',anterior:old,nueva:{fecha:newP.fecha,hora:newP.hora},texto:text},15000);}catch(e){if(email){try{window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Nueva propuesta de cita')+'&body='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}if(tel){try{window.open('https://wa.me/'+tel.replace('+','')+'?text='+encodeURIComponent(text),'_blank');}catch(x){window.__sgIgn&&window.__sgIgn(x);}}}}
 function findParada(id){var found=null;(state.rutas||[]).forEach(function(r){(r.paradas||[]).forEach(function(p){if(String(p.avisoId)===String(id))found={r:r,p:p};});});return found;}
 async function applyClientResponse(id,resp,source){ensureState();
 /* P65-R4: respuestas coherentes */
@@ -13661,6 +13889,7 @@ async function reverseGeocodeDireccion(lat,lon){try{return sgFormatoDireccion(aw
  window.sgResumenEnviar=function(canal){
   var ta=$('rev-resumen');if(!ta||!ta.value.trim())return;
   var c=cliente(),txt=ta.value,idp=($('parte-id')||{}).value||'';
+  if(window.SintergiaStorageProfile&&window.SintergiaStorageProfile.profile()==='demo'){window.SintergiaStorageProfile.simulateNotice(canal==='email'?'email':'whatsapp');return;}
   if(canal==='email'){
    var em=(($('parte-cliente-email')||{}).value||'').trim()||(c&&c.email)||'';
    window.location.href='mailto:'+encodeURIComponent(em).replace(/%40/g,'@')+'?subject='+encodeURIComponent('Parte de trabajo '+idp+' - SintergiaSE')+'&body='+encodeURIComponent(txt);
