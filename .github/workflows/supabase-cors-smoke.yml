@@ -1,0 +1,23 @@
+name: Supabase CORS smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - test-supabase-cors-smoke.mjs
+      - .github/workflows/supabase-cors-smoke.yml
+  push:
+    branches: [main]
+    paths:
+      - test-supabase-cors-smoke.mjs
+      - .github/workflows/supabase-cors-smoke.yml
+permissions:
+  contents: read
+jobs:
+  cors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node test-supabase-cors-smoke.mjs
