@@ -6706,6 +6706,12 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
      */
 const _ultimoEstadoGuardado = {};
 window.guardarEstadoStorage = function guardarEstadoStorage() {
+    const anteriores = Object.create(null);
+    const escritos = [];
+    const claveRevision = 'sintergia_sync_revision';
+    let revisionAnterior = null;
+    let revisionCapturada = false;
+    let rollbackOk = true;
     try {
         const datos = {
             sintergia_clientes: JSON.stringify(appState.clientes),
@@ -6724,19 +6730,27 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         if (Object.prototype.hasOwnProperty.call(appState, 'compras')) {
             datos.sintergia_compras_v2 = JSON.stringify(appState.compras || []);
         }
+        const claves = Object.keys(datos);
+        for (const clave of claves) anteriores[clave] = localStorage.getItem(clave);
+        revisionAnterior = localStorage.getItem(claveRevision);
+        revisionCapturada = true;
+
         let changed = false;
-        for (const clave in datos) {
-            if (_ultimoEstadoGuardado[clave] !== datos[clave]) {
+        for (const clave of claves) {
+            if (anteriores[clave] !== datos[clave]) {
                 localStorage.setItem(clave, datos[clave]);
-                _ultimoEstadoGuardado[clave] = datos[clave];
+                escritos.push(clave);
                 changed = true;
             }
         }
         if (changed) {
-            /* Advance the revision BEFORE dispatching the synchronous event. The sync listener
-               builds its snapshot inside that event and must see the revision for this save. */
-            const prev = parseInt(localStorage.getItem('sintergia_sync_revision') || '0', 10);
-            localStorage.setItem('sintergia_sync_revision', String(Number.isFinite(prev) ? prev + 1 : 1));
+            const prev = parseInt(revisionAnterior || '0', 10);
+            localStorage.setItem(claveRevision, String(Number.isFinite(prev) ? prev + 1 : 1));
+        }
+        for (const clave of claves) _ultimoEstadoGuardado[clave] = datos[clave];
+
+        if (changed) {
+            /* Advance revision before the synchronous event so the listener sees this save. */
             try {
                 if (!window.__sintergiaSuppressOfflineQueue) {
                     window.dispatchEvent(new CustomEvent('sintergia-state-saved', {detail:{reason:'guardarEstadoStorage'}}));
@@ -6745,8 +6759,36 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         }
         return true;
     } catch (error) {
+        if (revisionCapturada) {
+            try {
+                if (localStorage.getItem(claveRevision) !== revisionAnterior) {
+                    localStorage.removeItem(claveRevision);
+                }
+            } catch (_) { rollbackOk = false; }
+        }
+        /* Free the newly written values first, then restore the snapshot to avoid transient quota overflow. */
+        for (let i = escritos.length - 1; i >= 0; i--) {
+            try { localStorage.removeItem(escritos[i]); }
+            catch (_) { rollbackOk = false; }
+        }
+        for (let i = escritos.length - 1; i >= 0; i--) {
+            const clave = escritos[i];
+            if (anteriores[clave] === null) continue;
+            try { localStorage.setItem(clave, anteriores[clave]); }
+            catch (_) { rollbackOk = false; }
+        }
+        if (revisionCapturada && revisionAnterior !== null) {
+            try { localStorage.setItem(claveRevision, revisionAnterior); }
+            catch (_) { rollbackOk = false; }
+        }
+        for (const clave of Object.keys(anteriores)) {
+            if (rollbackOk && anteriores[clave] !== null) _ultimoEstadoGuardado[clave] = anteriores[clave];
+            else delete _ultimoEstadoGuardado[clave];
+        }
         console.error('No se pudo guardar el estado en LocalStorage:', error);
-        mostrarToast('⚠️ Cambios aplicados en pantalla, pero LocalStorage está lleno. Exporta un backup y elimina datos antiguos.');
+        mostrarToast(rollbackOk
+            ? '⚠️ No se guardaron los cambios; se recuperó el estado anterior de LocalStorage.'
+            : '⚠️ Falló el guardado y no se pudo confirmar la recuperación completa. Exporta un backup y revisa el almacenamiento.');
         return false;
     }
 }
@@ -7822,7 +7864,8 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
     function leerReciboTokens(){ try{ return JSON.parse(localStorage.getItem(RECIBO_TOKENS_KEY)||'{}')||{}; }catch(_){ return {}; } }
     function registrarReciboToken(token,factura){
         try{
-            const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
+            const m=leerReciboTokens(); m[token]={idDoc:factura.idDoc,at:Date.now()}; factura.reciboClienteToken=true; localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
+            try{if(typeof guardarEstadoStorage==='function')guardarEstadoStorage();}catch(e){window.__sgIgn&&window.__sgIgn(e);}
             fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-register',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',body:JSON.stringify({token,facturaId:String(factura.idDoc),importe:Number(factura.total)||0,cliente:factura.clienteNombre||''})}).catch(e=>{window.__sgIgn&&window.__sgIgn(e);});
         }catch(_){window.__sgIgn&&window.__sgIgn(_);}
     }
@@ -7831,15 +7874,21 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const m=leerReciboTokens(); const tokens=[];
         Object.keys(m).forEach(t=>{ const f=(appState.facturas||[]).find(x=>String(x.idDoc)===String(m[t].idDoc)); if(!f||f.estado==='Cobrado'||!sgFacturaAdmiteRecibo(f)){ if(!f||Date.now()-m[t].at>90*864e5) delete m[t]; return; } tokens.push(t); });
         localStorage.setItem(RECIBO_TOKENS_KEY,JSON.stringify(m));
-        if(!tokens.length) return;
+        const facturaIds=[...new Set((appState.facturas||[]).filter(f=>f&&(f.reciboClienteToken===true||f.reciboCliente===true)&&!/^(?:devuelta|anulado|rectificativa)$/i.test(String(f.estado||'').trim())).map(f=>String(f.idDoc||'').trim()).filter(Boolean))].slice(0,200);
+        if(!tokens.length&&!facturaIds.length) return;
         try{
-            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),withFile:true})});
+            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:tokens.slice(0,200),factura_ids:facturaIds,withFile:false})});
             if(!r.ok) return; const d=await r.json(); let cambios=false;
             (d.results||[]).forEach(res=>{
+                if(!res.receipt_available) return;
                 const idx=(appState.facturas||[]).findIndex(x=>String(x.idDoc)===String(res.factura_id)); if(idx<0) return;
-                const f=appState.facturas[idx]; if(f.estado==='Cobrado'||String(f.estado||'').toLowerCase()==='devuelta'||!sgFacturaAdmiteRecibo(f)) return; /* P64-D5 */
+                const f=appState.facturas[idx];
+                if(f.reciboCliente!==true){f.reciboCliente=true;cambios=true;}
+                const contentType=String(res.content_type||''); if(contentType&&f.reciboFileType!==contentType){f.reciboFileType=contentType;cambios=true;}
+                const filename=String(res.filename||''); if(filename&&f.reciboNombreArchivo!==filename){f.reciboNombreArchivo=filename;cambios=true;}
+                const receivedAt=String(res.verified_at||''); if(receivedAt&&f.reciboRecibidoAt!==receivedAt){f.reciboRecibidoAt=receivedAt;cambios=true;}
+                if(f.estado==='Cobrado'||String(f.estado||'').toLowerCase()==='devuelta'||!sgFacturaAdmiteRecibo(f)) return; /* P64-D5 */
                 if(f.reciboVerificadoAt&&res.verified_at&&new Date(f.reciboVerificadoAt)>=new Date(res.verified_at)) return;
-                if(res.file_base64){ f.reciboDataUrl='data:'+(res.content_type||'application/octet-stream')+';base64,'+res.file_base64; f.reciboFileType=res.content_type||''; f.reciboNombreArchivo=res.filename||'recibo'; f.reciboRecibidoAt=res.verified_at; }
                 f.reciboVerificacionMotivo=res.motivo||''; f.reciboVerificadoAt=res.verified_at||new Date().toISOString();
                 if(res.valido){ f.estado='Cobrado'; f.reciboValidadoAt=f.reciboVerificadoAt; marcarFacturaCobradaEnCascada(idx,true); mostrarToast('✅ El cliente subió el recibo de '+f.idDoc+': COBRADO.'); }
                 else { f.estado='Cobrado pendiente validacion'; mostrarToast('⁉️ Recibo de '+f.idDoc+' no verificado: '+(res.motivo||'')); }
@@ -9625,7 +9674,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         if (!f) return false;
         const est = String(f.estado || '').toLowerCase().trim();
         const efectivo = est === 'anulado' ? String(f.estadoAntesDeAnulacion || '').toLowerCase().trim() : est;
-        const tieneRecibo = !!(f.reciboDataUrl || f.reciboRemotoUrl || f.reciboBase64);
+        const tieneRecibo = !!(f.reciboDataUrl || f.reciboRemotoUrl || f.reciboBase64 || f.reciboCliente === true);
         return efectivo === 'cobrado' && !!f.reciboValidadoAt && tieneRecibo;
     }
     window.sgReciboVerificado = sgReciboVerificado;
@@ -10326,7 +10375,7 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
             if (fTxt && !(f.concepto || '').toLowerCase().includes(fTxt.toLowerCase())) return;
             if (fEstado !== 'todos' && String(f.estado || '').toLowerCase() !== fEstado) return;
 
-            const tieneRecibo=!!(f.reciboDataUrl||f.reciboRemotoUrl||f.reciboBase64);
+            const tieneRecibo=!!(f.reciboDataUrl||f.reciboRemotoUrl||f.reciboBase64||f.reciboCliente===true);
             const estadoKey=String(f.estado||'').toLowerCase().trim();
             const estadoCobrado=estadoKey==='cobrado';
             const reciboPendiente=estadoKey==='cobrado pendiente validacion';
@@ -10585,10 +10634,33 @@ window.guardarEstadoStorage = function guardarEstadoStorage() {
         const f=appState.facturas[idx],urlBase=normalizarEndpointBackendSintergia(appState.emailApi?.syncUrl, window.SINTERGIA_BACKEND.mail.endpoint);if(!f||!appState.emailApi?.syncUrl)return false;
         try{const u=new URL(urlBase);u.searchParams.set('facturaId',f.idDoc);const r=await fetch(u.toString(),{cache:'no-store'});if(!r.ok)return false;const d=await r.json();const rec=d.receipt||d.recibo||d; if(rec&& (rec.url||rec.dataUrl||rec.base64)){f.reciboRemotoUrl=rec.url||f.reciboRemotoUrl||'';f.reciboDataUrl=rec.dataUrl||((rec.base64&&rec.contentType)?`data:${rec.contentType};base64,${rec.base64}`:f.reciboDataUrl);f.reciboFileType=rec.contentType||f.reciboFileType||'';f.reciboNombreArchivo=rec.filename||f.reciboNombreArchivo||'recibo';f.reciboRecibidoAt=rec.receivedAt||f.reciboRecibidoAt;f.estado=rec.validado?'Cobrado':'Cobrado pendiente validacion';guardarEstadoStorage();renderizarHistorialFacturas();if(rec.validado===undefined){await verificarYAplicarRecibo(idx);}else if(rec.validado){marcarFacturaCobradaEnCascada(idx,true);guardarEstadoStorage();renderizarHistorialFacturas();}return true;}return false;}catch(e){console.warn('Sincronización de recibo:',e);return false;}
     }
+    async function recuperarArchivoReciboCliente(factura){
+        const facturaId=String(factura&&factura.idDoc||'').trim();
+        if(!facturaId||location.protocol==='file:') return null;
+        const tokenMap=leerReciboTokens();
+        const token=Object.keys(tokenMap).find(t=>String(tokenMap[t]&&tokenMap[t].idDoc)===facturaId)||'';
+        try{
+            const r=await fetch('https://bgjicsowspppsjzigazb.supabase.co/functions/v1/receipt-status',{method:'POST',headers:(typeof window.authHeadersSintergia==='function'?window.authHeadersSintergia():{'Content-Type':'application/json'}),credentials:'omit',cache:'no-store',body:JSON.stringify({tokens:token?[token]:[],factura_ids:[facturaId],withFile:true})});
+            if(!r.ok) return null;
+            const d=await r.json();
+            const res=(d.results||[]).find(x=>String(x.factura_id)===facturaId);
+            if(!res||!res.file_base64) return null;
+            return {dataUrl:'data:'+(res.content_type||'application/octet-stream')+';base64,'+res.file_base64,contentType:res.content_type||'',filename:res.filename||'recibo'};
+        }catch(e){window.__sgIgn&&window.__sgIgn(e);return null;}
+    }
+
     async function abrirModalReciboPreview(idx){
-        const f=appState.facturas[idx];if(!f)return; if(!f.reciboDataUrl&&appState.emailApi?.syncUrl)await sincronizarReciboFactura(idx); if(!f.reciboDataUrl&&!f.reciboRemotoUrl){abrirSubidaRecibo(idx);return;}
-        appState.facturaActualPrevisualizandoIdx=idx;const container=document.getElementById('recibo-container-view');const src=f.reciboDataUrl||f.reciboRemotoUrl;
-        const safeSrc=urlSeguraVisual(src,{allowData:true}); if(!safeSrc){container.textContent='No se puede previsualizar el recibo: URL no válida.';}else if((f.reciboFileType||'').includes('pdf')||(f.reciboNombreArchivo||'').toLowerCase().endsWith('.pdf'))container.innerHTML=`<embed src="${escaparAtributo(safeSrc)}" type="application/pdf" width="100%" height="400px" />`;else container.innerHTML=`<img src="${escaparAtributo(safeSrc)}" style="max-width:100%;max-height:55vh;border-radius:var(--phi-s0);" alt="Recibo del cliente" />`;
+        const f=appState.facturas[idx];if(!f)return;
+        if(!f.reciboDataUrl&&appState.emailApi?.syncUrl)await sincronizarReciboFactura(idx);
+        let src=f.reciboDataUrl||f.reciboRemotoUrl||'',fileType=f.reciboFileType||'',filename=f.reciboNombreArchivo||'';
+        if(!src&&f.reciboCliente===true){
+            const remoto=await recuperarArchivoReciboCliente(f);
+            if(!remoto){mostrarToast('❌ No se pudo recuperar el recibo. Comprueba la conexión e inténtalo de nuevo.');return;}
+            src=remoto.dataUrl;fileType=remoto.contentType||fileType;filename=remoto.filename||filename;
+        }
+        if(!src){abrirSubidaRecibo(idx);return;}
+        appState.facturaActualPrevisualizandoIdx=idx;const container=document.getElementById('recibo-container-view');
+        const safeSrc=urlSeguraVisual(src,{allowData:true}); if(!safeSrc){container.textContent='No se puede previsualizar el recibo: URL no válida.';}else if((fileType||'').includes('pdf')||(filename||'').toLowerCase().endsWith('.pdf'))container.innerHTML=`<embed src="${escaparAtributo(safeSrc)}" type="application/pdf" width="100%" height="400px" />`;else container.innerHTML=`<img src="${escaparAtributo(safeSrc)}" style="max-width:100%;max-height:55vh;border-radius:var(--phi-s0);" alt="Recibo del cliente" />`;
         const info=document.getElementById('recibo-validacion-info');if(info)info.textContent=`Factura ${f.idDoc} · Importe: ${(Number(f.total)||0).toFixed(2)} € · Recibido: ${f.reciboRecibidoAt?new Date(f.reciboRecibidoAt).toLocaleString('es-ES'):'sin fecha'} · Estado: ${textoEstadoCapitalizado(f.estado)}${f.reciboVerificacionMotivo?' · Verificación: '+f.reciboVerificacionMotivo:''}`;
         document.getElementById('modal-recibo-preview').style.display='flex';
     }

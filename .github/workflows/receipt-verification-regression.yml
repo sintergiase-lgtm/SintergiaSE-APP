@@ -1,9 +1,9 @@
-name: Client receipt and backup regression tests
+name: Receipt verification regression tests
 
 on:
   push:
     branches:
-      - fix/client-receipt-backup-20261014
+      - fix/receipt-verification-source-truth-20261014
   pull_request:
     branches:
       - main
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  client-regressions:
+  receipt-verification:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -23,11 +23,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Check receipt-state regression syntax
+      - name: Check regression test syntax
+        run: node --check test-receipt-verification-rules.cjs
+      - name: Run receipt verification regressions
+        run: node test-receipt-verification-rules.cjs
+      - name: Check client receipt-state test syntax
         run: node --check test-client-receipt-state.cjs
-      - name: Run receipt-state regressions
+      - name: Run client receipt-state regressions
         run: node test-client-receipt-state.cjs
-      - name: Check encrypted-backup regression syntax
+      - name: Check encrypted backup merge test syntax
         run: node --check test-encrypted-backup-merge.cjs
-      - name: Run encrypted-backup regressions
+      - name: Run encrypted backup merge regressions
         run: node test-encrypted-backup-merge.cjs
