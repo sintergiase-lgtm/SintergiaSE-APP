@@ -18,6 +18,9 @@ on:
       - main
     paths:
       - supabase/functions/_shared/request-body.mjs
+      - supabase/functions/_shared/session-claims.mjs
+      - supabase/functions/authenticate/session.ts
+      - test-session-claims.cjs
       - supabase/functions/sync-operations/index.ts
       - supabase/functions/realtime-snapshot/index.ts
       - test-request-body-limits.cjs
