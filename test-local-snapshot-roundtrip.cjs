@@ -34,10 +34,14 @@ const migration = fs.readFileSync(migrationPath, 'utf8');
 const secretMatch = migration.match(/values\s*\(\s*'session_hmac'\s*,\s*'([^']+)'\s*\)/i);
 assert.ok(secretMatch, 'the isolated migration must seed a synthetic HMAC secret');
 const hmacSecret = secretMatch[1];
+const issuedAt = Math.floor(Date.now() / 1000);
 const payload = Buffer.from(JSON.stringify({
   sub: 'local-qa-user',
+  scope: 'operacion',
   tenant: 'sintergia',
-  exp: Math.floor(Date.now() / 1000) + 300,
+  iat: issuedAt,
+  exp: issuedAt + 300,
+  jti: '9f2a9bd3-8b09-4f7a-a9aa-3ef3af2bbbe1',
 })).toString('base64url');
 const signature = crypto.createHmac('sha256', hmacSecret).update(payload).digest('base64url');
 const sessionToken = `v1.${payload}.${signature}`;
