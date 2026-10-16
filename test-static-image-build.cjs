@@ -37,9 +37,22 @@ try {
     assert.deepEqual(readFileSync(path.join(assetsDir, name)), bytes, 'asset bytes must be lossless');
     assert.ok(built.includes('./assets/' + name), 'generated HTML must reference the image');
   }
-  for (const name of ['sw.js', 'manifest.webmanifest', 'offline-guard.js', 'offline-login-bridge.js', 'icon-192.png', 'icon-512.png']) {
+  for (const name of ['_headers', 'sw.js', 'manifest.webmanifest', 'offline-guard.js', 'offline-login-bridge.js', 'icon-192.png', 'icon-512.png']) {
     assert.ok(statSync(path.join(output, name)).isFile(), 'runtime asset must be copied: ' + name);
   }
+
+  const headers = readFileSync(path.join(output, '_headers'), 'utf8');
+  for (const required of [
+    'Strict-Transport-Security: max-age=31536000',
+    'X-Content-Type-Options: nosniff',
+    'X-Frame-Options: DENY',
+    'Referrer-Policy: strict-origin-when-cross-origin',
+    'Permissions-Policy:',
+    'Content-Security-Policy-Report-Only:'
+  ]) {
+    assert.ok(headers.includes(required), 'security header must ship: ' + required);
+  }
+  assert.doesNotMatch(headers, /unsafe-eval/i, 'the report-only CSP must not authorize eval');
 
   const scripts = [...built.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
   let checked = 0;
