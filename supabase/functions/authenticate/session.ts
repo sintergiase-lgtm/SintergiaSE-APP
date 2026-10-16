@@ -27,7 +27,10 @@ export function corsHeaders(req:Request){
 }
 export function preflight(req:Request){return new Response(null,{status:204,headers:corsHeaders(req)})}
 export function json(req:Request,status:number,body:unknown,extra:Record<string,string>={}){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...corsHeaders(req),...extra}})}
-export function clientIp(req:Request){return req.headers.get('cf-connecting-ip')||req.headers.get('x-real-ip')||(req.headers.get('x-forwarded-for')||'').split(',')[0].trim()||'unknown'}
+export function clientIp(req:Request){
+  const trustedIp=req.headers.get('cf-connecting-ip')?.trim()||''
+  return trustedIp.length>0&&trustedIp.length<=45?trustedIp:'unknown'
+}
 export async function sha256Hex(text:string){const d=await crypto.subtle.digest('SHA-256',enc.encode(text));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('')}
 function b64url(bytes:Uint8Array){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64urlDecode(str:string){const pad='='.repeat((4-str.length%4)%4),bin=atob(str.replace(/-/g,'+').replace(/_/g,'/')+pad),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
