@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - index.html
+      - _headers
       - scripts/build-static.mjs
       - test-static-image-build.cjs
       - .github/workflows/static-image-build-regression.yml
