@@ -6207,6 +6207,10 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
      * Los tres conjuntos muestran estados diferentes disponibles en la app.
      */
     function resetearYCrearDatosDemo() {
+        if (typeof window.generarEscenarioDemoCompleto === 'function') {
+            window.generarEscenarioDemoCompleto();
+            return;
+        }
         const ahora = obtenerFechaHoraActual();
         const fecha = ahora.fecha;
         const hora = ahora.hora;
@@ -14933,7 +14937,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         ];
         /* Carga mensual con estacionalidad: más actividad en primavera/verano,
            caída en agosto por vacaciones y repunte en otoño/invierno. */
-        var cuotaPorMes = [9, 8, 10, 11, 12, 14, 15, 7, 12, 11, 9, 9]; // índice = mes (0=enero)
+        var cuotaPorMes = [60, 55, 65, 70, 75, 80, 85, 45, 75, 70, 60, 60]; // 800 partes/año, índice = mes (0=enero)
         var MESES_HISTORIAL = 12;
         var partes = [];
         var contador = 0;
