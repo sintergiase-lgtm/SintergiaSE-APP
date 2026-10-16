@@ -1,11 +1,10 @@
 import postgres from 'npm:postgres@3.4.3'
 import { readJsonObjectLimited } from '../_shared/request-body.mjs'
-import { parseSessionAuthorization, validateSessionClaims } from '../_shared/session-claims.mjs'
-const enc=new TextEncoder(),dec=new TextDecoder();let db:any=null
+import { verifySessionAuthorization } from '../_shared/session-verifier.mjs'
+const enc=new TextEncoder();let db:any=null
 function sql(){if(!db){const u=Deno.env.get('SUPABASE_DB_URL');if(!u)throw new Error('missing_db_url');db=postgres(u,{max:1,prepare:false,idle_timeout:5,max_lifetime:60,connect_timeout:5})}return db}
 async function dbq<T>(op:(d:any)=>Promise<T>):Promise<T>{let last:any;for(let i=0;i<2;i++){try{return await op(sql())}catch(e){last=e;db=null;if(i===0)await new Promise(r=>setTimeout(r,75))}}throw last}
-function b64d(s:string){const pad='='.repeat((4-s.length%4)%4),b=atob(s.replace(/-/g,'+').replace(/_/g,'/')+pad),o=new Uint8Array(b.length);for(let i=0;i<b.length;i++)o[i]=b.charCodeAt(i);return o}
-async function token(req:Request){const parsed=parseSessionAuthorization(req.headers.get('authorization')||'');if(!parsed)return null;const {payloadSegment,signatureSegment}=parsed;const rows:any[]=await dbq(d=>d`select value from sintergia.server_secrets where name='session_hmac'`);if(!rows.length)throw new Error('missing_session_hmac');try{const k=await crypto.subtle.importKey('raw',enc.encode(String(rows[0].value)),{name:'HMAC',hash:'SHA-256'},false,['verify']);if(!await crypto.subtle.verify('HMAC',k,b64d(signatureSegment),enc.encode(payloadSegment)))return null;const x=validateSessionClaims(JSON.parse(dec.decode(b64d(payloadSegment))));if(!x)return null;return x}catch{return null}}
+async function token(req:Request){return verifySessionAuthorization(req.headers.get('authorization')||'',async()=>{const rows:any[]=await dbq(d=>d`select value from sintergia.server_secrets where name='session_hmac'`);if(!rows.length)throw new Error('missing_session_hmac');return crypto.subtle.importKey('raw',enc.encode(String(rows[0].value)),{name:'HMAC',hash:'SHA-256'},false,['verify'])})}
 function cors(req:Request){const o=req.headers.get('origin')||'',configured=(Deno.env.get('ALLOWED_ORIGINS')||'').split(',').map(x=>x.trim()).filter(Boolean),allowed=new Set(['https://sintergiase-lgtm.github.io','https://sintergiase-app.pages.dev',...configured].map(x=>{try{return new URL(x).origin===x?x:''}catch{return ''}}).filter(Boolean)),h:any={'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'authorization,content-type,x-requested-with,x-sintergia-request-id,apikey,x-client-info','Access-Control-Max-Age':'86400',Vary:'Origin'};if(o&&allowed.has(o)){h['Access-Control-Allow-Origin']=o}return h}
 function json(req:Request,status:number,body:any){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...cors(req)}})}
 function pre(req:Request){return new Response(null,{status:204,headers:cors(req)})}
@@ -22,3 +21,4 @@ Deno.serve(async req=>{if(req.method==='OPTIONS')return pre(req);if(req.method!=
  const row=rows[0]||null;
  return json(req,200,{ok:true,snapshot:row&&row.state?row.state:null,id:row?.id||id,version:Number(row?.version||0),updatedAt:row?.updated_at||null});
 }catch(e){const message=e instanceof Error?e.message:'unknown_error';if(message.includes('invalid_app_state')){console.error('realtime_snapshot_rejected invalid_app_state');return json(req,400,{ok:false,error:'invalid_app_state',retryable:false})}console.error('realtime_snapshot_error',message.slice(0,120));return json(req,503,{ok:false,error:'backend_unavailable',retryable:true})}})
+

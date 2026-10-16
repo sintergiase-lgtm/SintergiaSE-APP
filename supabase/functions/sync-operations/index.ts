@@ -1,7 +1,7 @@
 import postgres from 'npm:postgres@3.4.3'
 import { readJsonObjectLimited } from '../_shared/request-body.mjs'
-import { parseSessionAuthorization, validateSessionClaims } from '../_shared/session-claims.mjs'
-const enc = new TextEncoder(), dec = new TextDecoder()
+import { verifySessionAuthorization } from '../_shared/session-verifier.mjs'
+const enc = new TextEncoder()
 const MAX_REQUEST_BYTES = 5_500_000
 let db: any = null
 function sql() {
@@ -12,25 +12,12 @@ function sql() {
   }
   return db
 }
-function b64d(s: string) {
-  const pad = '='.repeat((4 - s.length % 4) % 4)
-  const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad)
-  const o = new Uint8Array(b.length)
-  for (let i = 0; i < b.length; i++) o[i] = b.charCodeAt(i)
-  return o
-}
 async function token(req: Request) {
-  const parsed = parseSessionAuthorization(req.headers.get('authorization') || '')
-  if (!parsed) return null
-  const { payloadSegment, signatureSegment } = parsed
-  const rows = await sql()`select value from sintergia.server_secrets where name='session_hmac'`
-  if (!rows.length) throw new Error('missing_session_hmac')
-  try {
-    const k = await crypto.subtle.importKey('raw', enc.encode(String(rows[0].value)), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
-    if (!await crypto.subtle.verify('HMAC', k, b64d(signatureSegment), enc.encode(payloadSegment))) return null
-    const x = validateSessionClaims(JSON.parse(dec.decode(b64d(payloadSegment))))
-    return x || null
-  } catch { return null }
+  return verifySessionAuthorization(req.headers.get('authorization') || '', async () => {
+    const rows = await sql()`select value from sintergia.server_secrets where name='session_hmac'`
+    if (!rows.length) throw new Error('missing_session_hmac')
+    return crypto.subtle.importKey('raw', enc.encode(String(rows[0].value)), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
+  })
 }
 const DEFAULT_ALLOWED_ORIGINS = ['https://sintergiase-lgtm.github.io', 'https://sintergiase-app.pages.dev']
 function cors(req: Request) {
@@ -132,3 +119,4 @@ Deno.serve(async req => {
     return json(req, 503, { ok: false, error: 'sync_unavailable', retryable: true })
   }
 })
+
