@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - supabase/functions/_shared/request-body.mjs
+      - supabase/functions/_shared/session-claims.mjs
+      - supabase/functions/authenticate/session.ts
+      - test-session-claims.cjs
       - supabase/functions/sync-operations/index.ts
       - supabase/functions/realtime-snapshot/index.ts
       - test-request-body-limits.cjs
@@ -15,6 +18,9 @@ on:
       - main
     paths:
       - supabase/functions/_shared/request-body.mjs
+      - supabase/functions/_shared/session-claims.mjs
+      - supabase/functions/authenticate/session.ts
+      - test-session-claims.cjs
       - supabase/functions/sync-operations/index.ts
       - supabase/functions/realtime-snapshot/index.ts
       - test-request-body-limits.cjs
@@ -35,3 +41,5 @@ jobs:
           node-version: 20
       - run: node --check test-request-body-limits.cjs
       - run: node test-request-body-limits.cjs
+      - run: node --check test-session-claims.cjs
+      - run: node test-session-claims.cjs
