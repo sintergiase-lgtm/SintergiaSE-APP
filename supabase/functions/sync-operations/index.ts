@@ -1,5 +1,6 @@
 import postgres from 'npm:postgres@3.4.3'
 import { readJsonObjectLimited } from '../_shared/request-body.mjs'
+import { validateSessionClaims } from '../_shared/session-claims.mjs'
 const enc = new TextEncoder(), dec = new TextDecoder()
 const MAX_REQUEST_BYTES = 5_500_000
 let db: any = null
@@ -28,11 +29,8 @@ async function token(req: Request) {
   try {
     const k = await crypto.subtle.importKey('raw', enc.encode(String(rows[0].value)), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
     if (!await crypto.subtle.verify('HMAC', k, b64d(p[2]), enc.encode(p[1]))) return null
-    const x = JSON.parse(dec.decode(b64d(p[1])))
-    if (!x || typeof x !== 'object' || Array.isArray(x) || typeof x.sub !== 'string' || !x.sub.trim() || x.sub.trim().length > 128) return null
-    if (x.tenant !== 'sintergia') return null
-    const exp = Number(x.exp)
-    return Number.isFinite(exp) && exp > Date.now() / 1000 ? x : null
+    const x = validateSessionClaims(JSON.parse(dec.decode(b64d(p[1]))))
+    return x || null
   } catch { return null }
 }
 const DEFAULT_ALLOWED_ORIGINS = ['https://sintergiase-lgtm.github.io', 'https://sintergiase-app.pages.dev']
