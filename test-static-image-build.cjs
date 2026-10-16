@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
-const { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } = require('node:fs');
+const { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
@@ -12,7 +12,8 @@ const output = mkdtempSync(path.join(os.tmpdir(), 'sintergia-static-build-'));
 try {
   const result = spawnSync(process.execPath, ['scripts/build-static.mjs', output], {
     cwd: root,
-    encoding: 'utf8'
+    encoding: 'utf8',
+    env: { ...process.env, CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }
   });
   assert.equal(result.status, 0, result.stdout + result.stderr);
   const source = readFileSync(path.join(root, 'index.html'), 'utf8');
@@ -24,6 +25,48 @@ try {
     'the generated HTML must remove more than 1 MB of inline script and image payload');
   assert.doesNotMatch(built, /<img\b[^>]*\bsrc\s*=\s*["']data:image\/(?:png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]{8192}/i,
     'large image payloads must not remain in img src attributes');
+
+  const productionHost = 'bgjicsowspppsjzigazb.supabase.co';
+  const previewHost = 'sintergiase-preview-backend.invalid';
+  const previewOutput = path.join(output, 'preview');
+  mkdirSync(previewOutput);
+  const previewResult = spawnSync(process.execPath, ['scripts/build-static.mjs', previewOutput], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, CF_PAGES: '1', CF_PAGES_BRANCH: 'security/preview-backend-isolation-20261016' }
+  });
+  assert.equal(previewResult.status, 0, previewResult.stdout + previewResult.stderr);
+  const previewTextFiles = [
+    'index.html', '_headers', 'sw.js', 'manifest.webmanifest',
+    'offline-guard.js', 'offline-login-bridge.js'
+  ].map(name => path.join(previewOutput, name));
+  previewTextFiles.push(...readdirSync(path.join(previewOutput, 'assets'))
+    .filter(name => name.endsWith('.js'))
+    .map(name => path.join(previewOutput, 'assets', name)));
+  const previewText = previewTextFiles.map(file => readFileSync(file, 'utf8')).join('\n');
+  assert.ok(previewText.includes(previewHost), 'preview must use the non-routable disabled-backend host');
+  assert.ok(!previewText.includes(productionHost), 'preview artifacts must not contain the production Supabase host');
+  const mainTextFiles = [
+    path.join(output, 'index.html'), path.join(output, '_headers'),
+    path.join(output, 'offline-guard.js'), ...readdirSync(path.join(output, 'assets'))
+      .filter(name => name.endsWith('.js'))
+      .map(name => path.join(output, 'assets', name))
+  ];
+  assert.ok(mainTextFiles.some(file => readFileSync(file, 'utf8').includes(productionHost)),
+    'the production build must keep its configured backend');
+
+  const missingBranchOutput = path.join(output, 'missing-branch');
+  mkdirSync(missingBranchOutput);
+  const missingBranchEnv = { ...process.env, CF_PAGES: '1' };
+  delete missingBranchEnv.CF_PAGES_BRANCH;
+  const missingBranchResult = spawnSync(process.execPath, ['scripts/build-static.mjs', missingBranchOutput], {
+    cwd: root,
+    encoding: 'utf8',
+    env: missingBranchEnv
+  });
+  assert.notEqual(missingBranchResult.status, 0, 'a Pages build with no branch must fail closed');
+  assert.match(missingBranchResult.stderr, /CF_PAGES_BRANCH is required/,
+    'missing branch failure must explain the isolation requirement');
 
   const assetsDir = path.join(output, 'assets');
   const assets = readdirSync(assetsDir);
