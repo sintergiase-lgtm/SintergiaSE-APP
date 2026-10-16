@@ -1,9 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { validateSessionClaims } = require('./supabase/functions/_shared/session-claims.mjs');
-
-const now = 1_800_000_000;
+async function main() {
+  const { validateSessionClaims } = await import('./supabase/functions/_shared/session-claims.mjs');
+  const now = 1_800_000_000;
 const valid = {
   sub: 'local-qa-user',
   scope: 'operacion',
@@ -40,3 +40,7 @@ for (const [label, claims] of rejected) {
 assert.equal(validateSessionClaims(valid, Number.NaN), null, 'invalid clock input fails closed');
 
 console.log(`PASS: ${rejected.length + 3} strict session-claim assertions`);
+
+}
+
+main().catch(error => { console.error(error); process.exitCode = 1; });
