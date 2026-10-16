@@ -6,7 +6,13 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
 async function main() {
-  const moduleUrl = pathToFileURL(path.join(__dirname, "request-body.mjs")).href;
+  const authDir = path.join(
+    __dirname,
+    "supabase",
+    "functions",
+    "authenticate"
+  );
+  const moduleUrl = pathToFileURL(path.join(authDir, "request-body.mjs")).href;
   const { readAuthJson, MAX_AUTH_REQUEST_BYTES } = await import(moduleUrl);
   const encoder = new TextEncoder();
 
@@ -90,7 +96,7 @@ async function main() {
   );
 
   const authSource = fs.readFileSync(
-    path.join(__dirname, "authenticate-index.ts"),
+    path.join(authDir, "index.ts"),
     "utf8"
   );
   assert.match(
@@ -112,3 +118,5 @@ main().catch((error) => {
   process.stderr.write((error?.stack || String(error)) + "\n");
   process.exitCode = 1;
 });
+
+
