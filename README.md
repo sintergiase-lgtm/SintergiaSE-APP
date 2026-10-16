@@ -27,7 +27,7 @@ Backend: Supabase.
 
 1. **Previews existentes:** los artefactos creados antes de PR #22 pueden conservar el destino anterior; no introducir credenciales o datos reales. Los nuevos previews quedan sin backend remoto deliberadamente hasta configurar una ruta web QA aislada.
 2. **Identidad y autorización:** siguen las credenciales compartidas, tenant fijo y sesiones HMAC de ocho horas sin revocación individual; falta autorización por empresa/rol.
-3. **Datos locales:** clientes, trabajos, facturas y existencias permanecen en `localStorage` sin cifrado en reposo.
+3. **Datos locales:** el HTML actual cifra claves sensibles seleccionadas antes de escribirlas en `localStorage` (PBKDF2-SHA256 y ChaCha20 propio); la clave de datos queda en `sessionStorage` mientras la pestaña está abierta. No es cifrado autenticado: el sello `SG1|` no detecta modificaciones arbitrarias del ciphertext. No se considera protección de integridad de nivel operativo ni sustituto de una implementación AEAD auditada. Sigue pendiente migrar a una biblioteca/primitive estándar y probar migración, manipulación y recuperación sin pérdida de datos.
 4. **CSP:** sigue en `Report-Only`; quedan manejadores inline y HTML dinámico por migrar.
 5. **Base de datos:** falta un historial versionado/restaurable de migraciones de producción.
 6. **Gobernanza:** `main` no exige revisiones ni checks por protección de rama verificada.
