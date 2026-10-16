@@ -1,6 +1,6 @@
 # Supabase Edge Functions
 
-These sources match the deployed access and synchronization functions as of 2026-10-16. They are now versioned here so future reviews and regression checks can compare the repository with production.
+The Edge Function sources were captured from the deployed access and synchronization functions on 2026-10-16. Draft PR changes may differ from production; no function in this review cycle has been deployed. Compare the current project function versions before any deployment.
 
 ## Functions
 
