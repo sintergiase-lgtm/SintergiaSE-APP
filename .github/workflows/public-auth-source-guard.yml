@@ -6,12 +6,18 @@ on:
     paths:
       - index.html
       - test-public-auth-guard.cjs
+      - test-authenticate-request-body.cjs
+      - supabase/functions/authenticate/index.ts
+      - supabase/functions/authenticate/request-body.mjs
       - .github/workflows/public-auth-source-guard.yml
       - README.md
   pull_request:
     paths:
       - index.html
       - test-public-auth-guard.cjs
+      - test-authenticate-request-body.cjs
+      - supabase/functions/authenticate/index.ts
+      - supabase/functions/authenticate/request-body.mjs
       - .github/workflows/public-auth-source-guard.yml
       - README.md
 jobs:
@@ -23,3 +29,4 @@ jobs:
         with:
           node-version: 20
       - run: node test-public-auth-guard.cjs
+      - run: node test-authenticate-request-body.cjs
