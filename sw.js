@@ -1,7 +1,7 @@
 /* SintergiaSE offline shell + restricted offline authorization guard. */
 'use strict';
 const CACHE_PREFIX = 'sintergiase-shell-';
-const CACHE_NAME = CACHE_PREFIX + 'v7';
+const CACHE_NAME = CACHE_PREFIX + 'v8';
 const SCOPE_URL = self.registration.scope;
 const APP_SHELL = new URL('./index.html', SCOPE_URL).href;
 const SCOPE_PATH = new URL(SCOPE_URL).pathname;
