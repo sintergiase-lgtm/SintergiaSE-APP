@@ -105,3 +105,12 @@ La PR #2 está fusionada en `main` en el commit `69057254b65165d654d5608ec34b59c
 - **Seguridad Supabase:** el advisor de seguridad informa 14 tablas de `sintergia` con RLS habilitado y sin políticas; los privilegios directos de `anon`/`authenticated` estaban restringidos en la revisión previa. El advisor de rendimiento señala 6 índices aún no usados. No se hicieron cambios de esquema en producción.
 
 Siguiente ciclo: completar QA autenticado con una cuenta autorizada y datos sintéticos; verificar módulos, sincronización, Storage y uso en dispositivos físicos. Revisar el dominio antiguo de GitHub Pages, los límites de coste de IA/mapas/mensajería y el diseño de recuperación de claves antes de cifrar datos existentes. No enviar datos reales de clientes a proveedores externos sin revisar privacidad y coste.
+
+
+### Reparación de sincronización JSONB — 16-10-2026
+
+- La causa del fallo de sincronización era el enlace de objetos JavaScript como texto JSON en consultas Postgres.js. Postgres almacenaba el texto como un escalar JSONB; la lectura y el reintento idempotente quedaban incompatibles. Las funciones ahora usan los enlaces JSON tipados de Postgres.js.
+- Producción sirve `realtime-snapshot` v19 (`60cad40a5f1a`) y `sync-operations` v18 (`99336d7aa898`). El código de acceso sigue en `authenticate` v16; no se cambió la autenticación ni los secretos de producción.
+- El proyecto Supabase QA existente se usó con cuentas y datos sintéticos. Pasaron login válido e inválido, CORS, rechazo de sesión ausente, snapshots independientes de dos sesiones, escritura, reintento idempotente y conflicto por reutilizar un identificador con otro contenido.
+- En producción se limitaron las comprobaciones a salud, CORS y rechazo de solicitudes sin sesión. No se introdujeron credenciales, no se escribieron datos, no se cambiaron secretos ni se alteró el esquema de producción.
+- El source de las tres funciones desplegadas y la regresión CI están añadidos en la PR de sincronización JSONB. La validación manual de los demás módulos, almacenamiento de documentos, proveedores externos y dispositivos físicos sigue pendiente.
