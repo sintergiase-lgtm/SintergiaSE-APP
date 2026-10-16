@@ -7,20 +7,22 @@ on:
     paths:
       - supabase/functions/_shared/request-body.mjs
       - supabase/functions/_shared/session-claims.mjs
+      - supabase/functions/_shared/session-verifier.mjs
       - supabase/functions/authenticate/session.ts
       - test-session-claims.cjs
+      - test-session-verifier.cjs
       - supabase/functions/sync-operations/index.ts
       - supabase/functions/realtime-snapshot/index.ts
       - test-request-body-limits.cjs
       - .github/workflows/request-body-limits.yml
   pull_request:
-    branches:
-      - main
     paths:
       - supabase/functions/_shared/request-body.mjs
       - supabase/functions/_shared/session-claims.mjs
+      - supabase/functions/_shared/session-verifier.mjs
       - supabase/functions/authenticate/session.ts
       - test-session-claims.cjs
+      - test-session-verifier.cjs
       - supabase/functions/sync-operations/index.ts
       - supabase/functions/realtime-snapshot/index.ts
       - test-request-body-limits.cjs
@@ -43,3 +45,6 @@ jobs:
       - run: node test-request-body-limits.cjs
       - run: node --check test-session-claims.cjs
       - run: node test-session-claims.cjs
+      - run: node --check test-session-verifier.cjs
+      - run: node test-session-verifier.cjs
+
