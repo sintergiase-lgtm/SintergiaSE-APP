@@ -9,14 +9,14 @@ Backend: Supabase.
 - **Rama principal:** `main` está en `ff0b7864f8fecbd4512abc0159b1c53170ac68a5`. La comparación con el último commit de aplicación que este README registra como desplegado (`0fd6cba5eb0236b14fff979c815317d0fa1567f0`) muestra únicamente commits de documentación posteriores. La disponibilidad y versión servida en producción no se revalidaron en este ciclo.
 - **Backend registrado:** producción conserva `authenticate` v16, `realtime-snapshot` v19 y `sync-operations` v18. Ninguna de las PR #20 o #21 se ha desplegado.
 - **PR #20 — [límite de cuerpo en login](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20):** abierta, mergeable; cinco checks verdes. Limita a 4 KiB el JSON del endpoint de autenticación.
-- **PR #21 — [lectura JSON compartida y acotada](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** abierta y mergeable. La implementación y sus seis checks (incluido Supabase local efímero) pasaron antes del refresh documental; los cambios posteriores de la PR actualizan únicamente este README.
-- **Datos y entorno:** no se escribieron datos ni secretos de producción. Las pruebas de integración usaron una instancia local efímera y datos sintéticos.
+- **PR #21 — [endurecimiento de solicitudes](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** abierta y mergeable. Incluye parser JSON compartido con límites y regresión de preflight CORS para el origen de la vista previa actual de Cloudflare. Estado de checks actualizado en la PR; sin despliegue de Edge Functions.
+- **Datos y entorno:** no se escribieron datos ni secretos de producción. La integración usa Supabase local efímero con datos sintéticos; la prueba CORS solo envía preflight `OPTIONS` de lectura, sin credenciales ni escrituras.
 
 ### Decisión de despliegue
 
 **NO APTO todavía para desplegar datos operativos de varias empresas.** Los checks verdes de CI certifican cambios concretos; no cierran los siguientes riesgos del producto:
 
-1. **Aislamiento QA/producción:** las vistas previas de Cloudflare no tienen un backend QA verificado y el cliente puede apuntar a Supabase de producción.
+1. **Aislamiento QA/producción:** las vistas previas de Cloudflare incluyen el destino de Supabase de producción. La regresión comprueba que el origen de esta vista previa no recibe autorización CORS en los tres endpoints; ese control de navegador no sustituye un backend QA aislado. No introducir credenciales o datos reales en previews.
 2. **Identidad y autorización:** el acceso actual usa credenciales compartidas, tenant fijo y tokens HMAC de ocho horas sin revocación respaldada por sesión. Falta identidad individual y autorización por empresa/rol.
 3. **Datos locales:** clientes, trabajos, facturas y existencias permanecen en `localStorage` en texto claro. El PIN de bloqueo y las copias cifradas no cifran el almacenamiento diario.
 4. **CSP:** sigue en `Report-Only`; quedan manejadores de eventos inline y HTML dinámico que impiden aplicar una política de bloqueo estricta.
@@ -45,7 +45,7 @@ La información siguiente conserva el historial de reparaciones. Para el estado 
 ### Reparaciones preparadas
 
 - **Límite de cuerpo en login — [PR #20](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20)**, abierta, mergeable y con cinco checks verdes; limita la solicitud JSON a 4 KiB. No está desplegada.
-- **Cuerpos JSON acotados en backend — [PR #21](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21)**: un lector común para `sync-operations` y `realtime-snapshot` valida `Content-Length`, limita los bytes realmente leídos, cancela excesos y rechaza UTF-8/JSON inválido. No está desplegada; los resultados de CI se reflejan arriba.
+- **Cuerpos JSON acotados en backend — [PR #21](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21)**: un lector común para `sync-operations` y `realtime-snapshot` valida `Content-Length`, limita los bytes realmente leídos, cancela excesos y rechaza UTF-8/JSON inválido. La misma PR verifica por preflight CORS que el origen de preview de Cloudflare queda rechazado. No está desplegada.
 
 - **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, fusionada en `main` mediante `69057254b65165d654d5608ec34b59c60d3d1122`. Ante 401/403 conserva la operación y la cola pendiente, detiene reintentos hasta reautenticar y los POST diferidos usan la sesión actual. La rama está reconciliada con `main`; el código `42ee856399fd2bb04b68fb862f8beb1d275f7861` pasa regresiones y el round-trip de dos dispositivos virtuales pasa contra Supabase local aislado (CI del head de PR `ec89867795078bc4e9517306e8cff3b13452bb1c`).
 - **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, abierta, en borrador y mergeable. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.

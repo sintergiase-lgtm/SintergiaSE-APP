@@ -5,8 +5,15 @@ const allowedOrigin = 'https://sintergiase-app.pages.dev';
 const deniedOrigin = 'https://untrusted.example';
 const endpoints = ['authenticate', 'realtime-snapshot', 'sync-operations'];
 
+const previewOrigin = 'https://fix-shared-limited-json-body.sintergiase-app.pages.dev';
+const originCases = [
+  [allowedOrigin, allowedOrigin],
+  [deniedOrigin, null],
+  [previewOrigin, null]
+];
+
 for (const endpoint of endpoints) {
-  for (const [origin, expected] of [[allowedOrigin, allowedOrigin], [deniedOrigin, null]]) {
+  for (const [origin, expected] of originCases) {
     const response = await fetch(base + '/' + endpoint, {
       method: 'OPTIONS',
       headers: {
@@ -31,4 +38,4 @@ for (const endpoint of endpoints) {
   }
 }
 
-console.log('PASS: exact Cloudflare origin allowed; untrusted origin rejected on 3 production endpoints');
+console.log('PASS: production origin allowed; untrusted and current Cloudflare branch-preview origins rejected on 3 endpoints');
