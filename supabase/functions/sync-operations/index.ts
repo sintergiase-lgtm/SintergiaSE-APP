@@ -30,7 +30,7 @@ async function token(req: Request) {
     if (!await crypto.subtle.verify('HMAC', k, b64d(p[2]), enc.encode(p[1]))) return null
     const x = JSON.parse(dec.decode(b64d(p[1])))
     if (!x || typeof x !== 'object' || Array.isArray(x) || typeof x.sub !== 'string' || !x.sub.trim() || x.sub.trim().length > 128) return null
-    if (x.tenant !== undefined && x.tenant !== 'sintergia') return null
+    if (x.tenant !== 'sintergia') return null
     const exp = Number(x.exp)
     return Number.isFinite(exp) && exp > Date.now() / 1000 ? x : null
   } catch { return null }
