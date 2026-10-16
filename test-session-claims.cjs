@@ -55,7 +55,7 @@ for (const [label, claims] of rejected) {
 }
 assert.equal(validateSessionClaims(valid, Number.NaN), null, 'invalid clock input fails closed');
 
-console.log(`PASS: ${rejected.length + 3} strict session-claim assertions`);
+console.log(`PASS: ${rejected.length + 15} strict session-claim assertions`);
 
 }
 
