@@ -431,15 +431,19 @@
   }
 
   function migrarClaros() {
+    var ok = true;
     Object.keys(SENS).forEach(function (k) {
       var claro = getOrig.call(localStorage, k);
       if (claro == null) return;
       try {
-        setOrig.call(localStorage, PREFIJO + k, cifrar(claro));
+        var cifrado = cifrar(claro);
+        setOrig.call(localStorage, PREFIJO + k, cifrado);
+        if (descifrar(getOrig.call(localStorage, PREFIJO + k)) !== claro) throw new Error('No se pudo verificar la migración local de ' + k);
         delOrig.call(localStorage, k);
         memoria[k] = claro;
-      } catch (e) { window.__sgIgn && window.__sgIgn(e); }
+      } catch (e) { ok = false; window.__sgIgn && window.__sgIgn(e); }
     });
+    return ok;
   }
 
   function rehidratar() {
@@ -465,9 +469,15 @@
 
   function activar(dek) {
     clave = dek;
-    try { sessionStorage.setItem(K_SESION, hex(dek)); } catch (_) { }
     memoria = Object.create(null);   // el disco manda
-    migrarClaros();
+    if (!migrarClaros()) {
+      clave = null;
+      memoria = Object.create(null);
+      try { sessionStorage.removeItem(K_SESION); } catch (_) { }
+      return false;
+    }
+    try { sessionStorage.setItem(K_SESION, hex(dek)); } catch (_) { }
+    return true;
   }
 
   async function desbloquear(password) {
@@ -503,7 +513,7 @@
         w[id] = envolturaValida;
         guardarEnvolturas(w);
       }
-      activar(dek);
+      if (!activar(dek)) return false;
       rehidratar();
       return true;
     } catch (e) {
@@ -534,7 +544,7 @@
       var dek = clave || crypto.getRandomValues(new Uint8Array(32));
       w[id] = envolver(kek, dek);
       guardarEnvolturas(w);
-      if (!clave) activar(dek);
+      if (!clave && !activar(dek)) return false;
       return true;
     } catch (e) { window.__sgIgn && window.__sgIgn(e); return false; }
   }
@@ -544,8 +554,10 @@
     var guardada = sessionStorage.getItem(K_SESION);
     if (guardada) {
       var dekGuardada = /^[0-9a-f]{64}$/i.test(guardada) ? unhex(guardada) : null;
-      if (dekGuardada && validarClaveConDatos(dekGuardada)) { clave = dekGuardada; migrarClaros(); }
-      else sessionStorage.removeItem(K_SESION);
+      if (dekGuardada && validarClaveConDatos(dekGuardada)) {
+        clave = dekGuardada;
+        if (!migrarClaros()) { clave = null; memoria = Object.create(null); sessionStorage.removeItem(K_SESION); }
+      } else sessionStorage.removeItem(K_SESION);
     }
   } catch (_) { }
 
