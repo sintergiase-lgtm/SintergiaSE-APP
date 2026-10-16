@@ -4105,137 +4105,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
     } catch(_){window.__sgIgn&&window.__sgIgn(_);}
   }
 
-  /* Verificación local (fallback cuando no hay servidor de acceso disponible). */
-  var LOCAL_KEY = 'sintergia_local_auth_v1';
-  var IDS = { modo: [['admin','Administrador'],['tecnico','Técnico'],['demo','Demo']],
-              operacion: [['reset','Resetear contadores/historial'],['demo','Cargar demostración'],['realtime','Activar modo tiempo real']] };
-  function leerLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}') || {}; } catch (_) { return {}; } }
-  function hashLocal(salt, pw) { return sha256Hex(salt + '|' + String(pw)); }
-  var CLAVE_ADMIN_INICIAL = 'SSE1';
-  var SUGERIDAS = { admin: '1111', tecnico: '2222', demo: '3333' };
-  async function configurarLocal(scope, soloIds, sinIntro) {
-    return true;
-    var cfg = leerLocal();
-    if (!cfg.salt) cfg.salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-    cfg[scope] = cfg[scope] || {};
-    if (!sinIntro) alert('🔐 Primera configuración de contraseñas en este dispositivo (' + (scope === 'modo' ? 'acceso' : 'operaciones de administración') + ').\nDefine una contraseña para cada opción (mínimo 4 caracteres).' + (scope === 'modo' ? '\nSe aconseja: Administrador 1111 · Técnico 2222 · Demo 3333.' : '') + '\nDeja en blanco para no habilitarla.');
-    var usadas = {};
-    var hechos = {};
-    Object.keys(cfg[scope]).forEach(function (k) { hechos[cfg[scope][k]] = 1; });
-    var lista = IDS[scope].filter(function (x) { return !soloIds || soloIds.indexOf(x[0]) !== -1; });
-    for (var i = 0; i < lista.length; i++) {
-      var id = lista[i][0], label = lista[i][1];
-      var sug = (scope === 'modo' && SUGERIDAS[id]) ? SUGERIDAS[id] : '';
-      var pw = prompt('Contraseña para: ' + label + (sug ? '  (se aconseja ' + sug + ')' : ''), sug);
-      if (pw === null) return false;
-      pw = String(pw);
-      if (!pw) continue;
-      if (pw.length < 4) { alert('Mínimo 4 caracteres. Vuelve a intentarlo.'); i--; continue; }
-      if (usadas[pw]) { alert('Cada opción necesita una contraseña distinta.'); i--; continue; }
-      var rep = prompt('Repite la contraseña para: ' + label);
-      if (rep !== pw) { alert('No coinciden. Vuelve a intentarlo.'); i--; continue; }
-      if (pw.toUpperCase() === CLAVE_ADMIN_INICIAL) { alert('Esa clave está reservada. Elige otra.'); i--; continue; }
-      var hh = await hashLocal(cfg.salt, pw);
-      if (hechos[hh]) { alert('Esa contraseña ya se usa en otro modo. Elige otra.'); i--; continue; }
-      usadas[pw] = 1;
-      hechos[hh] = 1;
-      cfg[scope][id] = hh;
-      if (scope === 'modo' && window.SintergiaLocalCrypto) {
-        try { await window.SintergiaLocalCrypto.anadirClave(pw); } catch (e) { window.__sgIgn && window.__sgIgn(e); }
-      }
-      /* Se guarda cada contraseña en cuanto se confirma: si se cancela una posterior, no se pierde lo ya configurado. */
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(cfg));
-    }
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(cfg));
-    return Object.keys(cfg[scope]).length > 0;
-  }
-  /* Falso mensaje de aceptación (animación ✅) cuando SSE1 falla: no revela que la clave se ha rechazado. */
-  function mostrarAceptacionFalsa() {
-    return new Promise(function (resolve) {
-      try {
-        if (typeof document === 'undefined' || !document.body || !document.createElement) return resolve();
-        if (!document.getElementById('sg-fake-ok-css')) {
-          var st = document.createElement('style'); st.id = 'sg-fake-ok-css';
-          st.textContent = '#sg-fake-ok{position:fixed;inset:0;z-index:200000;display:flex;align-items:center;justify-content:center;background:rgba(11,36,71,.72);animation:sgFakeIn .35s ease-out}' +
-            '#sg-fake-ok .box{background:#fff;border-radius:var(--phi-s6);padding:var(--phi-s8) var(--phi-s10);text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.35);animation:sgFakePop .7s cubic-bezier(.2,1.4,.4,1)}' +
-            '#sg-fake-ok svg{width:var(--phi-s13);height:var(--phi-s13);display:block;margin:0 auto var(--phi-s4)}' +
-            '#sg-fake-ok circle{fill:#2ecc71;transform-origin:center;animation:sgFakeCircle .58s cubic-bezier(.35,.35,.7,.62)}' +
-            '#sg-fake-ok path{fill:none;stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100 200;stroke-dashoffset:100}' +
-                        '#sg-fake-ok path.v1{animation:sgFakeCheck .236s .38s linear forwards}' +
-                        '#sg-fake-ok path.v2{animation:sgFakeCheck .382s .616s cubic-bezier(.3333,.2173,.6667,.5507) forwards}' +
-            '#sg-fake-ok b{color:#0F2B48;font:700 var(--phi-t12) system-ui,sans-serif}' +
-            '@keyframes sgFakeIn{from{opacity:0}to{opacity:1}}' +
-            '@keyframes sgFakePop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}' +
-            '@keyframes sgFakeCircle{from{transform:scale(0)}to{transform:scale(1)}}' +
-            '@keyframes sgFakeCheck{to{stroke-dashoffset:0}}';
-          document.head.appendChild(st);
-        }
-        var d = document.createElement('div'); d.id = 'sg-fake-ok'; d.setAttribute('role', 'status');
-        d.innerHTML = '<div class="box"><svg viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="40"/><path class="v1" pathLength="100" d="M24 44 l13 13"/><path class="v2" pathLength="100" d="M37 57 l25 -28"/></svg><b>Contraseña aceptada</b></div>';
-        (document.getElementById('sintergia-access-gate') || document.body).appendChild(d);
-        setTimeout(function () { try { d.remove(); } catch (_) {} resolve(); }, 2100);
-      } catch (e) { resolve(); }
-    });
-  }
-  async function verificarLocal(scope, value) {
-    var cfg = leerLocal();
-    var esSSE1 = String(value).trim().toUpperCase() === CLAVE_ADMIN_INICIAL;
-    /* SSE1 se ofrece UNA sola vez. Se "quema" (sse1Cerrada) en cuanto:
-       - falla (se escribe otra cosa sin ser una contraseña válida y no hay Administrador), o
-       - el Administrador queda creado, o no se llega a crear.
-       Una vez cerrada, SSE1 es una contraseña cualquiera (incorrecta) y nunca se vuelve a pedir. */
-    if (scope === 'modo') {
-      var adminHecho = !!(cfg.modo && cfg.modo.admin);
-      if (!adminHecho && !cfg.sse1Cerrada) {
-        var salvoValida = false;
-        if (!esSSE1 && cfg.salt && cfg.modo && Object.keys(cfg.modo).length) {
-          var h0 = await hashLocal(cfg.salt, value);
-          Object.keys(cfg.modo).forEach(function (k) { if (igual(cfg.modo[k], h0)) salvoValida = true; });
-        }
-        if (!salvoValida) {
-          var creadaAdmin = false;
-          if (esSSE1) {
-            try { await configurarLocal('modo', ['admin']); } catch (eA) { window.__sgIgn && window.__sgIgn(eA); }
-            cfg = leerLocal();
-            creadaAdmin = !!(cfg.modo && cfg.modo.admin);
-          }
-          /* SSE1 ya no se volverá a pedir (haya funcionado o fallado). */
-          cfg.sse1Cerrada = true;
-          localStorage.setItem(LOCAL_KEY, JSON.stringify(cfg));
-          var faltan = ['tecnico', 'demo'].filter(function (k) { return !(cfg.modo && cfg.modo[k]); });
-          var nuevos = [];
-          if (faltan.length) {
-            if (!creadaAdmin) await mostrarAceptacionFalsa();
-            try { await configurarLocal('modo', faltan, true); } catch (eB) { window.__sgIgn && window.__sgIgn(eB); }
-            cfg = leerLocal();
-            nuevos = faltan.filter(function (k) { return cfg.modo && cfg.modo[k]; });
-          }
-          var destino = creadaAdmin ? 'admin' : (nuevos[0] || null);
-          if (!destino) return null;
-          if (creadaAdmin) alert('✅ Contraseña de Administrador creada. Entrando en Modo Administrador.');
-          else alert('✅ Contraseña(s) configurada(s): ' + nuevos.join(', ') + '.');
-          window.__sgSSE1Modo = destino;
-          guardarSesion({ token: 'local-' + Date.now(), scope: 'modo', id: destino, expiresAt: Date.now() + 8 * 3600000 });
-          return destino;
-        }
-      }
-    }
-    if (!cfg.salt || !cfg[scope] || !Object.keys(cfg[scope]).length) {
-      var ok = await configurarLocal(scope);
-      if (!ok) throw new Error('No hay contraseñas configuradas en este dispositivo.');
-      cfg = leerLocal();
-    }
-    if (!cfg.salt || !cfg[scope]) return null;
-    var h = await hashLocal(cfg.salt, value);
-    var ids = Object.keys(cfg[scope]);
-    var found = null;
-    for (var i = 0; i < ids.length; i++) if (igual(cfg[scope][ids[i]], h)) found = ids[i];
-    if (found) guardarSesion({ token: 'local-' + Date.now(), scope: scope, id: found, expiresAt: Date.now() + 8 * 3600000 });
-    return found;
-  }
-  window.SintergiaResetPasswordsLocales = function () {
-    if (confirm('¿Borrar las contraseñas locales de este dispositivo? Se pedirán de nuevo en el próximo acceso.')) { localStorage.removeItem(LOCAL_KEY); alert('Contraseñas locales borradas.'); }
-  };
+  /* La autenticación es exclusivamente de servidor; no hay claves ni fallback locales en el cliente. */
 
   /* AUTENTICACIÓN SUPABASE EXCLUSIVA: sin fallback local para ningún acceso. */
   function verificar(scope, value) {
@@ -4378,9 +4248,7 @@ body.sintergia-locked>#sintergia-landing{visibility:visible!important;pointer-ev
         if (!value) { error.textContent = 'Introduce la contraseña.'; return; }
         error.textContent = 'Comprobando…';
         try {
-            /* Autenticación real contra Supabase.
-               La credencial esperada para el acceso principal es la configurada
-               en sintergia.credentials con scope=modo (actualmente SintergiaSE1). */
+            /* La credencial se valida en Supabase; nunca incluir su valor en el cliente. */
             var idServidor = await verificarModo(value);
             if (!idServidor) {
                 error.textContent = 'Contraseña no válida o acceso no autorizado por Supabase.';
