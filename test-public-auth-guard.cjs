@@ -121,8 +121,14 @@ assert.equal(expiredBoot.SintergiaStorageProfile.consumeResume(), null);
 assert.equal(expiredBoot.localStorage.getItem('sintergia_partes'), null);
 
 (async function verifyDemoOutboundMessages() {
-  const sharedResponse = await sharedBoot.fetch('https://sintergiase.example/functions/v1/send-email', { method: 'POST' });
-  assert.equal(sharedBoot.fetchCalls, 1, 'operational profile keeps normal email delivery');
+  const operationalBoot = storageSandbox([], [
+    ...sessionSeed,
+    ['sintergia_modo', 'admin'],
+    ['sintergia_profile_resume_v1', '1']
+  ]);
+  assert.equal(operationalBoot.SintergiaStorageProfile.consumeResume().mode, 'admin');
+  const sharedResponse = await operationalBoot.fetch('https://sintergiase.example/functions/v1/send-email', { method: 'POST' });
+  assert.equal(operationalBoot.fetchCalls, 1, 'operational profile keeps normal email delivery');
   assert.equal(sharedResponse.status, 200);
   const demoResponse = await demoBoot.fetch('https://sintergiase.example/functions/v1/send-email', { method: 'POST' });
   assert.equal(demoBoot.fetchCalls, 0, 'demo notifications never leave the browser');
