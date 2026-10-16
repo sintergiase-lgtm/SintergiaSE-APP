@@ -120,29 +120,29 @@ Siguiente ciclo: probar desde un endpoint web QA los módulos de negocio, Storag
 
 ### Estado exacto
 
-- La PR [#19](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/19) está integrada en \`main\`. Commit desplegado: \`0fd6cba5eb0236b14fff979c815317d0fa1567f0\`.
+- La PR [#19](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/19) está integrada en `main`. Commit desplegado: `0fd6cba5eb0236b14fff979c815317d0fa1567f0`.
 - La URL operativa es [https://sintergiase-app.pages.dev](https://sintergiase-app.pages.dev). Después de la integración respondió HTTP 200. El HTML pasó de 2.872.191 a 276.538 bytes: una reducción del 90,4 % frente al build público anterior.
-- El build transforma 46 bloques JavaScript inline en 45 activos con SHA-256. Los elementos usan \`defer\` para descargar en paralelo y conservar el orden. En la vista previa de la PR, los 45 activos respondieron HTTP 200; se sirven con caché inmutable de un año. El service worker está en versión v8.
+- El build transforma 46 bloques JavaScript inline en 45 activos con SHA-256. Los elementos usan `defer` para descargar en paralelo y conservar el orden. En la vista previa de la PR, los 45 activos respondieron HTTP 200; se sirven con caché inmutable de un año. El service worker está en versión v8.
 - La interfaz de acceso se renderizó en la vista previa y comunica que la contraseña se valida en el backend. No se hizo un inicio de sesión con credenciales reales durante esta comprobación.
-- GitHub Pages mantiene la redirección a Cloudflare y el worker de migración de caché legado. Cloudflare conserva HSTS, \`nosniff\`, bloqueo de iframes, política de referrer y permisos limitados.
-- CI de la PR #19: pasaron Cloudflare Pages, build estático, regresiones de cliente, guardia de acceso y sync P0. El último estado observado del job \`supabase-local-synthetic-roundtrip\` seguía iniciando su stack Supabase local desechable; no registrarlo como aprobado en esta ejecución. La suite de round-trip sintético de dos dispositivos sí pasó en la integración anterior, PR #18.
-- La CSP sigue en \`Report-Only\`. La política separa \`script-src 'self'\` y \`script-src-elem 'self'\`; \`script-src-attr 'unsafe-inline'\` continúa permitido en el informe. Los atributos de evento inline y el HTML que generan algunos módulos todavía deben migrarse antes de activar una CSP de bloqueo.
+- GitHub Pages mantiene la redirección a Cloudflare y el worker de migración de caché legado. Cloudflare conserva HSTS, `nosniff`, bloqueo de iframes, política de referrer y permisos limitados.
+- CI de la PR #19: pasaron Cloudflare Pages, build estático, regresiones de cliente, guardia de acceso y sync P0. El último estado observado del job `supabase-local-synthetic-roundtrip` seguía iniciando su stack Supabase local desechable; no registrarlo como aprobado en esta ejecución. La suite de round-trip sintético de dos dispositivos sí pasó en la integración anterior, PR #18.
+- La CSP sigue en `Report-Only`. La política separa `script-src 'self'` y `script-src-elem 'self'`; `script-src-attr 'unsafe-inline'` continúa permitido en el informe. Los atributos de evento inline y el HTML que generan algunos módulos todavía deben migrarse antes de activar una CSP de bloqueo.
 - La autenticación, el CORS y la sincronización del backend se repararon y probaron previamente con datos sintéticos en QA. Se eliminaron los datos de prueba. No se modificaron credenciales, secretos, esquema ni filas de producción.
 
 ### Trabajo pendiente, por prioridad
 
-1. **Cerrar la verificación de CI:** consultar el resultado final de \`supabase-local-synthetic-roundtrip\` asociado a la PR #19. Si queda colgado o falla al iniciar Docker, distinguir un fallo de infraestructura de un fallo funcional y repetir solo esa prueba si es necesario.
+1. **Cerrar la verificación de CI:** consultar el resultado final de `supabase-local-synthetic-roundtrip` asociado a la PR #19. Si queda colgado o falla al iniciar Docker, distinguir un fallo de infraestructura de un fallo funcional y repetir solo esa prueba si es necesario.
 2. **Separar QA de producción:** las vistas previas de Cloudflare usan el código cliente que apunta al proyecto Supabase de producción. Configurar un destino de backend de QA para vistas previas y confirmar que login, snapshots y sincronización de prueba nunca alcancen producción. No introducir contraseñas reales en una vista previa.
-3. **Completar CSP:** eliminar manejadores \`on*\` del HTML estático y de plantillas creadas dinámicamente; reemplazarlos por listeners externos y acciones tipadas. Validar login, formularios, modales, informes, documentos, recibos y ventanas de impresión en vista previa. Mantener \`Report-Only\` hasta que no haya violaciones necesarias; después aplicar la política y volver a probar. No añadir \`unsafe-eval\`.
+3. **Completar CSP:** eliminar manejadores `on*` del HTML estático y de plantillas creadas dinámicamente; reemplazarlos por listeners externos y acciones tipadas. Validar login, formularios, modales, informes, documentos, recibos y ventanas de impresión en vista previa. Mantener `Report-Only` hasta que no haya violaciones necesarias; después aplicar la política y volver a probar. No añadir `unsafe-eval`.
 4. **Cifrar datos operativos locales:** clientes, partes, facturas, pendientes y existencias se guardan actualmente en almacenamiento del navegador sin cifrado en reposo. El PIN de bloqueo de sesión no cifra esos datos; las copias de seguridad cifradas no resuelven el almacenamiento diario. Diseñar una migración reversible, con recuperación y copia previa, y probarla primero con datos sintéticos en QA. No borrar ni transformar datos de usuarios reales sin verificar recuperación.
 5. **Aplicar límites de coste en servidor:** definir cuotas por usuario/empresa y límites duros para IA, mapas, correo y mensajería. Mantener las claves solo en servidor, añadir idempotencia y controles de abuso, y dejar desactivadas las funciones de pago hasta confirmar cuotas y presupuesto. No presentar el servicio como gratuito continuo sin medirlo.
-6. **Revisar las fronteras de Supabase:** el asesor de seguridad mostró 14 tablas del esquema privado \`sintergia\` con RLS activo y sin políticas. Verificar grants, exposición por API y acceso exclusivo por funciones de servidor; no añadir políticas abiertas para eliminar avisos informativos. Revisar también secretos, retención, límites de intentos y logs.
+6. **Revisar las fronteras de Supabase:** el asesor de seguridad mostró 14 tablas del esquema privado `sintergia` con RLS activo y sin políticas. Verificar grants, exposición por API y acceso exclusivo por funciones de servidor; no añadir políticas abiertas para eliminar avisos informativos. Revisar también secretos, retención, límites de intentos y logs.
 7. **Completar pruebas funcionales:** cubrir login y cierre de sesión, clientes, avisos, partes y firmas, facturas, almacén, horarios, recibos, copias cifradas, sincronización entre dos dispositivos y modo sin conexión. Probar hardware y biometría/WebAuthn en dispositivos reales cuando estén disponibles. Separar fallos de producto de límites del entorno.
 8. **Después de cada cambio:** pasar CI, revisar la vista previa, comprobar cabeceras y recursos, hacer smoke de backend sin datos reales y documentar exactamente qué se probó. Promover a producción solo el commit probado y verificar el despliegue estable.
 
 ### Prompt mejorado para retomar
 
-\`\`\`text
+```text
 Retoma el trabajo de SintergiaSE-APP leyendo este punto de control, el README completo, el estado actual de main y los checks/despliegues reales. Actúa con el rigor de un ingeniero senior de software y arquitecto de sistemas con más de 20 años de práctica: prioriza seguridad verificable, continuidad operativa, recuperación de datos y cambios pequeños que puedan probarse. Sé directo y avanza sin repetir explicaciones ni pedir permisos ya concedidos.
 
 Objetivo: dejar la aplicación operativa y reducir sus riesgos hasta un nivel alto, sin afirmar que está terminada mientras haya comprobaciones o controles pendientes.
@@ -165,4 +165,4 @@ Límites:
 - No declares una función segura, operativa o gratuita sin una prueba que lo demuestre.
 - Si un check queda bloqueado por el entorno, registra el job, el último paso observado y la evidencia; continúa con tareas independientes y vuelve a probar cuando haya progreso.
 - Mantén el README actualizado con el commit, los resultados reales, los riesgos abiertos y el siguiente paso. Al terminar cada tramo, informa brevemente qué cambió, qué pasó y qué sigue pendiente.
-\`\`\`
+```
