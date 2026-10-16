@@ -1,6 +1,6 @@
 import postgres from 'npm:postgres@3.4.3'
 import { readJsonObjectLimited } from '../_shared/request-body.mjs'
-import { validateSessionClaims } from '../_shared/session-claims.mjs'
+import { parseSessionAuthorization, validateSessionClaims } from '../_shared/session-claims.mjs'
 const enc = new TextEncoder(), dec = new TextDecoder()
 const MAX_REQUEST_BYTES = 5_500_000
 let db: any = null
@@ -20,16 +20,15 @@ function b64d(s: string) {
   return o
 }
 async function token(req: Request) {
-  const h = req.headers.get('authorization') || ''
-  if (!h.startsWith('Bearer ')) return null
-  const p = h.slice(7).split('.')
-  if (p.length !== 3 || p[0] !== 'v1') return null
+  const parsed = parseSessionAuthorization(req.headers.get('authorization') || '')
+  if (!parsed) return null
+  const { payloadSegment, signatureSegment } = parsed
   const rows = await sql()`select value from sintergia.server_secrets where name='session_hmac'`
   if (!rows.length) throw new Error('missing_session_hmac')
   try {
     const k = await crypto.subtle.importKey('raw', enc.encode(String(rows[0].value)), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
-    if (!await crypto.subtle.verify('HMAC', k, b64d(p[2]), enc.encode(p[1]))) return null
-    const x = validateSessionClaims(JSON.parse(dec.decode(b64d(p[1]))))
+    if (!await crypto.subtle.verify('HMAC', k, b64d(signatureSegment), enc.encode(payloadSegment))) return null
+    const x = validateSessionClaims(JSON.parse(dec.decode(b64d(payloadSegment))))
     return x || null
   } catch { return null }
 }
