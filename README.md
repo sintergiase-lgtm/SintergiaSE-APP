@@ -10,6 +10,7 @@ Backend: Supabase.
 - **Backend registrado:** producción conserva `authenticate` v16, `realtime-snapshot` v19 y `sync-operations` v18. Ninguna de las PR #20 o #21 se ha desplegado.
 - **PR #20 — [límite de cuerpo en login](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20):** abierta, mergeable; cinco checks verdes. Limita a 4 KiB el JSON del endpoint de autenticación.
 - **PR #21 — [endurecimiento de solicitudes](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** abierta y mergeable. Incluye parser JSON compartido con límites y regresión de preflight CORS para el origen de la vista previa actual de Cloudflare. Estado de checks actualizado en la PR; sin despliegue de Edge Functions.
+- **Limitación de intentos de acceso:** la PR #21 usa solo `CF-Connecting-IP`, establecida en el borde Cloudflare, para derivar la clave del rate limit; descarta `X-Real-IP` y `X-Forwarded-For`, que pueden contener valores aportados por el cliente. Si falta la cabecera confiable o supera 45 caracteres, utiliza la clave común `unknown` (fallo cerrado, con riesgo de limitación compartida hasta recuperar la cabecera). Esta defensa no sustituye identidad individual, límites globales ni protección anti-DDoS.
 - **Datos y entorno:** no se escribieron datos ni secretos de producción. La integración usa Supabase local efímero con datos sintéticos; la prueba CORS solo envía preflight `OPTIONS` de lectura, sin credenciales ni escrituras.
 
 ### Decisión de despliegue
