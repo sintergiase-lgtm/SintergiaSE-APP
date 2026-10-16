@@ -23,7 +23,7 @@ Backend: Supabase.
 
 ### Punto de relevo — endurecimiento detenido y trabajo pendiente (16/10/2026)
 
-**Base revisada:** `main` está en `1816d5d1cd12fa5d08c91d761f53954859c54044`. Incluye los cambios integrados de aislamiento de perfiles de la PR [#26](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/26) y del escenario demo anual de alto volumen de la PR [#27](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/27). La rama `fix/local-crypto-fail-closed-20261016` existe, pero su HEAD es exactamente el mismo commit que `main`: no contiene cambios, commit de código ni PR. El endurecimiento de desbloqueo descrito abajo quedó como siguiente trabajo y **no está implementado**. No hubo despliegue ni cambio de producción en este tramo.
+**Base de código al detenerse:** `main` estaba en `1816d5d1cd12fa5d08c91d761f53954859c54044` e incluía los cambios integrados de aislamiento de perfiles de la PR [#26](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/26) y del escenario demo anual de alto volumen de la PR [#27](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/27). La rama `fix/local-crypto-fail-closed-20261016` apunta a ese mismo commit base y no contiene commits de código ni PR. Esta actualización registra el relevo en el README de `main`; el endurecimiento de desbloqueo descrito abajo **no está implementado**. No hubo despliegue ni cambio de producción en este tramo.
 
 #### Lo que ya está hecho y comprobado
 
