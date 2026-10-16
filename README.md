@@ -9,7 +9,7 @@ Backend: Supabase.
 - **Rama principal:** `main` está en `ff0b7864f8fecbd4512abc0159b1c53170ac68a5`. La comparación con el último commit de aplicación que este README registra como desplegado (`0fd6cba5eb0236b14fff979c815317d0fa1567f0`) muestra únicamente commits de documentación posteriores. La disponibilidad y versión servida en producción no se revalidaron en este ciclo.
 - **Backend registrado:** producción conserva `authenticate` v16, `realtime-snapshot` v19 y `sync-operations` v18. Ninguna de las PR #20 o #21 se ha desplegado.
 - **PR #20 — [límite de cuerpo en login](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20):** abierta, mergeable; cinco checks verdes. Limita a 4 KiB el JSON del endpoint de autenticación.
-- **PR #21 — [lectura JSON compartida y acotada](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** abierta, mergeable; seis checks verdes, incluida integración con Supabase local efímero. Head actual: `e7c4115cd523b9e42b4a64028e373113901ebd41`. [Ejecución](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38849294125).
+- **PR #21 — [lectura JSON compartida y acotada](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21):** abierta y mergeable. La implementación y sus seis checks (incluido Supabase local efímero) pasaron antes del refresh documental; los cambios posteriores de la PR actualizan únicamente este README.
 - **Datos y entorno:** no se escribieron datos ni secretos de producción. Las pruebas de integración usaron una instancia local efímera y datos sintéticos.
 
 ### Decisión de despliegue
@@ -45,7 +45,7 @@ La información siguiente conserva el historial de reparaciones. Para el estado 
 ### Reparaciones preparadas
 
 - **Límite de cuerpo en login — [PR #20](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/20)**, abierta, mergeable y con cinco checks verdes; limita la solicitud JSON a 4 KiB. No está desplegada.
-- **Cuerpos JSON acotados en backend — [PR #21](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21)**, abierta, mergeable y con seis checks verdes. Un lector común para `sync-operations` y `realtime-snapshot` valida `Content-Length`, limita los bytes realmente leídos, cancela excesos y rechaza UTF-8/JSON inválido. [Ejecución actual de CI](https://github.com/sintergiase-lgtm/SintergiaSE-APP/actions/runs/38849294125). No está desplegada.
+- **Cuerpos JSON acotados en backend — [PR #21](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/21)**: un lector común para `sync-operations` y `realtime-snapshot` valida `Content-Length`, limita los bytes realmente leídos, cancela excesos y rechaza UTF-8/JSON inválido. No está desplegada; los resultados de CI se reflejan arriba.
 
 - **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, fusionada en `main` mediante `69057254b65165d654d5608ec34b59c60d3d1122`. Ante 401/403 conserva la operación y la cola pendiente, detiene reintentos hasta reautenticar y los POST diferidos usan la sesión actual. La rama está reconciliada con `main`; el código `42ee856399fd2bb04b68fb862f8beb1d275f7861` pasa regresiones y el round-trip de dos dispositivos virtuales pasa contra Supabase local aislado (CI del head de PR `ec89867795078bc4e9517306e8cff3b13452bb1c`).
 - **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, abierta, en borrador y mergeable. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.
