@@ -36,6 +36,78 @@ assert.match(html, /'\/functions\/v1\/cita-whatsapp': 'whatsapp'/, 'WhatsApp deb
 assert.ok(html.includes("simulateNotice(canal==='email'?'email':'whatsapp')"), 'los enlaces mailto/WhatsApp también deben simularse en demo');
 assert.match(html, /tecnico: 'tecnico', demo: 'demo'/, 'la selección de perfil debe venir del resultado del servidor');
 
+
+function extractFunctionBlock(source, marker) {
+  const start = source.indexOf(marker);
+  assert.ok(start >= 0, 'expected function marker: ' + marker);
+  const open = source.indexOf('{', start + marker.length);
+  assert.ok(open > start, 'expected function body: ' + marker);
+  let depth = 0, quote = null, escaped = false, lineComment = false, blockComment = false;
+  for (let i = open; i < source.length; i++) {
+    const c = source[i], next = source[i + 1];
+    if (lineComment) { if (c === '\n') lineComment = false; continue; }
+    if (blockComment) { if (c === '*' && next === '/') { blockComment = false; i++; } continue; }
+    if (quote) {
+      if (escaped) { escaped = false; continue; }
+      if (c.charCodeAt(0) === 92) { escaped = true; continue; }
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '/' && next === '/') { lineComment = true; i++; continue; }
+    if (c === '/' && next === '*') { blockComment = true; i++; continue; }
+    if ([34, 39, 96].includes(c.charCodeAt(0))) { quote = c; continue; }
+    if (c === '{') depth++;
+    else if (c === '}' && --depth === 0) return source.slice(start, i + 1);
+  }
+  assert.fail('unterminated function: ' + marker);
+}
+
+const demoMarker = 'window.generarEscenarioDemoCompleto = function generarEscenarioDemoCompleto()';
+const demoGenerator = extractFunctionBlock(html, demoMarker);
+const deterministicGenerator = demoGenerator.replace('var hoy = new Date();', 'var hoy = new Date(window.__demoNow);');
+assert.notEqual(deterministicGenerator, demoGenerator, 'annual demo generator must anchor its rolling date window');
+const volumeByMonth = [];
+for (let month = 0; month < 12; month++) {
+  const now = new Date(2026, month, 16, 12);
+  const scenarioWindow = {
+    appState: {},
+    __demoNow: now,
+    sgRefId: (kind, sequence) => kind + '-demo-' + String(sequence).padStart(6, '0'),
+  };
+  new Function('window', deterministicGenerator + ';')(scenarioWindow);
+  scenarioWindow.generarEscenarioDemoCompleto();
+  const scenario = scenarioWindow.appState;
+  assert.equal(scenario.clientes.length, 14, 'demo must use fictitious sample customers');
+  assert.ok(scenario.partes.length >= 700, 'each rolling annual demo must include at least 700 work orders');
+  assert.ok(scenario.pendientes.length >= 350, 'each annual demo must include a high volume of linked customer notices');
+  assert.ok(scenario.facturas.length >= 600, 'each annual demo must include a high volume of linked invoices');
+  const partIds = new Set(scenario.partes.map(part => part.idDoc));
+  assert.equal(partIds.size, scenario.partes.length, 'demo work order IDs must be unique');
+  assert.ok(scenario.pendientes.every(notice => partIds.has(notice.parteId)), 'every demo notice must reference a demo work order');
+  assert.ok(scenario.facturas.every(invoice => partIds.has(invoice.parteVinculadoId)), 'every demo invoice must reference a demo work order');
+  assert.ok(scenario.clientes.every(customer => /@(?:[a-z0-9-]+\.)*example(?:\.com)?$/i.test(customer.email)),
+    'demo customer contacts must use reserved example domains');
+  const oldest = scenario.partes.map(part => {
+    const [day, monthNumber, year] = part.fecha.split('/').map(Number);
+    return new Date(year, monthNumber - 1, day).getTime();
+  }).reduce((a, b) => Math.min(a, b), Infinity);
+  const historyDays = Math.floor((now.getTime() - oldest) / 86400000);
+  assert.ok(historyDays >= 300 && historyDays <= 370, 'demo records must span a rolling year');
+  volumeByMonth.push({ parts: scenario.partes.length, notices: scenario.pendientes.length, invoices: scenario.facturas.length });
+}
+const resetSource = extractFunctionBlock(html, 'function resetearYCrearDatosDemo()');
+let resetScenarioCalls = 0;
+const resetDemo = new Function('window', resetSource + '; return resetearYCrearDatosDemo;')({
+  generarEscenarioDemoCompleto() { resetScenarioCalls++; }
+});
+resetDemo();
+assert.equal(resetScenarioCalls, 1, 'manual demo reset must reload the same annual high-volume scenario');
+console.log('PASS: annual demo volume across all calendar months', JSON.stringify({
+  minParts: Math.min(...volumeByMonth.map(x => x.parts)),
+  minNotices: Math.min(...volumeByMonth.map(x => x.notices)),
+  minInvoices: Math.min(...volumeByMonth.map(x => x.invoices)),
+}));
+
 function storageSandbox(localEntries, sessionEntries) {
   const context = vm.createContext({ URL });
   vm.runInContext(
