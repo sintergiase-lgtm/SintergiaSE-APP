@@ -1,5 +1,13 @@
 name: Public auth source guard
 on:
+  push:
+    branches:
+      - fix/public-auth-credential-leak-20261016
+    paths:
+      - index.html
+      - test-public-auth-guard.cjs
+      - .github/workflows/public-auth-source-guard.yml
+      - README.md
   pull_request:
     paths:
       - index.html
