@@ -22,19 +22,35 @@ async function token(req: Request) {
   if (!h.startsWith('Bearer ')) return null
   const p = h.slice(7).split('.')
   if (p.length !== 3 || p[0] !== 'v1') return null
+
+  // Database/secret lookup failures are infrastructure errors, not invalid credentials.
+  // Let them reach the caller so it can return 503 and the client can retry safely.
+  const rows = await sql()`select value from sintergia.server_secrets where name='session_hmac'`
+  if (!rows.length || !rows[0].value) throw new Error('auth_verification_unavailable')
+
   try {
-    const rows = await sql()`select value from sintergia.server_secrets where name='session_hmac'`
-    if (!rows.length) return null
     const k = await crypto.subtle.importKey('raw', enc.encode(String(rows[0].value)), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
     if (!await crypto.subtle.verify('HMAC', k, b64d(p[2]), enc.encode(p[1]))) return null
     const x = JSON.parse(dec.decode(b64d(p[1])))
-    return x.exp > Date.now() / 1000 ? x : null
+    if (!x || typeof x !== 'object' || !Number.isFinite(Number(x.exp)) || Number(x.exp) <= Date.now() / 1000) return null
+    return x
   } catch { return null }
 }
+const DEFAULT_ALLOWED_ORIGINS = ['https://sintergiase-lgtm.github.io']
+function allowedOrigins() {
+  const configured = (Deno.env.get('ALLOWED_ORIGINS') || '').split(',').map(x => x.trim()).filter(Boolean)
+  const candidates = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...configured])]
+  return new Set(candidates.filter(origin => {
+    try {
+      const u = new URL(origin)
+      return u.protocol === 'https:' && u.origin === origin
+    } catch { return false }
+  }))
+}
 function cors(req: Request) {
-  const o = req.headers.get('origin'), a = (Deno.env.get('ALLOWED_ORIGINS') || '').split(',').map(x => x.trim()).filter(Boolean)
+  const o = req.headers.get('origin')
   const h: any = { 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'authorization,content-type,x-requested-with,x-sintergia-request-id,apikey,x-client-info', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
-  if (o && (!a.length || a.includes(o))) { h['Access-Control-Allow-Origin'] = o; h['Access-Control-Allow-Credentials'] = 'true' }
+  if (o && allowedOrigins().has(o)) { h['Access-Control-Allow-Origin'] = o; h['Access-Control-Allow-Credentials'] = 'true' }
   return h
 }
 function json(req: Request, status: number, body: any) {
@@ -64,7 +80,10 @@ async function readJsonLimited(req: Request): Promise<Record<string, unknown>> {
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) })
   if (req.method !== 'POST') return json(req, 405, { ok: false, error: 'method_not_allowed' })
-  const t = await token(req)
+  let t: Record<string, unknown> | null
+  try { t = await token(req) } catch {
+    return json(req, 503, { ok: false, error: 'auth_verification_unavailable' })
+  }
   if (!t) return json(req, 401, { ok: false, error: 'unauthorized' })
   try {
     let b: Record<string, unknown>
@@ -102,17 +121,24 @@ Deno.serve(async req => {
         on conflict (request_id) do nothing
         returning request_id`
       if (!claimed.length) {
-        const existing = await tx`select result,status, (operation <> ${op} or payload <> ${JSON.stringify(payload)}::jsonb) as mismatch from sintergia.sync_operations where request_id=${rid}`
+        const existing = await tx`select result,status,jsonb_typeof(payload) as payload_type,jsonb_typeof(result) as result_type,
+          (operation <> ${op} or payload <> ${JSON.stringify(payload)}::jsonb) as mismatch
+          from sintergia.sync_operations where request_id=${rid}`
         if (!existing.length) throw new Error('idempotency_record_unavailable')
-        // A request ID must identify one immutable operation and payload. Reusing it for
-        // different content is a conflict, not a successful idempotent retry.
-        if (existing[0].mismatch) return { duplicate: true, conflict: true, status: existing[0].status }
-        if (existing[0].status === 'applied' && existing[0].result != null) {
-          return { duplicate: true, status: existing[0].status, result: existing[0].result }
+        const row = existing[0]
+        // Historical rows may have stored JSON as a JSONB string scalar. Never acknowledge
+        // those rows as applied: force the client to reconcile through a fresh full snapshot.
+        if (row.payload_type !== 'object' || (row.status === 'applied' && row.result_type !== 'object')) {
+          return { duplicate: true, incomplete: true, status: row.status, reason: 'legacy_sync_record_requires_reconciliation' }
         }
-        // Existing rows from an older deployment may have been left in an incomplete state.
-        // Do not falsely report success; require safe recovery/reconciliation.
-        return { duplicate: true, status: existing[0].status, incomplete: true }
+        // A request ID must identify one immutable operation and payload. Reusing it for
+        // different well-formed content is a conflict, not a successful idempotent retry.
+        if (row.mismatch) return { duplicate: true, conflict: true, status: row.status }
+        if (row.status === 'applied' && row.result_type === 'object') {
+          return { duplicate: true, status: row.status, result: row.result }
+        }
+        // Existing rows left in pending/incomplete states are retried through safe recovery.
+        return { duplicate: true, incomplete: true, status: row.status, reason: 'operation_incomplete' }
       }
 
       let result: any = { accepted: true, operation: op }
@@ -123,7 +149,7 @@ Deno.serve(async req => {
     })
 
     if (outcome.conflict) return json(req, 409, { ok: false, error: 'request_id_conflict' })
-    if (outcome.incomplete) return json(req, 503, { ok: false, error: 'operation_incomplete', status: outcome.status })
+    if (outcome.incomplete) return json(req, 503, { ok: false, error: outcome.reason || 'operation_incomplete', status: outcome.status })
     if (outcome.duplicate) return json(req, 200, { ok: true, idempotent: true, status: outcome.status, result: outcome.result })
     return json(req, 200, { ok: true, ...outcome.result })
   } catch {

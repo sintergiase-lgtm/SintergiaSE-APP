@@ -15,23 +15,30 @@ This folder is a reviewed deployment candidate. Do not deploy it to production u
 
 ## Local/Cloud Shell checks
 
-From the repository root:
+From the repository root (the candidate and contract test are stored at the repository root, not under `supabase/functions/`):
 
 ```bash
-node supabase/functions/sync-operations/test-contract.cjs
+node test-contract.cjs
 ```
 
 If Deno is installed, also run:
 
 ```bash
-deno check supabase/functions/sync-operations/index.ts
+deno check sync-operations-v13-candidate.ts
 ```
+
+These are source-contract and type-checking steps; they do not contact the production database and do not prove a real authenticated round trip. The current `test-contract.cjs` reads the actual candidate through `__dirname`, so it also works when invoked outside the repository root.
 
 Check the existing function's authentication setting before deployment; this implementation uses the application's custom HMAC token and is not a Supabase JWT endpoint. Deploy only after approval and after confirming the project's existing `ALLOWED_ORIGINS` secret includes any real secondary HTTPS origin (for example, an app wrapper domain). Do not use `*` as an origin.
 
 ```bash
-supabase functions deploy sync-operations --project-ref bgjicsowspppsjzigazb --no-verify-jwt
+# Run this only in an explicitly selected test project after approval:
+mkdir -p supabase/functions/sync-operations
+cp sync-operations-v13-candidate.ts supabase/functions/sync-operations/index.ts
+supabase functions deploy sync-operations --project-ref <TEST_PROJECT_REF> --no-verify-jwt
 ```
+
+Do not copy/deploy this candidate to the production project until its SQL schema, secret access, CORS allowlist, type check, and authenticated write/read tests have passed. Replace `<TEST_PROJECT_REF>` with the designated test project reference; do not use the production project reference for these validation steps.
 
 After deployment, test with an authenticated, non-production snapshot under a designated test ID; verify a write/read round trip, the returned version, duplicate request IDs, concurrent duplicate requests, and the `405` fallback for delta operations. Do not use real invoice/client data for destructive tests.
 
