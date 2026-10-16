@@ -1,0 +1,37 @@
+name: Request body hardening regression
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - supabase/functions/_shared/request-body.mjs
+      - supabase/functions/sync-operations/index.ts
+      - supabase/functions/realtime-snapshot/index.ts
+      - test-request-body-limits.cjs
+      - .github/workflows/request-body-limits.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - supabase/functions/_shared/request-body.mjs
+      - supabase/functions/sync-operations/index.ts
+      - supabase/functions/realtime-snapshot/index.ts
+      - test-request-body-limits.cjs
+      - .github/workflows/request-body-limits.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  request-body-limits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --check test-request-body-limits.cjs
+      - run: node test-request-body-limits.cjs

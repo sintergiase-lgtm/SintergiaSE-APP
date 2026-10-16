@@ -1,4 +1,5 @@
 import postgres from 'npm:postgres@3.4.3'
+import { readJsonObjectLimited } from '../_shared/request-body.mjs'
 const enc = new TextEncoder(), dec = new TextDecoder()
 const MAX_REQUEST_BYTES = 5_500_000
 let db: any = null
@@ -29,7 +30,7 @@ async function token(req: Request) {
     if (!await crypto.subtle.verify('HMAC', k, b64d(p[2]), enc.encode(p[1]))) return null
     const x = JSON.parse(dec.decode(b64d(p[1])))
     if (!x || typeof x !== 'object' || Array.isArray(x) || typeof x.sub !== 'string' || !x.sub.trim() || x.sub.trim().length > 128) return null
-    if (x.tenant !== undefined && x.tenant !== 'sintergia') return null
+    if (x.tenant !== 'sintergia') return null
     const exp = Number(x.exp)
     return Number.isFinite(exp) && exp > Date.now() / 1000 ? x : null
   } catch { return null }
@@ -48,27 +49,6 @@ function cors(req: Request) {
 function json(req: Request, status: number, body: any) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...cors(req) } })
 }
-async function readJsonLimited(req: Request): Promise<Record<string, unknown>> {
-  const declared = Number(req.headers.get('content-length') || 0)
-  if (declared > MAX_REQUEST_BYTES) throw new RangeError('request_too_large')
-  if (!req.body) throw new SyntaxError('empty_body')
-  const reader = req.body.getReader(), chunks: Uint8Array[] = []
-  let total = 0
-  try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      total += value.byteLength
-      if (total > MAX_REQUEST_BYTES) { await reader.cancel().catch(() => undefined); throw new RangeError('request_too_large') }
-      chunks.push(value)
-    }
-  } finally { reader.releaseLock() }
-  const bytes = new Uint8Array(total); let offset = 0
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
-  const parsed: unknown = JSON.parse(dec.decode(bytes))
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new SyntaxError('invalid_json')
-  return parsed as Record<string, unknown>
-}
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) })
   if (req.method !== 'POST') return json(req, 405, { ok: false, error: 'method_not_allowed' })
@@ -79,7 +59,7 @@ Deno.serve(async req => {
   if (!t) return json(req, 401, { ok: false, error: 'unauthorized' })
   try {
     let b: Record<string, unknown>
-    try { b = await readJsonLimited(req) } catch (error) {
+    try { b = await readJsonObjectLimited(req, MAX_REQUEST_BYTES) } catch (error) {
       return error instanceof RangeError ? json(req, 413, { ok: false, error: 'request_too_large' }) : json(req, 400, { ok: false, error: 'invalid_json' })
     }
     const rid = String(b?.requestId || req.headers.get('x-sintergia-request-id') || '')
