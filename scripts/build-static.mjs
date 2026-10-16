@@ -16,6 +16,7 @@ const outputArg = process.argv[2] || 'dist';
 const OUTPUT = resolve(ROOT, outputArg);
 const MIN_IMAGE_BYTES = 8192;
 const RUNTIME_FILES = [
+  '_headers',
   'sw.js',
   'manifest.webmanifest',
   'offline-guard.js',
