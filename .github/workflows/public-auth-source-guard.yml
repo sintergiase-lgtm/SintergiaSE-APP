@@ -6,6 +6,7 @@ on:
     paths:
       - index.html
       - test-public-auth-guard.cjs
+      - test-local-crypto-fail-closed.cjs
       - test-authenticate-request-body.cjs
       - supabase/functions/authenticate/index.ts
       - supabase/functions/authenticate/request-body.mjs
@@ -15,6 +16,7 @@ on:
     paths:
       - index.html
       - test-public-auth-guard.cjs
+      - test-local-crypto-fail-closed.cjs
       - test-authenticate-request-body.cjs
       - supabase/functions/authenticate/index.ts
       - supabase/functions/authenticate/request-body.mjs
@@ -28,5 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: node --check test-local-crypto-fail-closed.cjs
+      - run: node test-local-crypto-fail-closed.cjs
       - run: node test-public-auth-guard.cjs
       - run: node test-authenticate-request-body.cjs
