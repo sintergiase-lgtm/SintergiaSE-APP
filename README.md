@@ -75,7 +75,7 @@ Las suites automatizadas se ejecutaron después de reconciliar con `main`. La pr
 
 ## Pendiente para cerrar la revisión
 
-1. El backend autenticado ya pasó QA sintético contra el proyecto QA existente. Sigue pendiente preparar un endpoint web QA aislado para probar el frontend completo y hacer las pruebas físicas. Cloud Shell es una vista previa temporal, no un endpoint QA persistente. GitHub Pages ya no sirve la copia anterior: se reemplazó por un redirect y se probó que una sesión con service worker previo termina en Cloudflare. Para QA web todavía hace falta un endpoint temporal aislado; Cloudflare es producción.
+1. El backend autenticado ya pasó QA sintético contra el proyecto QA existente. Siguen pendientes un endpoint web QA aislado para validar el frontend completo y las pruebas físicas. Cloud Shell es una vista previa temporal, no un endpoint QA persistente. GitHub Pages ya solo redirige a Cloudflare y no debe usarse como entorno de QA.
 2. La prueba física descrita arriba sigue pendiente si se requiere cobertura de hardware; la validación virtual solicitada ya está completada. Usar solo sesiones y datos sintéticos.
 3. Probar desde navegador las funciones críticas, los flujos de ruta y geocodificación, normativa, gasolineras, diseño adaptable y animación; registrar errores de consola/red.
 4. El round-trip autenticado POST/GET entre dos contextos virtuales pasó en CI para la PR #2. En hardware aún no se han reproducido desconexión/reinicio, reintento y tombstones; esta cobertura adicional queda condicionada a disponer de teléfonos y QA aislado.
@@ -83,7 +83,7 @@ Las suites automatizadas se ejecutaron después de reconciliar con `main`. La pr
 6. Desactivar o sustituir integraciones de IA, rutas, correo y mensajería que puedan generar cargos, con degradación clara si alcanzan cuotas gratuitas.
 7. Acordar el diseño de gestión/recuperación de claves y la migración antes de cifrar datos existentes.
 
-La PR #2 está fusionada en `main` en `69057254b65165d654d5608ec34b59c60d3d1122`; la PR #16 en `0697d53b80f471479dda34f891462775a305ef24`. El round-trip virtual de dos dispositivos pasa en CI con Supabase local efímero. Cloudflare Pages publica desde `main` en `https://sintergiase-app.pages.dev`; El workflow `Redirect legacy GitHub Pages URL` ya publica desde `pages-redirect/` y migra cachés del service worker antiguo; la prueba en navegador confirmó la redirección a Cloudflare. Cloud Shell es temporal. La contraseña de producción no se modificó.
+La PR #2 está fusionada en `main` en `69057254b65165d654d5608ec34b59c60d3d1122`; la PR #16 en `0697d53b80f471479dda34f891462775a305ef24`. El round-trip virtual de dos dispositivos pasa en CI con Supabase local efímero. Cloudflare Pages publica desde `main` en `https://sintergiase-app.pages.dev`; el workflow `Redirect legacy GitHub Pages URL` ya publica desde `pages-redirect/` y migra cachés del service worker antiguo; la prueba en navegador confirmó la redirección a Cloudflare. Cloud Shell es temporal. La contraseña de producción no se modificó.
 
 
 
