@@ -22,6 +22,8 @@ La PR #2 se fusionó en `main` con el commit `69057254b65165d654d5608ec34b59c60d
 
 ### Reparaciones preparadas
 
+- **Cuerpos JSON acotados en backend — rama `fix/shared-limited-json-body-20261016`**, pendiente de revisión: un lector común para `sync-operations` y `realtime-snapshot` valida `Content-Length`, limita los bytes realmente leídos, cancela excesos y rechaza UTF-8/JSON inválido. Regresión sintética con Node 20; CI pendiente. El cambio no está desplegado ni altera producción.
+
 - **Sincronización P0 — [PR #2](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/2)**, fusionada en `main` mediante `69057254b65165d654d5608ec34b59c60d3d1122`. Ante 401/403 conserva la operación y la cola pendiente, detiene reintentos hasta reautenticar y los POST diferidos usan la sesión actual. La rama está reconciliada con `main`; el código `42ee856399fd2bb04b68fb862f8beb1d275f7861` pasa regresiones y el round-trip de dos dispositivos virtuales pasa contra Supabase local aislado (CI del head de PR `ec89867795078bc4e9517306e8cff3b13452bb1c`).
 - **Fallback de snapshots — [PR #6](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/6)**, abierta, en borrador y mergeable. Encola un snapshot completo antes de retirar operaciones pendientes y conserva las operaciones si no puede confirmarse.
 - **Tombstones y conflictos — [PR #7](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/7)**, abierta, en borrador y mergeable. Conserva eliminaciones y conflictos sin resolver, y verifica la persistencia antes de aplicar snapshots.
