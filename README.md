@@ -23,7 +23,7 @@ Backend: Supabase.
 
 ### Punto de relevo — endurecimiento detenido y trabajo pendiente (16/10/2026)
 
-**Base de código del relevo:** `main` estaba en `1816d5d1cd12fa5d08c91d761f53954859c54044` e incluía los cambios de las PR [#26](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/26) y [#27](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/27). El README se actualizó después en `36e8863f63a02c9c2a671f154e7f7d352c638500`. La rama histórica `fix/local-crypto-fail-closed-20261016` sigue en el commit anterior y no contiene código. La continuación actual parte del `main` actualizado, en `fix/local-crypto-fail-closed-20261016-followup`; los cambios descritos aquí están en revisión local y aún no tienen PR ni despliegue. No se ha modificado QA ni producción.
+**Base de código del relevo:** `main` estaba en `1816d5d1cd12fa5d08c91d761f53954859c54044` e incluía los cambios de las PR [#26](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/26) y [#27](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/27). El README se actualizó después en `36e8863f63a02c9c2a671f154e7f7d352c638500`. La rama histórica `fix/local-crypto-fail-closed-20261016` sigue en el commit anterior y no contiene código. La continuación actual parte de `main` (`36e8863f63a02c9c2a671f154e7f7d352c638500`) y está presentada como PR de borrador [#28](https://github.com/sintergiase-lgtm/SintergiaSE-APP/pull/28), desde `fix/local-crypto-fail-closed-20261016-followup`. La verificación local está documentada; la rama no está integrada ni desplegada. No se ha modificado QA ni producción.
 
 #### Lo que ya está hecho y comprobado
 
