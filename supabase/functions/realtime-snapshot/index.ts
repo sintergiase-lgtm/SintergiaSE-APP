@@ -1,5 +1,6 @@
 import postgres from 'npm:postgres@3.4.3'
-import { readJsonObjectLimited } from '../_shared/request-body.mjs'\nimport { validateSessionClaims } from '../_shared/session-claims.mjs'
+import { readJsonObjectLimited } from '../_shared/request-body.mjs'
+import { validateSessionClaims } from '../_shared/session-claims.mjs'
 const enc=new TextEncoder(),dec=new TextDecoder();let db:any=null
 function sql(){if(!db){const u=Deno.env.get('SUPABASE_DB_URL');if(!u)throw new Error('missing_db_url');db=postgres(u,{max:1,prepare:false,idle_timeout:5,max_lifetime:60,connect_timeout:5})}return db}
 async function dbq<T>(op:(d:any)=>Promise<T>):Promise<T>{let last:any;for(let i=0;i<2;i++){try{return await op(sql())}catch(e){last=e;db=null;if(i===0)await new Promise(r=>setTimeout(r,75))}}throw last}
